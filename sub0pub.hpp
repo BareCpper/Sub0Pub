@@ -1,8 +1,19 @@
-/// @copyright  2018 Craig HutchinsonAll Rights Reserved
+/** Sub0Pub - Near-Compile time data Publisher & Subscriber model for embedded, desktop, and distributed systems
+    Copyright (C) 2018 Craig Hutchinson (craig-sub0pub@crog.uk)
 
-// ######################################################
-// ################# Sub0Pub API Code ###################
-// ######################################################
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or any 
+    later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>
+*/
 
 namespace sub0 
 {
