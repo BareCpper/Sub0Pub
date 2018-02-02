@@ -28,5 +28,10 @@
 
 # Executables
 *.exe
+
+# VC directories
+.vs
+Debug
+Release
 *.out
 *.app
