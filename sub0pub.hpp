@@ -167,4 +167,18 @@ namespace sub0
     
     template<typename Data>  
     SubscribeTo<Data>* Broker<Data>::subscriptions_[Broker<Data>::cMaxSubscriptions] = {nullptr};
+	
+    /** Publish data, used when inheriting from multiple PublishTo<> base types
+     * @remark Circumvents C++ Name-Hiding limitations when multiple PublishTo<> base types are present i.e. publish( 1.0F) is ambiguous in this case.
+     * @note Compiler error will occur if From does not inherit PublishTo<Data>
+     * 
+     * @param[in] from  Producer object inheriting from one or more PublishTo<> objects
+     * @param[in] data  Data that will be published using the base PublishTo<Data> object of From
+     */
+    template<typename From, typename Data>
+    void publish( const From* from, const Data& data )
+    {
+        const PublishTo<Data>& publisher = *from;
+        publisher.publish( data );
+    }
 }
