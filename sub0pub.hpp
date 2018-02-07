@@ -15,8 +15,9 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>
 */
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
+#include <cassert> // for assert()
+#include <cstdint> // For uint32_t
+#include <iostream> // For std::cout
 
 namespace sub0 
 {
