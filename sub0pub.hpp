@@ -16,6 +16,7 @@
 */
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 
 namespace sub0 
 {
@@ -39,7 +40,7 @@ namespace sub0
 			assert( subscriber != nullptr );
 			assert( count < capacity );
 			if ( cMessageTrace )
-				std::cout << "Subscription " << *subscriber << " to Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+				std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
 		}
 
 		template<typename Data>
@@ -48,15 +49,15 @@ namespace sub0
 			assert( publisher != nullptr );
 			assert( count < capacity );
 			if ( cMessageTrace )
-				std::cout << "Publisher " << *publisher << '>' << broker << '[' << typeid(Data).name () << ']' << std::endl;
+				std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
 		}
 
 		template<typename Data>
 		static void onPublish( const PublishTo<Data>& publisher, const Data& data )
 		{
 			if ( cMessageTrace )
-				std::cout << "Publisher " << publisher 
-					<< " sent " << data<< '[' << typeid(Data).name () << ']' << std::endl;
+				std::cout << "[Sub0Pub] Published " << publisher 
+					<< " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
 		}
 
 		template<typename Data>
@@ -64,12 +65,12 @@ namespace sub0
 		{
 			assert( subscriber != nullptr );
 			if ( cMessageTrace )
-				std::cout << "Subscriber " << *subscriber
-					<< " received " << data << '[' << typeid(Data).name () << ']' << std::endl;
+				std::cout << "[Sub0Pub] Received " << *subscriber
+					<< " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
 		}
 	};
 	typedef BrokerDetailT<true> BrokerDetail;
-
+    
     /** Base type for an object that subscribes to some strong-typed Data
      */
     template< typename Data >
@@ -78,7 +79,10 @@ namespace sub0
     public:
         /** Registers the subscriber within the broker framework
          */
-        SubscribeTo() : broker_( this ) {}
+        SubscribeTo() 
+#pragma warning(suppress: 4355)    ///< warning C4355: 'this' : used in base member initializer list 
+        : broker_( this ) 
+        {}
     
         /** Receive published Data
          * @remark Data is published from PublishTo<Data>::publish
@@ -102,12 +106,15 @@ namespace sub0
     public:
         /** Registers the publisher within the broker framework
          */
-        PublishTo() : broker_( this ) {}
+        PublishTo()   
+  #pragma warning(suppress: 4355)    ///< warning C4355: 'this' : used in base member initializer list 
+        : broker_( this ) 
+        {}
     
         /** Publish data to subscribers 
          * @remark Data is received by SubscribeTo<Data>::receive
          */
-        void publish( const Data& data )
+        void publish( const Data& data ) const
         { 
 			BrokerDetail::onPublish( *this, data );
 			broker_.publish (data); 
@@ -134,8 +141,8 @@ namespace sub0
     public:
         Broker ( SubscribeTo<Data>* subscriber )
         {
-			BrokerDetail::onSubscription( *this, subscriber, subscriptionCount_, cMaxSubscriptions );
-            subscriptions_[subscriptionCount_++] = subscriber;     
+			BrokerDetail::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+            state_.subscriptions[state_.subscriptionCount++] = subscriber;     
         }
 
         Broker ( PublishTo<Data>* publisher )
@@ -144,29 +151,38 @@ namespace sub0
             // Do nothing for now...
         }
     
-        void publish (const Data & data)
+        void publish (const Data & data) const
         {
-            const uint32_t subscriptionCount = std::min(subscriptionCount_,cMaxSubscriptions);
+            const uint32_t subscriptionCount = std::min( state_.subscriptionCount, cMaxSubscriptions );
             for ( uint32_t iSubscription = 0U; iSubscription < subscriptionCount; ++iSubscription )
             {
-				BrokerDetail::onReceive( subscriptions_[iSubscription], data );
-                subscriptions_[iSubscription]->receive(data);
+                SubscribeTo<Data>* subscription = state_.subscriptions[iSubscription];
+				BrokerDetail::onReceive( subscription, data );
+                subscription->receive(data);
             }
         }
 
+        /** Prints address of monotonic state
+        */
 		friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
-		{ return stream << (void*)&subscriptionCount_; }
+		{ return stream << (void*)&broker.state_; }
     
     private:
-        static uint32_t subscriptionCount_; ///< Count of subscriptions_
-        static SubscribeTo<Data>* subscriptions_[cMaxSubscriptions];	///< MonoState subscription table @todo support multiple subscription
+        /** Object state as monotonic object shared by all instances
+        */
+        struct State
+        {
+            uint32_t subscriptionCount; ///< Count of subscriptions_
+            SubscribeTo<Data>* subscriptions[cMaxSubscriptions];	///< Subscription table @todo More flexible count-support
+        };
+        static State state_; ///< MonoState subscription table
     };
     
+    /** Monotonic broker state
+     * @todo State should be shared across module boundaries and owned/defined in a single module e.g. std::cout like singleton
+     */
     template<typename Data>  
-    uint32_t Broker<Data>::subscriptionCount_ = 0U;
-    
-    template<typename Data>  
-    SubscribeTo<Data>* Broker<Data>::subscriptions_[Broker<Data>::cMaxSubscriptions] = {nullptr};
+    typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
 	
     /** Publish data, used when inheriting from multiple PublishTo<> base types
      * @remark Circumvents C++ Name-Hiding limitations when multiple PublishTo<> base types are present i.e. publish( 1.0F) is ambiguous in this case.
