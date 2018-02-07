@@ -14,10 +14,19 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <http://www.gnu.org/licenses/>
 */
+#ifndef CROG_SUB0PUB_HPP
+#define CROG_SUB0PUB_HPP
+
 #include <algorithm>
-#include <cassert> // for assert()
-#include <cstdint> // For uint32_t
-#include <iostream> // For std::cout
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+
+/** Define SUB0PUB_TRACE=true to enable message logging to std::cout for event trace, SUB0PUB_TRACE=false to disable SUB0PUB_TRACE={empty} for default 
+*/
+#ifndef SUB0PUB_TRACE
+#define SUB0PUB_TRACE
+#endif
 
 namespace sub0 
 {
@@ -32,7 +41,7 @@ namespace sub0
 
 
 	/** @tparam[in] cMessageTrace Enable logging for broker events */
-	template< const bool cMessageTrace>
+	template< const bool cMessageTrace = false>
 	struct BrokerDetailT
 	{
 		template<typename Data>
@@ -41,7 +50,9 @@ namespace sub0
 			assert( subscriber != nullptr );
 			assert( count < capacity );
 			if ( cMessageTrace )
+            {
 				std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+            }
 		}
 
 		template<typename Data>
@@ -50,15 +61,19 @@ namespace sub0
 			assert( publisher != nullptr );
 			assert( count < capacity );
 			if ( cMessageTrace )
+            {
 				std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+            }
 		}
 
 		template<typename Data>
 		static void onPublish( const PublishTo<Data>& publisher, const Data& data )
 		{
 			if ( cMessageTrace )
+            {
 				std::cout << "[Sub0Pub] Published " << publisher 
 					<< " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+            }
 		}
 
 		template<typename Data>
@@ -66,12 +81,20 @@ namespace sub0
 		{
 			assert( subscriber != nullptr );
 			if ( cMessageTrace )
+            {
 				std::cout << "[Sub0Pub] Received " << *subscriber
 					<< " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+            }
 		}
 	};
-	typedef BrokerDetailT<true> BrokerDetail;
+
+    /** Broker detail type
+     */
+	typedef BrokerDetailT<SUB0PUB_TRACE> BrokerDetail;
     
+#pragma warning(push)
+#pragma warning(disable:4355) ///< warning C4355: 'this' : used in base member initializer list
+
     /** Base type for an object that subscribes to some strong-typed Data
      */
     template< typename Data >
@@ -79,18 +102,21 @@ namespace sub0
     {
     public:
         /** Registers the subscriber within the broker framework
+         * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        SubscribeTo() 
-#pragma warning(suppress: 4355)    ///< warning C4355: 'this' : used in base member initializer list 
-        : broker_( this ) 
+        SubscribeTo( const char* dataName = nullptr ) 
+        : broker_( this, dataName ) 
         {}
     
         /** Receive published Data
          * @remark Data is published from PublishTo<Data>::publish
          */
         virtual void receive( const Data & data ) = 0;
-
-		virtual const char* name() const { return typeid(Data).name(); }
+        
+        /** get broker data-name
+        */
+		const char* name() const
+        { return broker_.name(); }
 
 		friend std::ostream& operator<< ( std::ostream& stream, const SubscribeTo<Data>& subscriber )
 		{ return stream << subscriber.name() << '{' << (void*)&subscriber << '}'; }
@@ -106,10 +132,10 @@ namespace sub0
     {
     public:
         /** Registers the publisher within the broker framework
+         * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        PublishTo()   
-  #pragma warning(suppress: 4355)    ///< warning C4355: 'this' : used in base member initializer list 
-        : broker_( this ) 
+        PublishTo( const char* dataName = nullptr )   
+        : broker_( this, dataName ) 
         {}
     
         /** Publish data to subscribers 
@@ -121,7 +147,10 @@ namespace sub0
 			broker_.publish (data); 
 		}
         
-		virtual const char* name() const { return typeid(Data).name(); }
+        /** get broker data-name
+        */
+		const char* name() const
+        { return broker_.name(); }
 
 		friend std::ostream& operator<< ( std::ostream& stream, const PublishTo<Data>& publisher )
 		{ return stream << publisher.name() << '{' << (void*)&publisher << '}'; }
@@ -130,6 +159,8 @@ namespace sub0
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
     
+#pragma warning(pop)
+
     /** Broker manages publisher-subscriber connection for a data-type
      * @todo Cross-module support
      */
@@ -140,16 +171,34 @@ namespace sub0
         static const uint32_t cMaxSubscriptions = 5U;
     
     public:
-        Broker ( SubscribeTo<Data>* subscriber )
+        /**
+        * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        */
+        Broker ( SubscribeTo<Data>* subscriber, const char* dataName = nullptr )
         {
 			BrokerDetail::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+            setDataName(dataName);
             state_.subscriptions[state_.subscriptionCount++] = subscriber;     
         }
-
-        Broker ( PublishTo<Data>* publisher )
+        
+        /**
+        * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        */
+        Broker ( PublishTo<Data>* publisher, const char* dataName = nullptr )
         {
 			BrokerDetail::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
+            setDataName(dataName);
             // Do nothing for now...
+        }
+
+        void setDataName( const char* dataName )
+        {
+            if ( dataName == nullptr )
+                return;
+            
+            // @todo use BrokerDetail and handle if a subscriber uses a different name better
+            assert( (state_.dataName==nullptr) || (strcmp(state_.dataName,dataName)==0) ); 
+            state_.dataName = dataName;
         }
     
         void publish (const Data & data) const
@@ -163,6 +212,11 @@ namespace sub0
             }
         }
 
+        /** Unique identifer name given to the broker for inter-process connections
+        */
+        const char* name() const
+        { return state_.dataName != nullptr ? state_.dataName : typeid(Data).name(); }
+
         /** Prints address of monotonic state
         */
 		friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
@@ -175,6 +229,7 @@ namespace sub0
         {
             uint32_t subscriptionCount; ///< Count of subscriptions_
             SubscribeTo<Data>* subscriptions[cMaxSubscriptions];	///< Subscription table @todo More flexible count-support
+            const char* dataName; ///< user defined data name overrides non-portable compiler-generated name
         };
         static State state_; ///< MonoState subscription table
     };
@@ -199,3 +254,5 @@ namespace sub0
         publisher.publish( data );
     }
 }
+
+#endif
