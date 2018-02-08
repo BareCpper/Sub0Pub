@@ -41,14 +41,14 @@ namespace sub0
 {
     namespace utility
     {
-        /** Create 4byte packed value at compile time
+    /** Create 4byte packed value at compile time
          * @tparam a,b,c,d  Characters which will be packed into 4-byte uint32_t value
-         */
-        template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
-        struct FourCC
-        {
-            static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
-        };
+     */
+    template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
+    struct FourCC
+    {
+        static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
+    };
 
         /** Hash a string using djb2 hash
          * @param[in] str  Null-terminated string to calculate hash of
@@ -81,19 +81,19 @@ namespace sub0
              * @param subscriptionCount  Count of existing registered subscriptions on the broker
              * @param subscriptionCapacity  Count specifying subscriptionCount limit for the broker
              */
-            template<typename Data>
+        template<typename Data>
             static void onSubscription( const Broker<Data>& broker, SubscribeTo<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
-            {
+        {
                 if ( cDoAssert )
                 {
-                    assert( subscriber != nullptr );
+            assert( subscriber != nullptr );
                     assert( subscriptionCount < subscriptionCapacity );
                 }
-                if ( cMessageTrace )
-                {
-                    std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
-                }
+            if ( cMessageTrace )
+            {
+                std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
             }
+        }
 
             /** Diagnose creation of new publisher
              * @param publisher  Publisher to be registered into the broker
@@ -101,55 +101,55 @@ namespace sub0
              * @param publisherCount  Count of existing registered publishers on the broker
              * @param publisherCapacity  Count specifying publisherCount limit for the broker
              */
-            template<typename Data>
+        template<typename Data>
             static void onPublication( PublishTo<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
             {
                 if ( cDoAssert )
-                {
-                    assert( publisher != nullptr );
+        {
+            assert( publisher != nullptr );
                     assert( publisherCount < publisherCapacity );
                 }
-                if ( cMessageTrace )
-                {
-                    std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
-                }
+            if ( cMessageTrace )
+            {
+                std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
             }
+        }
 
             /** Diagnose data publish event
              * @param publisher  Publisher that is sending the data
              * @param data  The data to be published
              */
-            template<typename Data>
-            static void onPublish( const PublishTo<Data>& publisher, const Data& data )
+        template<typename Data>
+        static void onPublish( const PublishTo<Data>& publisher, const Data& data )
+        {
+            if ( cMessageTrace )
             {
-                if ( cMessageTrace )
-                {
-                    std::cout << "[Sub0Pub] Published " << publisher
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
-                }
+                std::cout << "[Sub0Pub] Published " << publisher
+                    << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
             }
+        }
 
             /** Diagnose data receive event
              * @param subscriber  Subscriber that is receiving the data
              * @param data  The data that is received
              */
-            template<typename Data>
-            static void onReceive( SubscribeTo<Data>* subscriber, const Data& data )
-            {
+        template<typename Data>
+        static void onReceive( SubscribeTo<Data>* subscriber, const Data& data )
+        {
                 if ( cDoAssert )
                 {
-                    assert( subscriber != nullptr );
+            assert( subscriber != nullptr );
                 }
-                if ( cMessageTrace )
-                {
-                    std::cout << "[Sub0Pub] Received " << *subscriber
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
-                }
+            if ( cMessageTrace )
+            {
+                std::cout << "[Sub0Pub] Received " << *subscriber
+                    << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
             }
-        };
+        }
+    };
 
         /** Runtime checker type wiht suport for assert/exception/trace etc
-         */
+     */
         typedef CheckT<SUB0PUB_TRACE,SUB0PUB_ASSERT> Check;
 
     }
@@ -202,7 +202,7 @@ namespace sub0
 
         /** Get name identifier of the Data from the broker
          * @return Broker null-terminated type name
-         */
+        */
         const char* typeName() const
         { return broker_.typeName(); }
 
@@ -244,7 +244,7 @@ namespace sub0
 
         /** Get name identifier of the Data from the broker
          * @return Broker null-terminated type name
-         */
+        */
         const char* typeName() const
         { return broker_.typeName(); }
 
@@ -274,8 +274,8 @@ namespace sub0
 
     public:
         /** Registers subscriber in brokers subscription table
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
-         */
+        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        */
         Broker ( SubscribeTo<Data>* subscriber, const char* typeName = nullptr )
         {
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
@@ -285,8 +285,8 @@ namespace sub0
 
         /** Validated publication
          * @remark No record of publishers of data is currently maintained
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
-         */
+        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        */
         Broker ( PublishTo<Data>* publisher, const char* typeName = nullptr )
         {
             detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
@@ -328,7 +328,7 @@ namespace sub0
          * @param stream  Stream to output into
          * @param broker  Broker instance to output for
          * @return The 'stream' instance
-         */
+        */
         friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
         { return stream << (void*)&broker.state_; }
 
@@ -377,7 +377,7 @@ namespace sub0
 
     /** Binary protocol for serialised signal and data transfer
      * @remark The protocol consists of a Header chunk followed by Header::dataBytes bytes of payload data
-     */
+    */
     struct BinaryProtocol
     {
         /** Header containing signal type information
@@ -407,7 +407,7 @@ namespace sub0
         /** Output data pay-load as binary
          * @param stream  Stream to write into
          * @param data  Data to write data from
-         */
+        */
         template<typename Data>
         static void writePayload( std::ostream& stream, const Data& data )
         { stream.write( reinterpret_cast<const char*>(&data), sizeof(data) ); }
@@ -448,7 +448,7 @@ namespace sub0
     };
 
     /** Forward receive() to  Target type convertible from this
-    * @remark The call is made with Data type allowing for templated forward() handler functions @see class Stream
+    * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
     */
     template<typename Data, typename Target >
