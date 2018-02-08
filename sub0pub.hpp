@@ -66,94 +66,6 @@ namespace sub0
         }
     }
 
-    namespace detail
-    {
-        /** Provides debug assertion/exception checks for Broker<>
-         * @tparam cMessageTrace   Enable logging for broker events
-         * @tparam cDoAssert         Enable assertion tests for invalid parameters
-         */
-        template< const bool cMessageTrace = false, const bool cDoAssert = true >
-        struct CheckT
-        {
-            /** Diagnose creation of new subscriber
-             * @param broker  Broker instance that manages the connection
-             * @param subscriber  Subscriber to be registered into the broker
-             * @param subscriptionCount  Count of existing registered subscriptions on the broker
-             * @param subscriptionCapacity  Count specifying subscriptionCount limit for the broker
-             */
-        template<typename Data>
-            static void onSubscription( const Broker<Data>& broker, SubscribeTo<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
-        {
-                if ( cDoAssert )
-                {
-            assert( subscriber != nullptr );
-                    assert( subscriptionCount < subscriptionCapacity );
-                }
-            if ( cMessageTrace )
-            {
-                std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
-            }
-        }
-
-            /** Diagnose creation of new publisher
-             * @param publisher  Publisher to be registered into the broker
-             * @param broker  Broker instance that manages the connection
-             * @param publisherCount  Count of existing registered publishers on the broker
-             * @param publisherCapacity  Count specifying publisherCount limit for the broker
-             */
-        template<typename Data>
-            static void onPublication( PublishTo<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
-            {
-                if ( cDoAssert )
-        {
-            assert( publisher != nullptr );
-                    assert( publisherCount < publisherCapacity );
-                }
-            if ( cMessageTrace )
-            {
-                std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
-            }
-        }
-
-            /** Diagnose data publish event
-             * @param publisher  Publisher that is sending the data
-             * @param data  The data to be published
-             */
-        template<typename Data>
-        static void onPublish( const PublishTo<Data>& publisher, const Data& data )
-        {
-            if ( cMessageTrace )
-            {
-                std::cout << "[Sub0Pub] Published " << publisher
-                    << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
-            }
-        }
-
-            /** Diagnose data receive event
-             * @param subscriber  Subscriber that is receiving the data
-             * @param data  The data that is received
-             */
-        template<typename Data>
-        static void onReceive( SubscribeTo<Data>* subscriber, const Data& data )
-        {
-                if ( cDoAssert )
-                {
-            assert( subscriber != nullptr );
-                }
-            if ( cMessageTrace )
-            {
-                std::cout << "[Sub0Pub] Received " << *subscriber
-                    << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
-            }
-        }
-    };
-
-        /** Runtime checker type wiht suport for assert/exception/trace etc
-     */
-        typedef CheckT<SUB0PUB_TRACE,SUB0PUB_ASSERT> Check;
-
-    }
-
     /** Broker manages publisher-subscriber connection for a 'Data' type
      * @tparam Data  Data type which this instance manages connections for
      */
@@ -172,6 +84,93 @@ namespace sub0
     template< typename Data >
     class SubscribeTo;
 
+    namespace detail
+    {
+        /** Provides debug assertion/exception checks for Broker<>
+         * @tparam cMessageTrace   Enable logging for broker events
+         * @tparam cDoAssert         Enable assertion tests for invalid parameters
+         */
+        template< const bool cMessageTrace = false, const bool cDoAssert = true >
+        struct CheckT
+        {
+            /** Diagnose creation of new subscriber
+             * @param broker  Broker instance that manages the connection
+             * @param subscriber  Subscriber to be registered into the broker
+             * @param subscriptionCount  Count of existing registered subscriptions on the broker
+             * @param subscriptionCapacity  Count specifying subscriptionCount limit for the broker
+             */
+            template<typename Data>
+            static void onSubscription( const Broker<Data>& broker, SubscribeTo<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
+            {
+                if ( cDoAssert )
+                {
+                    assert( subscriber != nullptr );
+                    assert( subscriptionCount < subscriptionCapacity );
+                }
+                if ( cMessageTrace )
+                {
+                    std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+                }
+            }
+
+            /** Diagnose creation of new publisher
+             * @param publisher  Publisher to be registered into the broker
+             * @param broker  Broker instance that manages the connection
+             * @param publisherCount  Count of existing registered publishers on the broker
+             * @param publisherCapacity  Count specifying publisherCount limit for the broker
+             */
+            template<typename Data>
+            static void onPublication( PublishTo<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
+            {
+                if ( cDoAssert )
+                {
+                    assert( publisher != nullptr );
+                    assert( publisherCount < publisherCapacity );
+                }
+                if ( cMessageTrace )
+                {
+                    std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+                }
+            }
+
+            /** Diagnose data publish event
+             * @param publisher  Publisher that is sending the data
+             * @param data  The data to be published
+             */
+            template<typename Data>
+            static void onPublish( const PublishTo<Data>& publisher, const Data& data )
+            {
+                if ( cMessageTrace )
+                {
+                    std::cout << "[Sub0Pub] Published " << publisher
+                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+                }
+            }
+
+            /** Diagnose data receive event
+             * @param subscriber  Subscriber that is receiving the data
+             * @param data  The data that is received
+             */
+            template<typename Data>
+            static void onReceive( SubscribeTo<Data>* subscriber, const Data& data )
+            {
+                if ( cDoAssert )
+                {
+                    assert( subscriber != nullptr );
+                }
+                if ( cMessageTrace )
+                {
+                    std::cout << "[Sub0Pub] Received " << *subscriber
+                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+                }
+            }
+        };
+
+        /** Runtime checker type with support for assert/exception/trace etc
+         */
+        typedef CheckT<SUB0PUB_TRACE,SUB0PUB_ASSERT> Check;
+
+    }
 
 #pragma warning(push)
 #pragma warning(disable:4355) ///< warning C4355: 'this' : used in base member initializer list
@@ -301,7 +300,9 @@ namespace sub0
         void setDataName( const char* const typeName )
         {
             if ( typeName == nullptr )
+            {
                 return;
+            }
 
             // @todo use RuntimeCheck and handle if a subscriber uses a different name better
             assert( (state_.typeName==nullptr) || (strcmp(state_.typeName,typeName)==0) );
@@ -330,17 +331,23 @@ namespace sub0
          * @return The 'stream' instance
         */
         friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
-        { return stream << (void*)&broker.state_; }
+        {
+            return stream << (void*)&broker.state_;
+        }
 
         /** @return Unique identifier index for inter-process binary connections
         */
         static uint32_t typeId()
-        { return state_.typeId; }
+        {
+            return state_.typeId;
+        }
 
         /** @return Unique identifier name for inter-process text connections
         */
         static const char* typeName()
-        { return state_.typeName != nullptr ? state_.typeName : typeid(Data).name(); }
+        {
+            return state_.typeName != nullptr ? state_.typeName : typeid(Data).name();
+        }
 
     private:
         /** Object state as monotonic object shared by all instances
