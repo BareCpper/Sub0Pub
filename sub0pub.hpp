@@ -18,9 +18,10 @@
 #define CROG_SUB0PUB_HPP
 
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
-#include <iostream>
+#include <cassert> // assert
+#include <cstdint> // uint32_t
+#include <iostream> // std::cout
+#include <functional> // std::hash @todo Remove as C++11
 
 /** Define SUB0PUB_TRACE=true to enable message logging to std::cout for event trace, SUB0PUB_TRACE=false to disable SUB0PUB_TRACE={empty} for default 
 */
@@ -39,6 +40,14 @@ namespace sub0
 	template< typename Data >
 	class PublishTo;
     
+    /** Create 4byte packed value at compile time
+     */
+    template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
+    struct FourCC
+    {
+        static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
+    };
+
 	/** @tparam[in] cMessageTrace Enable logging for broker events */
 	template< const bool cMessageTrace = false>
 	struct BrokerDetailT
@@ -101,10 +110,10 @@ namespace sub0
     {
     public:
         /** Registers the subscriber within the broker framework
-         * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        SubscribeTo( const char* dataName = nullptr ) 
-        : broker_( this, dataName ) 
+        SubscribeTo( const char* typeName = nullptr ) 
+        : broker_( this, typeName ) 
         {}
     
         /** Receive published Data
@@ -114,11 +123,11 @@ namespace sub0
         
         /** get broker data-name
         */
-		const char* name() const
-        { return broker_.name(); }
+		const char* typeName() const
+        { return broker_.typeName(); }
 
 		friend std::ostream& operator<< ( std::ostream& stream, const SubscribeTo<Data>& subscriber )
-		{ return stream << subscriber.name() << '{' << (void*)&subscriber << '}'; }
+		{ return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
 
     private:
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
@@ -131,10 +140,10 @@ namespace sub0
     {
     public:
         /** Registers the publisher within the broker framework
-         * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        PublishTo( const char* dataName = nullptr )   
-        : broker_( this, dataName ) 
+        PublishTo( const char* typeName = nullptr )   
+        : broker_( this, typeName ) 
         {}
     
         /** Publish data to subscribers 
@@ -148,16 +157,29 @@ namespace sub0
         
         /** get broker data-name
         */
-		const char* name() const
-        { return broker_.name(); }
+		const char* typeName() const
+        { return broker_.typeName(); }
 
 		friend std::ostream& operator<< ( std::ostream& stream, const PublishTo<Data>& publisher )
-		{ return stream << publisher.name() << '{' << (void*)&publisher << '}'; }
+		{ return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
 
     private:
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
     
+    /** Hash a string using djb2 hash
+    * @todo Implement as compile time with name
+    */
+    inline uint32_t hash( const char* str)
+    {
+        uint32_t hash = 5381U;
+        for ( ; str[0U] != '\0'; ++str )
+        {
+            hash = ((hash << 5) + hash) + str[0U]; /* hash * 33 + c */
+        }
+        return hash;
+    }
+
 #pragma warning(pop)
 
     /** Broker manages publisher-subscriber connection for a data-type
@@ -171,33 +193,35 @@ namespace sub0
     
     public:
         /**
-        * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
         */
-        Broker ( SubscribeTo<Data>* subscriber, const char* dataName = nullptr )
+        Broker ( SubscribeTo<Data>* subscriber, const char* typeName = nullptr )
         {
 			BrokerDetail::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
-            setDataName(dataName);
+            setDataName(typeName);
             state_.subscriptions[state_.subscriptionCount++] = subscriber;     
         }
         
         /**
-        * @param[in] dataName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
         */
-        Broker ( PublishTo<Data>* publisher, const char* dataName = nullptr )
+        Broker ( PublishTo<Data>* publisher, const char* typeName = nullptr )
         {
 			BrokerDetail::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
-            setDataName(dataName);
+            setDataName(typeName);
             // Do nothing for now...
         }
 
-        void setDataName( const char* dataName )
+        void setDataName( const char* typeName )
         {
-            if ( dataName == nullptr )
+            if ( typeName == nullptr )
                 return;
             
             // @todo use BrokerDetail and handle if a subscriber uses a different name better
-            assert( (state_.dataName==nullptr) || (strcmp(state_.dataName,dataName)==0) ); 
-            state_.dataName = dataName;
+            assert( (state_.typeName==nullptr) || (strcmp(state_.typeName,typeName)==0) ); 
+            state_.typeName = typeName;            
+            state_.typeId = sub0::hash( state_.typeName ); // Cachhe hash result
+
         }
     
         void publish (const Data & data) const
@@ -211,16 +235,21 @@ namespace sub0
             }
         }
 
-        /** Unique identifer name given to the broker for inter-process connections
-        */
-        const char* name() const
-        { return state_.dataName != nullptr ? state_.dataName : typeid(Data).name(); }
-
         /** Prints address of monotonic state
         */
 		friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
 		{ return stream << (void*)&broker.state_; }
-    
+            
+        /** Unique identifer index for inter-process binary connections
+        */
+        static uint32_t typeId()
+        { return state_.typeId; }
+
+        /** Unique identifer name for inter-process text connections
+        */
+        static const char* typeName()
+        { return state_.typeName != nullptr ? state_.typeName : typeid(Data).name(); }
+
     private:
         /** Object state as monotonic object shared by all instances
         */
@@ -228,7 +257,8 @@ namespace sub0
         {
             uint32_t subscriptionCount; ///< Count of subscriptions_
             SubscribeTo<Data>* subscriptions[cMaxSubscriptions];	///< Subscription table @todo More flexible count-support
-            const char* dataName; ///< user defined data name overrides non-portable compiler-generated name
+            uint32_t typeId; ///< Type identifer index or name hash
+            const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
         };
         static State state_; ///< MonoState subscription table
     };
@@ -252,7 +282,7 @@ namespace sub0
         const PublishTo<Data>& publisher = *from;
         publisher.publish( data );
     }
-
+    
     /** Binary protocol for serialised signal and data transfer
     */
     struct BinaryProtocol
@@ -261,16 +291,18 @@ namespace sub0
         */
         struct Header
         {
-            uint32_t cMagic; ///< FourCC identifier containing 'SUB0'
-            uint32_t dataId; ///< Hashed data type identifier @note User specified type recommened for inter-process 
+            static const uint32_t cMagic = FourCC<'S','U','B','0'>::value; //< Magic number to identify Sub0 network protocol packets 
+
+            uint32_t magic; ///< FourCC identifier containing 'SUB0'
+            uint32_t typeId; ///< Data type identifier @note The Id may be user specified for inter-process 
             uint32_t dataBytes; ///< Count of bytes
         };
 
         template<typename Data>
         static std::ostream& writeHeader( std::ostream& stream, const Data& data )
         { 
-            Header header = {  1234/** @todo FourCC of Sub0 */
-                             , 1234/** @todo Hash of Data name */
+            Header header = { Header::cMagic
+                             , Broker<Data>::typeId()
                              , sizeof(data) };
             return stream.write( reinterpret_cast<const char*>(&header), sizeof(header) ); 
         }
@@ -293,6 +325,9 @@ namespace sub0
         : stream_(stream) 
         {}
 
+        virtual ~StreamSerializer()
+        {}
+
         template<typename Data>
         void forward( const Data& data )
         {
@@ -308,13 +343,14 @@ namespace sub0
 
     /** Forward receive() to  Target type convertible from this
     * @remark The call is made with Data type allowing for templated forward() handler functions @see class Stream
+    * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
     */
     template<typename Data, typename Target >
     class ForwardSubscribe : public SubscribeTo<Data>
     {
     public:
-        ForwardSubscribe( const char* dataName = nullptr )
-            : SubscribeTo<Data>(dataName)
+        ForwardSubscribe( const char* typeName = nullptr )
+            : SubscribeTo<Data>(typeName)
         {}
         virtual void receive( const Data& data )
         {
