@@ -8,8 +8,6 @@ class A : public sub0::PublishTo<float>
 		, public sub0::PublishTo<int>
 {
 public:
-	virtual const char* name() const override { return "class A"; }
-
 	void doIt()
 	{
 		const float floatData = 1.019F;
@@ -29,8 +27,6 @@ class B : public sub0::SubscribeTo<float>
 	, public sub0::SubscribeTo<int>
 {
 public:
-	virtual const char* name() const override { return "class B"; }
-
 	virtual void receive( const float& data )
 	{
 		std::cout << "B received float : " << data << std::endl;
@@ -41,4 +37,21 @@ public:
 		std::cout << "B received int : " << data << std::endl;
 		total += data;
 	}
+};
+
+class C : public sub0::StreamSerializer<sub0::BinaryProtocol>
+        , public sub0::ForwardSubscribe<float,C>
+        , public sub0::ForwardSubscribe<int,C>
+{
+public:
+    C() : sub0::StreamSerializer<sub0::BinaryProtocol>( std::cout )
+    {}
+
+
+    template<typename Data>
+    void forward( const Data& data )
+    {
+        std::cout << "Serialised " << data << ":\n";
+        sub0::StreamSerializer<sub0::BinaryProtocol>::forward(data);
+    }
 };

@@ -38,8 +38,7 @@ namespace sub0
 	class SubscribeTo;
 	template< typename Data >
 	class PublishTo;
-
-
+    
 	/** @tparam[in] cMessageTrace Enable logging for broker events */
 	template< const bool cMessageTrace = false>
 	struct BrokerDetailT
@@ -253,6 +252,75 @@ namespace sub0
         const PublishTo<Data>& publisher = *from;
         publisher.publish( data );
     }
+
+    /** Binary protocol for serialised signal and data transfer
+    */
+    struct BinaryProtocol
+    {
+        /** Header containing signal type information
+        */
+        struct Header
+        {
+            uint32_t cMagic; ///< FourCC identifier containing 'SUB0'
+            uint32_t dataId; ///< Hashed data type identifier @note User specified type recommened for inter-process 
+            uint32_t dataBytes; ///< Count of bytes
+        };
+
+        template<typename Data>
+        static std::ostream& writeHeader( std::ostream& stream, const Data& data )
+        { 
+            Header header = {  1234/** @todo FourCC of Sub0 */
+                             , 1234/** @todo Hash of Data name */
+                             , sizeof(data) };
+            return stream.write( reinterpret_cast<const char*>(&header), sizeof(header) ); 
+        }
+
+        /** Write data payload as binary
+        */
+        template<typename Data>
+        static std::ostream& writePayload( std::ostream& stream, const Data& data )
+        { return stream.write( reinterpret_cast<const char*>(&data), sizeof(data) ); }
+    };
+
+    /** Serialises Sub0Pub data into a target stream pobject 
+    * @remark Implements a basic inter process transfer protocol
+    */
+    template< typename Protocol = BinaryProtocol >
+    class StreamSerializer
+    {
+    public:
+        StreamSerializer( std::ostream& stream ) 
+        : stream_(stream) 
+        {}
+
+        template<typename Data>
+        void forward( const Data& data )
+        {
+            Protocol::writeHeader( stream_, data );
+            Protocol::writePayload( stream_, data );
+            stream_ << '\n';
+            stream_.flush(); ///< @todo Temp?
+        }
+
+    private:
+        std::ostream& stream_;
+    };
+
+    /** Forward receive() to  Target type convertible from this
+    * @remark The call is made with Data type allowing for templated forward() handler functions @see class Stream
+    */
+    template<typename Data, typename Target >
+    class ForwardSubscribe : public SubscribeTo<Data>
+    {
+    public:
+        ForwardSubscribe( const char* dataName = nullptr )
+            : SubscribeTo<Data>(dataName)
+        {}
+        virtual void receive( const Data& data )
+        {
+            static_cast<Target*>(this)->forward( data );
+        }
+    };
 }
 
 #endif
