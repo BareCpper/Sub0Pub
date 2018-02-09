@@ -41,14 +41,14 @@ namespace sub0
 {
     namespace utility
     {
-    /** Create 4byte packed value at compile time
+        /** Create 4byte packed value at compile time
          * @tparam a,b,c,d  Characters which will be packed into 4-byte uint32_t value
-     */
-    template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
-    struct FourCC
-    {
-        static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
-    };
+         */
+        template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
+        struct FourCC
+        {
+            static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
+        };
 
         /** Hash a string using djb2 hash
          * @param[in] str  Null-terminated string to calculate hash of
@@ -273,8 +273,8 @@ namespace sub0
 
     public:
         /** Registers subscriber in brokers subscription table
-        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
-        */
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+         */
         Broker ( SubscribeTo<Data>* subscriber, const char* typeName = nullptr )
         {
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
@@ -284,8 +284,8 @@ namespace sub0
 
         /** Validated publication
          * @remark No record of publishers of data is currently maintained
-        * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
-        */
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+         */
         Broker ( PublishTo<Data>* publisher, const char* typeName = nullptr )
         {
             detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
@@ -329,21 +329,21 @@ namespace sub0
          * @param stream  Stream to output into
          * @param broker  Broker instance to output for
          * @return The 'stream' instance
-        */
+         */
         friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
         {
             return stream << (void*)&broker.state_;
         }
 
         /** @return Unique identifier index for inter-process binary connections
-        */
+         */
         static uint32_t typeId()
         {
             return state_.typeId;
         }
 
         /** @return Unique identifier name for inter-process text connections
-        */
+         */
         static const char* typeName()
         {
             return state_.typeName != nullptr ? state_.typeName : typeid(Data).name();
@@ -351,7 +351,7 @@ namespace sub0
 
     private:
         /** Object state as monotonic object shared by all instances
-        */
+         */
         struct State
         {
             uint32_t subscriptionCount; ///< Count of subscriptions_
@@ -384,7 +384,7 @@ namespace sub0
 
     /** Binary protocol for serialised signal and data transfer
      * @remark The protocol consists of a Header chunk followed by Header::dataBytes bytes of payload data
-    */
+     */
     struct BinaryProtocol
     {
         /** Header containing signal type information
@@ -414,15 +414,15 @@ namespace sub0
         /** Output data pay-load as binary
          * @param stream  Stream to write into
          * @param data  Data to write data from
-        */
+         */
         template<typename Data>
         static void writePayload( std::ostream& stream, const Data& data )
         { stream.write( reinterpret_cast<const char*>(&data), sizeof(data) ); }
     };
 
     /** Serialises Sub0Pub data into a target stream object
-    * @remark Implements a basic inter process transfer protocol @see sub0::BinaryProtocol
-    */
+     * @remark Implements a basic inter process transfer protocol @see sub0::BinaryProtocol
+     */
     template< typename Protocol = BinaryProtocol >
     class StreamSerializer
     {
@@ -451,13 +451,15 @@ namespace sub0
         }
 
     private:
-        std::ostream& stream_;
+        std::ostream& stream_; ///< Stream into which data is serialised
     };
 
     /** Forward receive() to  Target type convertible from this
-    * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
-    * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
-    */
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
+     * @tparam  Data  Data type which will be forwarded to the derived Target implementation
+     * @tparam  Target  Type of derived class which implements a function of type Target::forward( const Data& data ) via base inheritance or direct member
+     */
     template<typename Data, typename Target >
     class ForwardSubscribe : public SubscribeTo<Data>
     {
@@ -474,13 +476,67 @@ namespace sub0
         virtual ~ForwardSubscribe()
         {}
 
-        /** Recievs subscribed data and forward to target object
+        /** Receives subscribed data and forward to target object
          * @param data  Data to forward
          */
         virtual void receive( const Data& data )
         {
             static_cast<Target*>(this)->forward( data );
         }
+    };
+
+    /** Interface for data provider to indicate destination buffer status
+     * @see ForwardPublish
+     * @todo API not final
+     */
+    class ISinkNotify
+    {
+    public:
+        ISinkNotify() {}
+        virtual ~ISinkNotify() {}
+
+        /** Notify that the sinked data is fully populated
+         */
+        virtual void sinkFull() = 0;
+    };
+
+    /** Register publication of data from a provider instance
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
+     * @tparam  Data  Data type which will be read into from a Provider
+     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* sinkBuffer ) via base inheritance or direct member
+     *
+     * @todo API not final
+     */
+    template<typename Data, typename Provider >
+    class ForwardPublish : public PublishTo<Data>, protected ISinkNotify
+    {
+    public:
+        /** Create publication to the data type and register with the data-source provider
+        * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
+        */
+        ForwardPublish( const char* typeName = nullptr )
+            : PublishTo<Data>(typeName)
+            , ISinkNotify()
+        {
+            // Register the buffer sink to the data provider
+            // @note When data is populated by provider it will be published though this PublishTo<Data> object
+            static_cast<Provider*>(this)->addSink( &buffer_, static_cast<ISinkNotify*>(this) );
+        }
+
+        /** Empty
+        */
+        virtual ~ForwardPublish()
+        {}
+
+    private:
+        /** Called by Provider to notify when the buffer_ has been populated
+         */
+        virtual void sinkFull()
+        { PublishTo<Data>::publish( buffer_ ); }
+
+    private:
+        Data buffer_; ///< Data buffer instance @todo Double-buffer for asyncronous processing?
     };
 }
 
