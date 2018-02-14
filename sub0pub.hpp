@@ -420,23 +420,51 @@ namespace sub0
         { stream.write( reinterpret_cast<const char*>(&data), sizeof(data) ); }
     };
 
+    /** Interface for data provider to indicate destination buffer status
+    * @see ForwardPublish
+    * @todo API not final
+    */
+    class IDataBuffer
+    {
+    public:
+        IDataBuffer() {}
+        virtual ~IDataBuffer() {}
+
+        /** Retrieve type identifier for the buffer
+        */
+        virtual uint32_t typeId() const = 0;
+
+        /** Retrieve size of data buffer in bytes 
+        * @remark Must be used to prevent buffer overrun during validation of deserialised data
+        */
+        virtual uint32_t bufferBytes() const = 0;
+
+        /** Retrieve pointer to data buffer 
+        */
+        virtual uint8_t* buffer() = 0;
+
+        /** Notify that the buffered data is fully populated
+        */
+        virtual void dataBufferComplete() = 0;
+    };
+
     /** Serialises Sub0Pub data into a target stream object
      * @remark Implements a basic inter process transfer protocol @see sub0::BinaryProtocol
      */
     template< typename Protocol = BinaryProtocol >
-    class StreamSerializer
+    class StreamSerialiser
     {
     public:
         /** Construct from stream
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
-        StreamSerializer( std::ostream& stream )
+        StreamSerialiser( std::ostream& stream )
         : stream_(stream)
         {}
 
         /** Empty
          */
-        virtual ~StreamSerializer()
+        ~StreamSerialiser()
         {}
 
         /** Receives forwarded data from a subscriber and serialises it to the output stream
@@ -453,9 +481,33 @@ namespace sub0
     private:
         std::ostream& stream_; ///< Stream into which data is serialised
     };
+    
+    template< typename Protocol = BinaryProtocol >
+    class StreamDeserialiser
+    {
+        /** Register a sink to the specified type buffer and completion notifier
+        * @remark Called by sub0::ForwardPublish<Data>
+        *
+        * @param buffer  Data structure to read into
+        * @param notify  Notifier object to signal buffer completion
+        */
+        virtual void registerDataBuffer( IDataBuffer* dataBuffer )
+        {
+            /** WIP
+            mSinkEntries.push_back( entry );
+
+            // Sort entries by typeId
+            std::sort( mSinkEntries.begin(), mSinkEntries.end()
+                       , [](const SinkRecord& lhs, const SinkRecord& rhs) { return lhs.typeId() < rhs.typeId(); } );
+            */
+        }
+
+    private:
+        //WIP IDataBuffer* notify; ///< Instance to notify on buffer completion to trigger publish to occur
+    };
 
     /** Forward receive() to  Target type convertible from this
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerialiser
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
      * @tparam  Data  Data type which will be forwarded to the derived Target implementation
      * @tparam  Target  Type of derived class which implements a function of type Target::forward( const Data& data ) via base inheritance or direct member
@@ -484,44 +536,27 @@ namespace sub0
             static_cast<Target*>(this)->forward( data );
         }
     };
-
-    /** Interface for data provider to indicate destination buffer status
-     * @see ForwardPublish
-     * @todo API not final
-     */
-    class ISinkNotify
-    {
-    public:
-        ISinkNotify() {}
-        virtual ~ISinkNotify() {}
-
-        /** Notify that the sinked data is fully populated
-         */
-        virtual void sinkFull() = 0;
-    };
-
-    /** Register publication of data from a provider instance
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+    
+    /** Register publication of data with a provider instance
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerialiser
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
      * @tparam  Data  Data type which will be read into from a Provider
-     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* sinkBuffer ) via base inheritance or direct member
+     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* dataBuffer ) via base inheritance or direct member
      *
      * @todo API not final
      */
     template<typename Data, typename Provider >
-    class ForwardPublish : public PublishTo<Data>, protected ISinkNotify
+    class ForwardPublish : public PublishTo<Data>, protected IDataBuffer
     {
     public:
-        /** Create publication to the data type and register with the data-source provider
-        * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
-        */
+        /** Register publisher buffer with the data provider
+         * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
+         */
         ForwardPublish( const char* typeName = nullptr )
             : PublishTo<Data>(typeName)
-            , ISinkNotify()
+            , IDataBuffer()
         {
-            // Register the buffer sink to the data provider
-            // @note When data is populated by provider it will be published though this PublishTo<Data> object
-            static_cast<Provider*>(this)->addSink( &buffer_, static_cast<ISinkNotify*>(this) );
+            static_cast<Provider*>(this)->registerDataBuffer(this); // Register the buffer sink to the data provider
         }
 
         /** Empty
@@ -529,10 +564,28 @@ namespace sub0
         virtual ~ForwardPublish()
         {}
 
+        /** Retrieve type identifier for publisher
+        */
+        virtual uint32_t typeId() const 
+        { return PublishTo<Data>::typeId(); }
+
+        /** Retrieve size of data buffer in bytes 
+         * @return Always sizeof(Data)
+         * @remark Must be used to prevent buffer overrun during validation of deserialised data
+         */
+        uint32_t bufferBytes() const
+        { return sizeof(buffer_); }
+
+        /** Retrieve pointer to data buffer 
+         * @return POinter to internal Data buffer
+         */
+        uint8_t* buffer()
+        { return reinterpret_cast<uint8_t*>(&buffer_); }
+        
     private:
         /** Called by Provider to notify when the buffer_ has been populated
          */
-        virtual void sinkFull()
+        virtual void dataBufferComplete()
         { PublishTo<Data>::publish( buffer_ ); }
 
     private:

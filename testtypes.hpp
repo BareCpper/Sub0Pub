@@ -21,6 +21,19 @@ public:
 };
 
 
+class D : public sub0::StreamDeserialiser<sub0::BinaryProtocol>
+        , public sub0::ForwardPublish<float,D>
+        , public sub0::ForwardPublish<int,D>
+{
+public:
+    D()
+        : sub0::StreamDeserialiser<>()
+    {
+    }
+
+};
+
+
 float total = 0.0F;
 
 class B : public sub0::SubscribeTo<float>
@@ -39,12 +52,12 @@ public:
 	}
 };
 
-class C : public sub0::StreamSerializer<sub0::BinaryProtocol>
+class C : public sub0::StreamSerialiser<sub0::BinaryProtocol>
         , public sub0::ForwardSubscribe<float,C>
         , public sub0::ForwardSubscribe<int,C>
 {
 public:
-    C() : sub0::StreamSerializer<sub0::BinaryProtocol>( std::cout )
+    C() : sub0::StreamSerialiser<sub0::BinaryProtocol>( std::cout )
     {}
 
 
