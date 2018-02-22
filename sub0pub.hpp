@@ -37,6 +37,18 @@
 #define SUB0PUB_ASSERT true ///< Enable assertion tests by default
 #endif
 
+/** Helper macro for stringifying value at compile time
+ * e.g. SUB0_STRINGIFY_HELPER(123) == "123", SUB0_STRINGIFY_HELPER(FooBar) == "FooBar"
+ * @param  x  A value whos value will be converted to string e.g. FooBar == "FooBar", 123 = "123"
+ */
+#define SUB0_STRINGIFY_HELPER(x) #x
+
+/** Helper macro for stringifying define at compile time
+ * e.g. SUB0_STRINGIFY_HELPER(__LINE__) == "123??"
+ * @param  x  A macro definition whos value will be converted to string  e.g. __LINE__ == "123??"
+ */
+#define SUB0_STRINGIFY(x) SUB0_STRINGIFY_HELPER(x)
+
 namespace sub0
 {
     namespace utility
@@ -696,6 +708,7 @@ namespace sub0
     private:
         Data buffer_; ///< Data buffer instance @todo Double-buffer for asynchronous processing?
     };
-}
+
+} // END: sub0
 
 #endif
