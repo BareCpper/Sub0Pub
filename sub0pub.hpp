@@ -23,7 +23,9 @@
 #include <algorithm>
 #include <cassert> // assert
 #include <cstdint> // uint32_t
+#include <cstring> // std::strcmp
 #include <iostream> // std::cout
+#include <typeinfo> // typeid()
 
 /** Define SUB0PUB_TRACE=true to enable message logging to std::cout for event trace, SUB0PUB_TRACE=false
 */
@@ -154,6 +156,7 @@ namespace sub0
             {
                 if ( cMessageTrace )
                 {
+                    (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Published " << publisher
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
                 }
@@ -172,6 +175,7 @@ namespace sub0
                 }
                 if ( cMessageTrace )
                 {
+                    (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Received " << *subscriber
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
                 }
@@ -323,7 +327,7 @@ namespace sub0
             }
 
             // @todo use RuntimeCheck and handle if a subscriber uses a different name better
-            assert( (state_.typeName==nullptr) || (strcmp(state_.typeName,typeName)==0) );
+            assert( (state_.typeName==nullptr) || (std::strcmp(state_.typeName,typeName)==0) );
             state_.typeName = typeName;
             state_.typeId = sub0::utility::hash( state_.typeName ); // Cache hash result @todo Make compile time
 
@@ -334,8 +338,7 @@ namespace sub0
          */
         void publish (const Data & data) const
         {
-            const uint32_t subscriptionCount = std::min( state_.subscriptionCount, cMaxSubscriptions );
-            for ( uint32_t iSubscription = 0U; iSubscription < subscriptionCount; ++iSubscription )
+            for ( uint32_t iSubscription = 0U; iSubscription < state_.subscriptionCount; ++iSubscription )
             {
                 SubscribeTo<Data>* subscription = state_.subscriptions[iSubscription];
                 detail::Check::onReceive( subscription, data );
@@ -451,6 +454,10 @@ namespace sub0
         /** Retrieve type identifier for the buffer
          */
         virtual uint32_t typeId() const = 0;
+
+        /** Retrieve type name for the buffer
+         */
+        virtual const char* typeName() const = 0;
 
         /** Retrieve size of data buffer in bytes
          * @remark Must be used to prevent buffer overrun during validation of deserialised data
@@ -578,7 +585,12 @@ namespace sub0
             readCount_ = 0U; // Reset payload read counter
             currentPayload_ = findDataBuffer( header_.typeId );
             assert( currentPayload_ != nullptr ); /// @todo Does not handle and discard unrecognised typeId [Critical]
-            assert( header_.dataBytes == currentPayload_->bufferBytes() ); /// @todo Does not handle changed data structure size [Critical]
+            if ( header_.dataBytes != currentPayload_->bufferBytes() )
+            {
+                const char* expectedTypeName = currentPayload_->typeName();
+                const size_t expectedPayloadSize = currentPayload_->bufferBytes();
+                assert( false == "Data of 'expectedTypeName' is not size 'expectedPayloadSize'" ); /// @todo Does not handle changed data structure size [Critical]
+            }
 
             return readPayload();
         }
@@ -686,6 +698,12 @@ namespace sub0
          */
         virtual uint32_t typeId() const
         { return PublishTo<Data>::typeId(); }
+
+        /** Retrieve type identifier for publisher
+         * @return Broker null-terminated type name
+         */
+        const char* typeName() const
+        { return PublishTo<Data>::typeName(); }
 
         /** Retrieve size of data buffer in bytes
          * @return Always sizeof(Data)
