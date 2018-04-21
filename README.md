@@ -1,2 +1,4 @@
 # Sub0Pub
-Near-Compile time data Publisher & Subscriber model for embedded, desktop, and distributed systems
+C++ Type-based Subscriber-Publisher messaging model for embedded, desktop, games, and distributed systems
+
+
