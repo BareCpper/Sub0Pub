@@ -2,7 +2,7 @@
 
 #include "sub0pub.hpp"
 
-#if PUBLISHER_EXPORTS
+#if Sub0Pub_CrossModule_Publisher_EXPORTS
 #define DLLEXPORT __declspec(dllexport)   
 #define DLLEXTERN
 #else
@@ -11,6 +11,7 @@
 #endif
 
 
+// @note Exporting the broker is critical for the instance to become shared across DLL module boundaries
 DLLEXTERN template class DLLEXPORT sub0::Broker<float>;
 DLLEXTERN template class DLLEXPORT sub0::Broker<int>;
 

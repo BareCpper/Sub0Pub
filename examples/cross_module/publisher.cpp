@@ -1,5 +1,5 @@
 #include "testtypes.hpp"
-#include "publisher.h"
+#include "publisher.hpp"
 
 
 void doPublisher()

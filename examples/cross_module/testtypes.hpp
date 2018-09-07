@@ -4,8 +4,8 @@
 #include "sub0pub.hpp"
 
 
-class A : public sub0::PublishTo<float>
-		, public sub0::PublishTo<int>
+class A : public sub0::Publish<float>
+		, public sub0::Publish<int>
 {
 public:
 	void doIt()
@@ -27,17 +27,16 @@ class D : public sub0::StreamDeserialiser<sub0::BinaryProtocol>
 {
 public:
     D()
-        : sub0::StreamDeserialiser<>()
+        : sub0::StreamDeserialiser<>( std::cin )
     {
     }
-
 };
 
 
 float total = 0.0F;
 
-class B : public sub0::SubscribeTo<float>
-	, public sub0::SubscribeTo<int>
+class B : public sub0::Subscribe<float>
+	, public sub0::Subscribe<int>
 {
 public:
 	virtual void receive( const float& data )
@@ -65,6 +64,6 @@ public:
     void forward( const Data& data )
     {
         std::cout << "Serialised " << data << ":\n";
-        sub0::StreamSerializer<sub0::BinaryProtocol>::forward(data);
+        sub0::StreamSerialiser<sub0::BinaryProtocol>::forward(data);
     }
 };
