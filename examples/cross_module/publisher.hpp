@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../sub0pub.hpp"
+#include "sub0pub.hpp"
 
 #if PUBLISHER_EXPORTS
 #define DLLEXPORT __declspec(dllexport)   

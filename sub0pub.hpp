@@ -1,9 +1,12 @@
 /** Sub0Pub core header-only library
  * @remark C++ Type-based Subscriber-Publisher messaging model for embedded, desktop, games, and distributed systems.
- * @copyright Copyright (c) 2018 Craig Hutchinson <craig-sub0pub@crog.uk>
  * 
  *  This file is part of Sub0Pub. Original project source available at https://github.com/Crog/Sub0Pub/blob/master/sub0pub.hpp
  * 
+ *  MIT License
+ *s
+ * Copyright (c) 2018 Craig Hutchinson <craig-sub0pub@crog.uk>
+ *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files 
  *  (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, 
  *  publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do 
