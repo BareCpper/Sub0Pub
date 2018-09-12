@@ -11,11 +11,12 @@ target_sources( Sub0Pub_CrossModule_Publisher
 )
 
 
-add_executable( Sub0Pub_CrossModule  )
+add_executable( Sub0Pub_CrossModule
+    "${CMAKE_CURRENT_LIST_DIR}/main.cpp" )
 target_link_libraries(Sub0Pub_CrossModule PUBLIC Sub0Pub Sub0Pub_CrossModule_Publisher)
 
 target_sources( Sub0Pub_CrossModule
     PRIVATE
         "${CMAKE_CURRENT_LIST_DIR}/testtypes.hpp"
-        "${CMAKE_CURRENT_LIST_DIR}/main.cpp"
+        
 )

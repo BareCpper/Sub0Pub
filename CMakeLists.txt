@@ -9,4 +9,4 @@ target_sources( Sub0Pub
         "${CMAKE_CURRENT_LIST_DIR}/sub0pub.hpp"
 )
 
-add_subdirectory(examples)
+#add_subdirectory(examples)
