@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.1)
 
+
+
 add_library( Sub0Pub_CrossModule_Publisher SHARED )
-target_link_libraries(Sub0Pub_CrossModule_Publisher PUBLIC Sub0Pub)
+target_link_libraries(Sub0Pub_CrossModule_Publisher 
+    PUBLIC 
+        Sub0Pub )
 
 target_sources( Sub0Pub_CrossModule_Publisher 
     PRIVATE
@@ -11,9 +15,15 @@ target_sources( Sub0Pub_CrossModule_Publisher
 )
 
 
+##########################
+
 add_executable( Sub0Pub_CrossModule
     "${CMAKE_CURRENT_LIST_DIR}/main.cpp" )
-target_link_libraries(Sub0Pub_CrossModule PUBLIC Sub0Pub Sub0Pub_CrossModule_Publisher)
+
+target_link_libraries(Sub0Pub_CrossModule
+    PUBLIC
+        Sub0Pub 
+        Sub0Pub_CrossModule_Publisher)
 
 target_sources( Sub0Pub_CrossModule
     PRIVATE

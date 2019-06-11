@@ -4,7 +4,7 @@
  *  This file is part of Sub0Pub. Original project source available at https://github.com/Crog/Sub0Pub/blob/master/sub0pub.hpp
  * 
  *  MIT License
- *s
+ *
  * Copyright (c) 2018 Craig Hutchinson <craig-sub0pub@crog.uk>
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files 

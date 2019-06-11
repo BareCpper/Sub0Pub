@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-#include "sub0pub.hpp"
+#include "sub0pub/sub0pub.hpp"
 
 
 class A : public sub0::Publish<float>
