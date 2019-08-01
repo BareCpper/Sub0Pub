@@ -1,2 +1,2 @@
-
 add_subdirectory(cross_module)
+add_subdirectory(minimal_sub0pub)
