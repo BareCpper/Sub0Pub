@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "testtypes.hpp"
 #include "publisher.hpp"
+#include "testtypes.hpp"
 
 int main ()
 {

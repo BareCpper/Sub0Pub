@@ -15,4 +15,6 @@
 DLLEXTERN template class DLLEXPORT sub0::Broker<float>;
 DLLEXTERN template class DLLEXPORT sub0::Broker<int>;
 
+#include "sub0pub/sub0pub.hpp"
+
 DLLEXPORT void doPublisher();

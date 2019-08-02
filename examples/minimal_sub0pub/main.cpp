@@ -3,7 +3,7 @@
 
 #include "sub0pub/sub0pub.hpp"
 
-typedef  unsigned int Data_t; ///< Port data type we publish and subscribe
+typedef uint32_t Data_t; ///< Port data type we publish and subscribe
 Data_t total = 0U; ///< Total of all published data
 const Data_t cIncrement = 3141U; ///< Amount total is incremented on each publish of Data_t
 

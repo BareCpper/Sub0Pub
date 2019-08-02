@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+# @note 3.7.1 as version use in WIndows Git-Bash
+# @todo >3.10 needed for include(GoogleTest)?
+cmake_minimum_required(VERSION 3.7.1)
 
 # Detect if Sub0Pub is being included inside another project
 # - We can disable test generation etc.
@@ -15,7 +17,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
 
 #include(GNUInstallDirs)
 
-include(GoogleTest)
+# @todo Should set cmake 3.10
+#include(GoogleTest)
 
 #option(SUB0PUB_USE_VALGRIND "Perform SelfTests with Valgrind" OFF)
 option(SUB0PUB_BUILD_TESTING "Build unit-tests" ON)

@@ -24,7 +24,12 @@
 
 #include <algorithm>
 #include <cassert> //< assert
-#include <cstdint> //< uint32_t
+
+/// @todo 0 vs nullptr C++11 only
+/// @todo C++11/C99 only #include <cstdint> //< uint32_t
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
+
 #include <cstring> //< std::strcmp
 #include <iostream> //< std::cout
 #include <typeinfo> //< typeid()
@@ -128,7 +133,7 @@ namespace sub0
             {
                 if ( cDoAssert )
                 {
-                    assert( subscriber != nullptr );
+                    assert( subscriber );
                     assert( subscriptionCount < subscriptionCapacity );
                 }
                 if ( cMessageTrace )
@@ -148,7 +153,7 @@ namespace sub0
             {
                 if ( cDoAssert )
                 {
-                    assert( publisher != nullptr );
+                    assert( publisher );
                     assert( publisherCount < publisherCapacity );
                 }
                 if ( cMessageTrace )
@@ -181,7 +186,7 @@ namespace sub0
             {
                 if ( cDoAssert )
                 {
-                    assert( subscriber != nullptr );
+                    assert( subscriber );
                 }
                 if ( cMessageTrace )
                 {
@@ -210,7 +215,7 @@ namespace sub0
         /** Registers the subscriber within the broker framework
          * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        Subscribe( const char* typeName = nullptr )
+        Subscribe( const char* typeName = 0/*nullptr*/ )
         : broker_( this, typeName )
         {}
 
@@ -252,7 +257,7 @@ namespace sub0
         /** Registers the publisher within the broker framework
          * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names will be used.
          */
-        Publish( const char* typeName = nullptr )
+        Publish( const char* typeName = 0/*nullptr*/ )
         : broker_( this, typeName )
         {}
 
@@ -307,7 +312,7 @@ namespace sub0
          * @param[in] typeName Optional unique data name given to data for inter-process signaling. 
          * @warning If typeName not supplied compiler generated names will be used which are non-portable between vendors.
          */
-        Broker ( Subscribe<Data>* subscriber, const char* typeName = nullptr )
+        Broker ( Subscribe<Data>* subscriber, const char* typeName = 0/*nullptr*/ )
         {
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
             setDataName(typeName);
@@ -319,7 +324,7 @@ namespace sub0
          * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
          * @warning If typeName not supplied compiler generated names will be used which are non-portable between vendors.
          */
-        Broker ( Publish<Data>* publisher, const char* typeName = nullptr )
+        Broker ( Publish<Data>* publisher, const char* typeName = 0/*nullptr*/ )
         {
             detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
             setDataName(typeName);
@@ -332,13 +337,13 @@ namespace sub0
          */
         void setDataName( const char* const typeName )
         {
-            if ( typeName == nullptr )
+            if ( typeName )
             {
                 return;
             }
 
             // @todo use RuntimeCheck and handle if a subscriber uses a different name better
-            assert( (state_.typeName==nullptr) || (std::strcmp(state_.typeName,typeName)==0) );
+            assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );
             state_.typeName = typeName;
             state_.typeId = sub0::utility::hash( state_.typeName ); // Cache hash result @todo Make compile time
 
@@ -378,7 +383,7 @@ namespace sub0
          */
         static const char* typeName()
         {
-            return state_.typeName != nullptr ? state_.typeName : typeid(Data).name();
+            return state_.typeName ? state_.typeName : typeid(Data).name();
         }
 
     private:
@@ -544,9 +549,9 @@ namespace sub0
             : stream_(stream)
             , bufferRegistry_()
             , bufferRegistryEnd_(bufferRegistry_)
-            , readCount_(0U)
+            , readCount_()
             , header_()
-            , currentPayload_(nullptr)
+            , currentPayload_()
         {}
 
         /** Register a sink to the specified typed Data buffer
@@ -557,7 +562,9 @@ namespace sub0
          */
         void registerDataBuffer( IDataBuffer* dataBuffer )
         {
-            assert( currentPayload_ == nullptr ); // We don't intend to support adding buffers at runtime
+            assert(false);
+#if 0  /// @todo Lambda is being used C++11
+            assert( !currentPayload_ ); // We don't intend to support adding buffers at runtime
             assert( bufferRegistryEnd_ < (bufferRegistry_ + cMaxDataBufferCount) ); // @todo Use detail for assert/exception behaviour
             IDataBuffer** const insertionPoint = std::upper_bound( bufferRegistry_, bufferRegistryEnd_, dataBuffer
                     , [](const IDataBuffer* lhs, const IDataBuffer* rhs) { return lhs->typeId() < rhs->typeId(); } );
@@ -566,6 +573,7 @@ namespace sub0
             ++bufferRegistryEnd_;
             assert( std::is_sorted( bufferRegistry_, bufferRegistryEnd_
                     , [](const IDataBuffer* lhs, const IDataBuffer* rhs) { return lhs->typeId() < rhs->typeId(); } ) ); // Sanity check
+#endif
         }
 
         /** Find registered data buffer by typeId
@@ -574,10 +582,15 @@ namespace sub0
          */
         IDataBuffer* findDataBuffer( const uint32_t typeId )
         {
+            assert(false);
+#if 0  /// @todo Lambda is being used C++11
             IDataBuffer** const iFind = std::lower_bound( bufferRegistry_, bufferRegistryEnd_, typeId
                     , [](const IDataBuffer* lhs, const uint32_t rhs) { return lhs->typeId() < rhs; } );
             return ((iFind != bufferRegistryEnd_) && ((*iFind)->typeId() == typeId)) ? *iFind
-                                                                                     : nullptr;
+                                                                                     : 0/*nullptr*/;
+#else
+            return 0/*nullptr*/;
+#endif
         }
 
         /** Polls data from the input stream
@@ -585,8 +598,8 @@ namespace sub0
          */
         bool update()
         {
-            return (currentPayload_ == nullptr) ? readHeader()
-                                                : readPayload();
+            return !currentPayload_  ? readHeader()
+                                     : readPayload();
         }
 
     protected:
@@ -610,7 +623,7 @@ namespace sub0
             assert( header_.magic == header_.cMagic ); /// @todo Does not handle re-syncronising a mal-formed data stream [Moderate]
             readCount_ = 0U; // Reset payload read counter
             currentPayload_ = findDataBuffer( header_.typeId );
-            assert( currentPayload_ != nullptr ); /// @todo Does not handle and discard unrecognised typeId [Critical]
+            assert( currentPayload_ ); /// @todo Does not handle and discard unrecognised typeId [Critical]
             if ( header_.dataBytes != currentPayload_->bufferBytes() )
             {
                 const char* expectedTypeName = currentPayload_->typeName();
@@ -647,7 +660,7 @@ namespace sub0
          */
         void resetToIdle()
         {
-            currentPayload_ = nullptr;
+            currentPayload_ = 0/*nullptr*/;
             readCount_ = 0U;
         }
 
@@ -673,7 +686,7 @@ namespace sub0
         /** Create subscription to the data type
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardSubscribe( const char* typeName = nullptr )
+        ForwardSubscribe( const char* typeName = 0/*nullptr*/ )
             : Subscribe<Data>(typeName)
         {}
 
@@ -706,7 +719,7 @@ namespace sub0
         /** Register publisher buffer with the data provider
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardPublish( const char* typeName = nullptr )
+        ForwardPublish( const char* typeName = 0/*nullptr*/ )
             : Publish<Data>(typeName)
             , IDataBuffer()
         {
