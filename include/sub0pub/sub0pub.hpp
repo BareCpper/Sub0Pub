@@ -24,15 +24,17 @@
 
 #include <algorithm>
 #include <cassert> //< assert
-
-/// @todo 0 vs nullptr C++11 only
-/// @todo C++11/C99 only #include <cstdint> //< uint32_t
-typedef unsigned char uint8_t;
-typedef unsigned int uint32_t;
-
 #include <cstring> //< std::strcmp
 #include <iostream> //< std::cout
-#include <typeinfo> //< typeid()
+//#include <typeinfo> //< typeid()
+
+ /// @todo 0 vs nullptr C++11 only
+#if 1 /// @todo cstdint not always available ... C++11/C99 only 
+    #include <cstdint> //< uint32_t
+#else
+    typedef unsigned char uint8_t;
+    typedef unsigned int uint32_t;
+#endif
 
 /** Logging output for event tracing
  * Define SUB0PUB_TRACE=true to enable message logging to std::cout for event trace, SUB0PUB_TRACE=false
@@ -138,7 +140,7 @@ namespace sub0
                 }
                 if ( cMessageTrace )
                 {
-                    std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+                    std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
                 }
             }
 
@@ -158,7 +160,7 @@ namespace sub0
                 }
                 if ( cMessageTrace )
                 {
-                    std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" <<  typeid(Data).name () << ">{" << broker << '}' << std::endl;
+                    std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
                 }
             }
 
@@ -173,7 +175,7 @@ namespace sub0
                 {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Published " << publisher
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
                 }
             }
 
@@ -192,7 +194,7 @@ namespace sub0
                 {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Received " << *subscriber
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << typeid(Data).name () << ']' << std::endl;
+                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
                 }
             }
         };
@@ -213,10 +215,10 @@ namespace sub0
     {
     public:
         /** Registers the subscriber within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names will be used.
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
          */
-        Subscribe( const char* typeName = 0/*nullptr*/ )
-        : broker_( this, typeName )
+        Subscribe( const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
+        : broker_( this, typeId, typeName )
         {}
 
         /** Empty
@@ -255,10 +257,10 @@ namespace sub0
     {
     public:
         /** Registers the publisher within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names will be used.
+         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
          */
-        Publish( const char* typeName = 0/*nullptr*/ )
-        : broker_( this, typeName )
+        Publish(const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
+        : broker_( this, typeId, typeName )
         {}
 
         /** Publish data to subscribers
@@ -310,24 +312,24 @@ namespace sub0
     public:
         /** Registers subscriber in brokers subscription table
          * @param[in] typeName Optional unique data name given to data for inter-process signaling. 
-         * @warning If typeName not supplied compiler generated names will be used which are non-portable between vendors.
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
          */
-        Broker ( Subscribe<Data>* subscriber, const char* typeName = 0/*nullptr*/ )
+        Broker ( Subscribe<Data>* subscriber, const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
         {
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
-            setDataName(typeName);
+            setDataName(typeId, typeName);
             state_.subscriptions[state_.subscriptionCount++] = subscriber;
         }
 
         /** Validated publication
          * @remark No record of publishers of data is currently maintained
          * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
-         * @warning If typeName not supplied compiler generated names will be used which are non-portable between vendors.
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
          */
-        Broker ( Publish<Data>* publisher, const char* typeName = 0/*nullptr*/ )
+        Broker ( Publish<Data>* publisher, const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
         {
             detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
-            setDataName(typeName);
+            setDataName(typeId, typeName);
             // Do nothing for now...
         }
 
@@ -335,18 +337,21 @@ namespace sub0
          * @remark This name is used during serialisation for inter-process communications
          * @param[in]  typeName  Null terminated compile-time string constant
          */
-        void setDataName( const char* const typeName )
+        void setDataName(const uint32_t typeId, const char* const typeName )
         {
-            if ( typeName )
+            if (typeId)
             {
-                return;
+                // Check if assigning a different name or Id is when already set
+                assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+                state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
             }
 
-            // @todo use RuntimeCheck and handle if a subscriber uses a different name better
-            assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );
-            state_.typeName = typeName;
-            state_.typeId = sub0::utility::hash( state_.typeName ); // Cache hash result @todo Make compile time
-
+            if (typeName)
+            {
+                // Check if assigning a different name or Id is when already set
+                assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+                state_.typeName = typeName;
+            }
         }
 
         /** Send data to registered subscribers
@@ -383,7 +388,7 @@ namespace sub0
          */
         static const char* typeName()
         {
-            return state_.typeName ? state_.typeName : typeid(Data).name();
+            return state_.typeName;
         }
 
     private:
@@ -420,6 +425,15 @@ namespace sub0
         publisher.publish( data );
     }
 
+    /** @copydoc void spublish( const From* from, const Data& data )
+    */
+    template<typename From, typename Data>
+    void publish(const From& from, const Data& data)
+    {
+        const Publish<Data>& publisher = from;
+        publisher.publish(data);
+    }
+
     /** Binary protocol for serialised signal and data transfer
      * @remark The protocol consists of a Header chunk followed by Header::dataBytes bytes of payload data
      */
@@ -436,24 +450,17 @@ namespace sub0
             uint32_t dataBytes; ///< Count of bytes that follow after the header data
         };
 
-        /** Output header for data as binary
+        /** Output headerand pay-load for data as binary
          * @param stream  Stream to write into
-         * @param data  Data to construct a header record for
+         * @param data  Data to construct a header record and data payload for
          */
         template<typename Data>
-        static void writeHeader( std::ostream& stream, const Data& data )
+        static void write( std::ostream& stream, const Data& data )
         {
             const Header header = { Header::cMagic, Broker<Data>::typeId(), sizeof(data) };
             stream.write( reinterpret_cast<const char*>(&header), sizeof(header) );
+            stream.write(reinterpret_cast<const char*>(&data), sizeof(data));
         }
-
-        /** Output data pay-load as binary
-         * @param stream  Stream to write into
-         * @param data  Data to write data from
-         */
-        template<typename Data>
-        static void writePayload( std::ostream& stream, const Data& data )
-        { stream.write( reinterpret_cast<const char*>(&data), sizeof(data) ); }
     };
 
     /** Interface for data provider to indicate destination buffer status
@@ -519,8 +526,7 @@ namespace sub0
         template<typename Data>
         void forward( const Data& data )
         {
-            Protocol::writeHeader( stream_, data );
-            Protocol::writePayload( stream_, data );
+            Protocol::write( stream_, data );
         }
 
     private:
@@ -563,14 +569,17 @@ namespace sub0
         void registerDataBuffer( IDataBuffer* dataBuffer )
         {
             assert(false);
-#if 0  /// @todo Lambda is being used C++11
+#if 1  /// @todo Lambda is being used C++11
             assert( !currentPayload_ ); // We don't intend to support adding buffers at runtime
             assert( bufferRegistryEnd_ < (bufferRegistry_ + cMaxDataBufferCount) ); // @todo Use detail for assert/exception behaviour
+
             IDataBuffer** const insertionPoint = std::upper_bound( bufferRegistry_, bufferRegistryEnd_, dataBuffer
                     , [](const IDataBuffer* lhs, const IDataBuffer* rhs) { return lhs->typeId() < rhs->typeId(); } );
+
             bufferRegistryEnd_[0U] = dataBuffer; // Store the new entry at the end of the sorted elements
             std::rotate( insertionPoint, bufferRegistryEnd_, bufferRegistryEnd_+1U ); // Rotate the entries after the insertion point to move the new value into the insertion point
             ++bufferRegistryEnd_;
+
             assert( std::is_sorted( bufferRegistry_, bufferRegistryEnd_
                     , [](const IDataBuffer* lhs, const IDataBuffer* rhs) { return lhs->typeId() < rhs->typeId(); } ) ); // Sanity check
 #endif
@@ -583,7 +592,7 @@ namespace sub0
         IDataBuffer* findDataBuffer( const uint32_t typeId )
         {
             assert(false);
-#if 0  /// @todo Lambda is being used C++11
+#if 1  /// @todo Lambda is being used C++11
             IDataBuffer** const iFind = std::lower_bound( bufferRegistry_, bufferRegistryEnd_, typeId
                     , [](const IDataBuffer* lhs, const uint32_t rhs) { return lhs->typeId() < rhs; } );
             return ((iFind != bufferRegistryEnd_) && ((*iFind)->typeId() == typeId)) ? *iFind
@@ -598,8 +607,8 @@ namespace sub0
          */
         bool update()
         {
-            return !currentPayload_  ? readHeader()
-                                     : readPayload();
+            return !currentPayload_  ? Protocol::readHeader()
+                                     : Protocol::readPayload();
         }
 
     protected:
@@ -628,7 +637,7 @@ namespace sub0
             {
                 const char* expectedTypeName = currentPayload_->typeName();
                 const size_t expectedPayloadSize = currentPayload_->bufferBytes();
-                assert( false == "Data of 'expectedTypeName' is not size 'expectedPayloadSize'" ); /// @todo Does not handle changed data structure size [Critical]
+                assert( (void*)0 == "Data of 'expectedTypeName' is not size 'expectedPayloadSize'" ); /// @todo Does not handle changed data structure size [Critical]
             }
 
             return readPayload();
@@ -686,8 +695,8 @@ namespace sub0
         /** Create subscription to the data type
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardSubscribe( const char* typeName = 0/*nullptr*/ )
-            : Subscribe<Data>(typeName)
+        ForwardSubscribe(const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
+            : Subscribe<Data>(typeId, typeName)
         {}
 
         /** Empty
@@ -719,8 +728,8 @@ namespace sub0
         /** Register publisher buffer with the data provider
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardPublish( const char* typeName = 0/*nullptr*/ )
-            : Publish<Data>(typeName)
+        ForwardPublish(const uint32_t typeId, const char* typeName = 0/*nullptr*/ )
+            : Publish<Data>(typeId, typeName)
             , IDataBuffer()
         {
             static_cast<Provider*>(this)->registerDataBuffer(this); // Register the buffer sink to the data provider
