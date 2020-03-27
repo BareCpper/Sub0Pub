@@ -562,7 +562,8 @@ namespace sub0
             case State::Postfix:
                 assert(currentBuffer_.bufferPublisher);
                 assert(checkStateOk(currentState) ); ///< @todo Handle missing/corrupted postfix
-                currentBuffer_.bufferPublisher->onBufferComplete(); // Signal completion of buffer content to publish data signal
+                if (currentBuffer_.bufferPublisher)
+                    currentBuffer_.bufferPublisher->onBufferComplete(); // Signal completion of buffer content to publish data signal
                 return !std::is_same<Prefix_t,void>::value ? State::Prefix : nextState(State::Prefix);
             }
         }
