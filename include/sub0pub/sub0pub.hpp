@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cassert> //< assert
 #include <cstring> //< std::strcmp
-#include <iostream> //< std::cout
 //#include <typeinfo> //< typeid()
 #include <type_traits> //< std::is_same
 
@@ -51,6 +50,14 @@
 #define SUB0PUB_ASSERT true ///< Enable assertion tests by default
 #endif
 
+#ifndef SUB0PUB_STD
+#define SUB0PUB_STD false ///< Use STD ostream and IStream types (May increase binary compiled size)
+#endif
+
+#ifndef SUB0PUB_TYPEIDNAME
+#define SUB0PUB_TYPEIDNAME false ///< Typs iven unitq/user-defined type index and strng name for diagnostis and IPC
+#endif
+
 /** Helper macro for stringifying value using compiler preprocessor
  * e.g. SUB0_STRINGIFY_HELPER(123) == "123", SUB0_STRINGIFY_HELPER(FooBar) == "FooBar"
  * @param  x  A value whos value will be converted to string e.g. FooBar == "FooBar", 123 = "123"
@@ -62,6 +69,16 @@
  * @param  x  A macro definition whos value will be converted to string  e.g. __LINE__ == "123??"
  */
 #define SUB0_STRINGIFY(x) SUB0_STRINGIFY_HELPER(x)
+
+#if SUB0PUB_STD
+#include <ostream> //< std::ostream
+#include <istream> //< std::istream
+#endif
+
+/// @todo Trace interface - currently std::cout only!!
+#if SUB0PUB_TRACE
+#include <iostream>
+#endif
 
 /** Sub0Pub top-level namespace
 */
@@ -94,7 +111,32 @@ namespace sub0
             }
             return hash;
         }
+
+        class OStream
+        {
+        public:
+            typedef uint_fast16_t StreamSize;
+
+            virtual StreamSize write(const char* const buffer, const StreamSize bufferCount ) = 0;
+        };
+
+        class IStream
+        {
+        public:
+            typedef uint_fast16_t StreamSize;
+
+            virtual StreamSize read( char* const buffer, const StreamSize bufferCount ) = 0;
+        };
+
     } // END: utility
+    
+#if SUB0PUB_STD
+    typedef std::ostream OStream;
+    typedef std::istream IStream;
+#else
+    typedef utility::OStream OStream;
+    typedef utility::IStream IStream;
+#endif
 
     /** Broker manages publisher-subscriber connection for a 'Data' type
      * @tparam Data  Data type which this instance manages connections for
@@ -132,17 +174,20 @@ namespace sub0
              * @param subscriptionCapacity  Count specifying subscriptionCount limit for the broker
              */
             template<typename Data>
-            static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
+            inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
             {
                 if ( cDoAssert )
                 {
                     assert( subscriber );
+                    assert(subscriptionCount == 0);
                     assert( subscriptionCount < subscriptionCapacity );
                 }
+#if SUB0PUB_TRACE /// @todo iostream removal:
                 if ( cMessageTrace )
-                {
+                { 
                     std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
                 }
+#endif
             }
 
             /** Diagnose creation of new publisher
@@ -152,17 +197,19 @@ namespace sub0
              * @param publisherCapacity  Count specifying publisherCount limit for the broker
              */
             template<typename Data>
-            static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
+            inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
             {
                 if ( cDoAssert )
                 {
                     assert( publisher );
                     assert( publisherCount < publisherCapacity );
                 }
+#if SUB0PUB_TRACE /// @todo iostream removal:
                 if ( cMessageTrace )
-                {
+                { 
                     std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
                 }
+#endif
             }
 
             /** Diagnose data publish event
@@ -170,14 +217,16 @@ namespace sub0
              * @param data  The data to be published
              */
             template<typename Data>
-            static void onPublish( const Publish<Data>& publisher, const Data& data )
+            inline static void onPublish( const Publish<Data>& publisher, const Data& data )
             {
+#if SUB0PUB_TRACE /// @todo iostream removal: 
                 if ( cMessageTrace )
                 {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Published " << publisher
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
                 }
+#endif
             }
 
             /** Diagnose data receive event
@@ -185,18 +234,34 @@ namespace sub0
              * @param data  The data that is received
              */
             template<typename Data>
-            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
+            static void 
+#if __GNUG__ /// @todo GCC 7.2(TBC) publish(const Data & data) bug on inlining this function and calling detail::Check::onReceive()?
+                __attribute__((noinline)) 
+#endif
+                onReceive( Subscribe<Data>* subscriber, const Data& data )
             {
                 if ( cDoAssert )
                 {
-                    assert( subscriber );
+#if 0 ///< @temp
+                    while (!subscriber)
+                    {
+                        delay(1);
+                    }
+#endif
+                    if ( subscriber == nullptr )
+                    {
+                       // while (true) {};
+                       assert(subscriber );
+                    }
                 }
+#if SUB0PUB_TRACE /// @todo iostream removal: 
                 if ( cMessageTrace )
                 {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Received " << *subscriber
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
                 }
+#endif
             }
         };
 
@@ -218,20 +283,24 @@ namespace sub0
         /** Registers the subscriber within the broker framework
          * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
          */
-        Subscribe( const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
-        : broker_( this, typeId, typeName )
+        Subscribe( 
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName 
+#endif
+        )
         {}
-
-        /** Empty
-         */
-        virtual ~Subscribe()
-        {}
-
+        
         /** Receive published Data
          * @remark Data is published from Publish<Data>::publish
          */
         virtual void receive( const Data & data ) = 0;
 
+#if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
          * @return Broker null-terminated type name
         */
@@ -243,8 +312,9 @@ namespace sub0
          * @param subscriber  Subscriber instance to be written into stream
          * @return Reference to 'stream'
          */
-        friend std::ostream& operator<< ( std::ostream& stream, const Subscribe<Data>& subscriber )
+        friend OStream& operator<< ( OStream& stream, const Subscribe<Data>& subscriber )
         { return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
+#endif
 
     private:
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
@@ -260,8 +330,16 @@ namespace sub0
         /** Registers the publisher within the broker framework
          * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
          */
-        Publish(const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
-        : broker_( this, typeId, typeName )
+        Publish(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName
+#endif
+        )
         {}
 
         /** Publish data to subscribers
@@ -271,9 +349,10 @@ namespace sub0
         void publish( const Data& data ) const
         {
             detail::Check::onPublish( *this, data );
-            broker_.publish (data);
+            broker_.publish(data);
         }
 
+#if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
          * @return Broker null-terminated type name
         */
@@ -291,8 +370,9 @@ namespace sub0
          * @param publisher  Publisher instance to be written into stream
          * @return Reference to 'stream'
          */
-        friend std::ostream& operator<< ( std::ostream& stream, const Publish<Data>& publisher )
+        friend OStream& operator<< ( OStream& stream, const Publish<Data>& publisher )
         { return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
+#endif
 
     private:
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
@@ -315,10 +395,16 @@ namespace sub0
          * @param[in] typeName Optional unique data name given to data for inter-process signaling. 
          * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
          */
-        Broker ( Subscribe<Data>* subscriber, const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
+        Broker( Subscribe<Data>* subscriber
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
         {
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+#if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
+#endif
             state_.subscriptions[state_.subscriptionCount++] = subscriber;
         }
 
@@ -327,13 +413,20 @@ namespace sub0
          * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
          * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
          */
-        Broker ( Publish<Data>* publisher, const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
+        Broker ( Publish<Data>* publisher
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
         {
             detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
+#if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
+#endif
             // Do nothing for now...
         }
 
+#if SUB0PUB_TYPEIDNAME
         /** Set a unique identifier for the data the broker manages
          * @remark This name is used during serialisation for inter-process communications
          * @param[in]  typeName  Null terminated compile-time string constant
@@ -354,13 +447,14 @@ namespace sub0
                 state_.typeName = typeName;
             }
         }
+#endif
 
         /** Send data to registered subscribers
          * @param data  Data sent to subscribers via their 'receive()' function
          */
-        void publish (const Data & data) const
+        void publish(const Data & data) const
         {
-            for ( uint32_t iSubscription = 0U; iSubscription < state_.subscriptionCount; ++iSubscription )
+            for (uint32_t iSubscription = 0U; iSubscription < state_.subscriptionCount; ++iSubscription )
             {
                 Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
                 detail::Check::onReceive( subscription, data );
@@ -373,11 +467,14 @@ namespace sub0
          * @param broker  Broker instance to output for
          * @return The 'stream' instance
          */
-        friend std::ostream& operator<< ( std::ostream& stream, const Broker<Data>& broker )
+#if 0 ///@todo Remove unecessary stream operations: 
+        friend OStream& operator<< ( OStream& stream, const Broker<Data>& broker )
         {
             return stream << (void*)&broker.state_;
         }
+#endif
 
+#if SUB0PUB_TYPEIDNAME
         /** @return Unique identifier index for inter-process binary connections
          */
         static uint32_t typeId()
@@ -391,6 +488,7 @@ namespace sub0
         {
             return state_.typeName;
         }
+#endif
 
     private:
         /** Object state as monotonic object shared by all instances
@@ -399,8 +497,14 @@ namespace sub0
         {
             uint32_t subscriptionCount; ///< Count of subscriptions_
             Subscribe<Data>* subscriptions[cMaxSubscriptions];    ///< Subscription table @todo More flexible count-support
+#if SUB0PUB_TYPEIDNAME
             uint32_t typeId; ///< Type identifier index or name hash
             const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
+#endif
+            State() 
+                : subscriptionCount(0)
+                , subscriptions() 
+            {}
         };
         static State state_; ///< MonoState subscription table
     };
@@ -410,6 +514,12 @@ namespace sub0
      */
     template<typename Data>
     typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
+
+    /** Explicit allocation of monotonic state
+    @note Enables appearing within Globals for ELF embedded targets
+    */
+#define SUB0_BROKERSTATE(Data) \
+    namespace sub0 {  template<> Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State(); } 
     
     /** Publish data, used when inheriting from multiple Publish<> base types
      * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
@@ -420,7 +530,7 @@ namespace sub0
      * @param[in] data  Data that will be published using the base Publish<Data> object of From
      */
     template<typename From, typename Data>
-    void publish(const From& from, const Data& data)
+    inline void publish(const From& from, const Data& data)
     {
         const Publish<Data>& publisher = from;
         publisher.publish(data);
@@ -448,15 +558,20 @@ namespace sub0
          * @param data  Data to construct a header record and data payload for
          */
         template<typename Data>
-        void write(std::ostream& stream, const Data& data)
+        inline void write(OStream& stream, const Data& data)
+        {
+            write(stream, Header_t(data), reinterpret_cast<const char*>(&data), sizeof(data));
+        }
+
+    private:
+        void write(OStream& stream, const Header_t& header, const char* data, const uint_fast16_t dataSize )
         {
 #if 0 /// @todo Handle Prefix_t == void!?!?
             const Prefix_t prefix;
             stream.write(reinterpret_cast<const char*>(&prefix), sizeof(prefix));
 #endif
-            Header_t header( data );
             stream.write(reinterpret_cast<const char*>(&header), sizeof(header));
-            stream.write(reinterpret_cast<const char*>(&data), sizeof(data));
+            stream.write(data, dataSize);
 
             /// @todo Handle Postfix_t == void!?!?
             const Postfix_t postfix;
@@ -495,7 +610,7 @@ namespace sub0
                                 , { reinterpret_cast<char*>(&buffer), static_cast<uint_fast16_t>(sizeof(buffer)), bufferPublisher } } );
         }
 
-        bool read(std::istream& stream)
+        bool read(IStream& stream)
         {
             /// Read data until an incomplete message
             while (readBuffer(stream))
@@ -533,7 +648,7 @@ namespace sub0
         /** Read payload data form stream and detect payload completion
          * @return True when data packet(s) have been published, false if no completed packet was present in stream
         */
-        bool readBuffer(std::istream& stream)
+        bool readBuffer(IStream& stream)
         {
             const uint_fast16_t readCount = static_cast<uint_fast16_t>(stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize).gcount()); ///< @todo readsome() for async
             currentBuffer_.buffer += readCount;
@@ -652,8 +767,13 @@ namespace sub0
             /** header for specified Data type
             */
             template<typename Data>
-            Header( const Data& )
+            Header( const Data& data )
+#if SUB0PUB_TYPEIDNAME
                 : typeId(Broker<Data>::typeId() )
+#else
+
+                : typeId(12345) // reinterpret_cast<uint32_t>(&typeid(data)) ) ///< @todo Crude using ypeid address!!!
+#endif
                 , dataBytes(sizeof(Data) )
             {}
 
@@ -687,14 +807,9 @@ namespace sub0
         /** Construct from stream
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
-        StreamSerialiser( std::ostream& stream )
+        StreamSerialiser( OStream& stream )
         : stream_(stream)
         , writer_()
-        {}
-
-        /** Empty
-         */
-        virtual ~StreamSerialiser()
         {}
 
         /** Receives forwarded data from a subscriber and serialises it to the output stream
@@ -707,7 +822,7 @@ namespace sub0
         }
 
     private:
-        std::ostream& stream_; ///< Stream into which data is serialised
+        OStream& stream_; ///< Stream into which data is serialised
         typename Protocol::Writer writer_;
     };
 
@@ -722,9 +837,9 @@ namespace sub0
     class StreamDeserialiser
     {
     public:
-        /** Store reference to supplied istream which will be read on update()
+        /** Store reference to supplied IStream which will be read on update()
         */
-        StreamDeserialiser( std::istream& stream )
+        StreamDeserialiser( IStream& stream )
             : stream_(stream)
             , reader_()
         {}
@@ -744,7 +859,7 @@ namespace sub0
         }
 
     private:
-        std::istream& stream_; ///< Stream from which data is deserialised
+        IStream& stream_; ///< Stream from which data is deserialised
         typename Protocol::Reader reader_;
         uint8_t* buffer_;
         uint32_t bufferSize_;
@@ -764,13 +879,16 @@ namespace sub0
         /** Create subscription to the data type
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardSubscribe(const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
-            : Subscribe<Data>(typeId, typeName)
-        {}
-
-        /** Empty
-         */
-        virtual ~ForwardSubscribe()
+        ForwardSubscribe(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+            : Subscribe<Data>(
+#if SUB0PUB_TYPEIDNAME
+                typeId, typeName
+#endif
+                )
         {}
 
         /** Receives subscribed data and forward to target object
@@ -797,17 +915,20 @@ namespace sub0
         /** Register publisher buffer with the data provider
          * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
          */
-        ForwardPublish(const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ )
-            : Publish<Data>(typeId, typeName)
+        ForwardPublish(
+#if SUB0PUB_TYPEIDNAME            
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+            : Publish<Data>(
+#if SUB0PUB_TYPEIDNAME
+                typeId, typeName
+#endif
+              )
             , IBufferPublish()
         {
             static_cast<Provider*>(this)->setBufferPublisher( buffer_, static_cast<IBufferPublish*>(this) ); // Register the buffer sink to the data provider
         }
-
-        /** Empty
-         */
-        virtual ~ForwardPublish()
-        {}
 
     private:
 
