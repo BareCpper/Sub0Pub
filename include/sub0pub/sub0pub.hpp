@@ -298,7 +298,10 @@ namespace sub0
         /** Receive published Data
          * @remark Data is published from Publish<Data>::publish
          */
-        virtual void receive( const Data & data ) = 0;
+        virtual void receive( const Data& data ) = 0;
+
+        virtual bool filter(const Data& data)
+        {  return true; }
 
 #if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
@@ -458,7 +461,11 @@ namespace sub0
             {
                 Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
                 detail::Check::onReceive( subscription, data );
-                subscription->receive(data);
+
+                if ( subscription->filter(data))
+                {
+                    subscription->receive(data);
+                }
             }
         }
 
@@ -866,6 +873,7 @@ namespace sub0
         uint32_t currentBufferReadCount_; ///< NUmber of bytes read for the header or payload depending on currentBuffer_!=nullptr
     };
 
+
     /** Forward receive() to  Target type convertible from this
      * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerialiser
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
@@ -894,7 +902,7 @@ namespace sub0
         /** Receives subscribed data and forward to target object
          * @param data  Data to forward
          */
-        virtual void receive( const Data& data )
+        inline virtual void receive( const Data& data )
         {
             static_cast<Target*>(this)->forward( data );
         }
