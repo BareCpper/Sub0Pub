@@ -645,6 +645,7 @@ namespace sub0
         {
             switch (state)
             {
+            default: //< @todo unreachable
             case State::Prefix:  return { nullptr , 0U , nullptr };///< @todo Handle non-void Prefix_t: { &prefix_ , sizeof(prefix_) , nullptr }
             case State::Header:  return { (char*)&header_ , static_cast<uint_fast16_t>(sizeof(header_)) , nullptr };
             case State::Data:    return findBufferPublisher(header_);
@@ -667,6 +668,7 @@ namespace sub0
         {
             switch (state)
             {
+            default: //< @todo unreachable
             case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Postfix_t())
             case State::Header:  return true; ///< @todo Check on header?
             case State::Data:    return true;
@@ -678,6 +680,7 @@ namespace sub0
         {
             switch (currentState)
             {
+            default: //< @todo unreachable
             case State::Prefix:  return State::Header;
             case State::Header:  return State::Data;
             case State::Data:    return !std::is_same<Postfix_t,void>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
