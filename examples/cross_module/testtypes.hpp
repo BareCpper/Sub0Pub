@@ -51,12 +51,12 @@ public:
 	}
 };
 
-class C : public sub0::StreamSerialiser<sub0::BinarySerializer>
+class C : public sub0::StreamSerializer<sub0::BinarySerializer>
         , public sub0::ForwardSubscribe<float,C>
         , public sub0::ForwardSubscribe<int,C>
 {
 public:
-    C() : sub0::StreamSerialiser<sub0::BinarySerializer>( std::cout )
+    C() : sub0::StreamSerializer<sub0::BinarySerializer>( std::cout )
     {}
 
 
@@ -64,6 +64,6 @@ public:
     void forward( const Data& data )
     {
         std::cout << "Serialised " << data << ":\n";
-        sub0::StreamSerialiser<sub0::BinarySerializer>::forward(data);
+        sub0::StreamSerializer<sub0::BinarySerializer>::forward(data);
     }
 };

@@ -808,13 +808,13 @@ namespace sub0
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
     template< typename Protocol = DefaultSerialisation >
-    class StreamSerialiser
+    class StreamSerializer
     {
     public:
         /** Construct from stream
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
-        StreamSerialiser( OStream& stream )
+        StreamSerializer( OStream& stream )
         : stream_(stream)
         , writer_()
         {}
@@ -837,7 +837,7 @@ namespace sub0
     /** Publishes messages from a serialised-input stream using the specified Protocol 
      * @remark StreamDeserialiser can be used for inter-process or distributed systems over a network where the stream
      *  could be a TcpStream or could be a file in simple cases. The serialised data is expected to be generated from a
-     *  corresponding StreamSerialiser instance for the same Protocol.
+     *  corresponding StreamSerializer instance for the same Protocol.
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
     template< typename Protocol = DefaultSerialisation >
@@ -875,7 +875,7 @@ namespace sub0
 
 
     /** Forward receive() to  Target type convertible from this
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerialiser
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
      * @tparam  Data  Data type which will be forwarded to the derived Target implementation
      * @tparam  Target  Type of derived class which implements a function of type Target::forward( const Data& data ) via base inheritance or direct member
@@ -909,7 +909,7 @@ namespace sub0
     };
 
     /** Register publication of data with a provider instance
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerialiser
+     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
      * @tparam  Data  Data type which will be read into from a Provider
      * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* bufferPublisher ) via base inheritance or direct member
