@@ -21,7 +21,7 @@ public:
 };
 
 
-class D : public sub0::StreamDeserialiser<sub0::BinaryProtocol>
+class D : public sub0::StreamDeserialiser<sub0::BinarySerializer>
         , public sub0::ForwardPublish<float,D>
         , public sub0::ForwardPublish<int,D>
 {
@@ -51,12 +51,12 @@ public:
 	}
 };
 
-class C : public sub0::StreamSerialiser<sub0::BinaryProtocol>
+class C : public sub0::StreamSerialiser<sub0::BinarySerializer>
         , public sub0::ForwardSubscribe<float,C>
         , public sub0::ForwardSubscribe<int,C>
 {
 public:
-    C() : sub0::StreamSerialiser<sub0::BinaryProtocol>( std::cout )
+    C() : sub0::StreamSerialiser<sub0::BinarySerializer>( std::cout )
     {}
 
 
@@ -64,6 +64,6 @@ public:
     void forward( const Data& data )
     {
         std::cout << "Serialised " << data << ":\n";
-        sub0::StreamSerialiser<sub0::BinaryProtocol>::forward(data);
+        sub0::StreamSerialiser<sub0::BinarySerializer>::forward(data);
     }
 };
