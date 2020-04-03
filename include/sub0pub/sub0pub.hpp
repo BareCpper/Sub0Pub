@@ -179,7 +179,6 @@ namespace sub0
                 if ( cDoAssert )
                 {
                     assert( subscriber );
-                    assert(subscriptionCount == 0);
                     assert( subscriptionCount < subscriptionCapacity );
                 }
 #if SUB0PUB_TRACE /// @todo iostream removal:
