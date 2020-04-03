@@ -612,7 +612,7 @@ namespace sub0
         template < typename Data >
         void setBufferPublisher(Data& buffer, IBufferPublish* bufferPublisher)
         {
-            assert(currentBuffer_.buffer); // We don't intend to support adding buffers at runtime
+            assert(!currentBuffer_.buffer); // We don't intend to support adding buffers at runtime
             setBufferPublisher(   { Header_t(buffer)
                                 , { reinterpret_cast<char*>(&buffer), static_cast<uint_fast16_t>(sizeof(buffer)), bufferPublisher } } );
         }
@@ -664,7 +664,7 @@ namespace sub0
             return (currentBuffer_.bufferSize==0) ? stateComplete() : false;
         }
 
-        bool checkStateOk(const State state)
+        bool checkStateOk(const State state) const
         {
             switch (state)
             {
