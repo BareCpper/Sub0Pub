@@ -657,7 +657,11 @@ namespace sub0
         */
         bool readBuffer(IStream& stream)
         {
+#if SUB0PUB_STD
             const uint_fast16_t readCount = static_cast<uint_fast16_t>(stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize).gcount()); ///< @todo readsome() for async
+#else
+            const uint_fast16_t readCount = stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize);
+#endif
             currentBuffer_.buffer += readCount;
             currentBuffer_.bufferSize -= readCount;
             return (currentBuffer_.bufferSize==0) ? stateComplete() : false;
@@ -805,7 +809,7 @@ namespace sub0
     };
 
     /** Serialises Sub0Pub data into a target stream object
-     * @remark Serialised data can be received and published using the counterpart StreamDeserialiser instance
+     * @remark Serialised data can be received and published using the counterpart StreamDeserializer instance
      * @remark Can be used to create inter-process transfers very easily using the specified Protocol @see sub0::DefaultSerialisation
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
@@ -837,18 +841,18 @@ namespace sub0
 
 
     /** Publishes messages from a serialised-input stream using the specified Protocol 
-     * @remark StreamDeserialiser can be used for inter-process or distributed systems over a network where the stream
+     * @remark StreamDeserializer can be used for inter-process or distributed systems over a network where the stream
      *  could be a TcpStream or could be a file in simple cases. The serialised data is expected to be generated from a
      *  corresponding StreamSerializer instance for the same Protocol.
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
     template< typename Protocol = DefaultSerialisation >
-    class StreamDeserialiser
+    class StreamDeserializer
     {
     public:
         /** Store reference to supplied IStream which will be read on update()
         */
-        StreamDeserialiser( IStream& stream )
+        StreamDeserializer( IStream& stream )
             : stream_(stream)
             , reader_()
         {}

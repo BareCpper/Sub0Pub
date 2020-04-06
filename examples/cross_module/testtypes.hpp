@@ -21,13 +21,13 @@ public:
 };
 
 
-class D : public sub0::StreamDeserialiser<sub0::BinarySerializer>
+class D : public sub0::StreamDeserializer<sub0::BinarySerializer>
         , public sub0::ForwardPublish<float,D>
         , public sub0::ForwardPublish<int,D>
 {
 public:
     D()
-        : sub0::StreamDeserialiser<>( std::cin )
+        : sub0::StreamDeserializer<>( std::cin )
     {
     }
 };
