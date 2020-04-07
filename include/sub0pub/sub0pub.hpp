@@ -439,7 +439,7 @@ namespace sub0
             Subscribe<Data>** const iBegin = state_.subscriptions;
             Subscribe<Data>** const iEnd = iBegin + state_.subscriptionCount;
             Subscribe<Data>** const iPend = std::remove(iBegin, iEnd, subscriber );
-            assert(std::distance(iEnd - iPend) == 1);
+            assert(std::distance(iEnd, iPend) == -1);
             --state_.subscriptionCount;
         }
 
