@@ -293,6 +293,9 @@ namespace sub0
 #endif
         )
         {}
+
+        virtual ~Subscribe()
+        {  broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
         
         /** Receive published Data
          * @remark Data is published from Publish<Data>::publish
@@ -343,6 +346,9 @@ namespace sub0
 #endif
         )
         {}
+
+        virtual ~Publish()
+        { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
 
         /** Publish data to subscribers
          * @param[in]  data  Data value to publish to subscribers
@@ -425,6 +431,20 @@ namespace sub0
 #if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
 #endif
+            // Do nothing for now...
+        }
+
+        void unsubscribe(Subscribe<Data>* subscriber)
+        {
+            Subscribe<Data>** const iBegin = state_.subscriptions;
+            Subscribe<Data>** const iEnd = iBegin + state_.subscriptionCount;
+            Subscribe<Data>** const iPend = std::remove(iBegin, iEnd, subscriber );
+            assert(std::distance(iEnd - iPend) == 1);
+            --state_.subscriptionCount;
+        }
+
+        void unsubscribe(Publish<Data>* publisher)
+        {
             // Do nothing for now...
         }
 
