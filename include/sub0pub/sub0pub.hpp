@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cassert> //< assert
 #include <cstring> //< std::strcmp
+#include <array> //< std::array @todo Should we not use this one occurrence for C++98 compatibility?
 //#include <typeinfo> //< typeid()
 #include <type_traits> //< std::is_same
 
