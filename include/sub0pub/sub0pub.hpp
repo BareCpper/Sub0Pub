@@ -129,6 +129,17 @@ namespace sub0
             virtual StreamSize read( char* const buffer, const StreamSize bufferCount ) = 0;
         };
 
+        template< typename Type_t >
+        inline void write(OStream& stream)
+        {
+            const Type_t defaulted;
+            stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted));
+        }
+
+        template<>
+        inline void write<void>(OStream& stream)
+        {}
+
     } // END: utility
     
 #if SUB0PUB_STD
@@ -580,30 +591,20 @@ namespace sub0
     class BinaryWriter
     {
     public:
-        /** Output headerand pay-load for data as binary
+        /** Output header and pay-load for data as binary
          * @param stream  Stream to write into
          * @param data  Data to construct a header record and data payload for
          */
         template<typename Data>
-        inline void write(OStream& stream, const Data& data)
+        inline void write(OStream& stream, const Data& data) const
         {
-            write(stream, Header_t(data), reinterpret_cast<const char*>(&data), sizeof(data));
-        }
-
-    private:
-        void write(OStream& stream, const Header_t& header, const char* data, const uint_fast16_t dataSize )
-        {
-#if 0 /// @todo Handle Prefix_t == void!?!?
-            const Prefix_t prefix;
-            stream.write(reinterpret_cast<const char*>(&prefix), sizeof(prefix));
-#endif
+            utility::write<Prefix_t>(stream);
+            Header_t header(data);
             stream.write(reinterpret_cast<const char*>(&header), sizeof(header));
-            stream.write(data, dataSize);
-
-            /// @todo Handle Postfix_t == void!?!?
-            const Postfix_t postfix;
-            stream.write(reinterpret_cast<const char*>(&postfix), sizeof(postfix));
+            stream.write(reinterpret_cast<const char*>(&data), sizeof(data));
+            utility::write<Postfix_t>(stream);
         }
+
     };
 
     template< typename Prefix_t, typename Header_t, typename Postfix_t >
