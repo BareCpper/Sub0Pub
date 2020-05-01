@@ -113,12 +113,16 @@ namespace sub0
             return hash;
         }
 
+#if SUB0PUB_STD
+        typedef std::ostream OStream;
+        typedef std::istream IStream;
+#else
         class OStream
         {
         public:
             typedef uint_fast16_t StreamSize;
 
-            virtual StreamSize write(const char* const buffer, const StreamSize bufferCount ) = 0;
+            virtual StreamSize write(const char* const buffer, const StreamSize bufferCount) = 0;
         };
 
         class IStream
@@ -126,8 +130,9 @@ namespace sub0
         public:
             typedef uint_fast16_t StreamSize;
 
-            virtual StreamSize read( char* const buffer, const StreamSize bufferCount ) = 0;
+            virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
         };
+#endif
 
         template< typename Type_t >
         inline void write(OStream& stream)
@@ -142,13 +147,8 @@ namespace sub0
 
     } // END: utility
     
-#if SUB0PUB_STD
-    typedef std::ostream OStream;
-    typedef std::istream IStream;
-#else
     typedef utility::OStream OStream;
     typedef utility::IStream IStream;
-#endif
 
     /** Broker manages publisher-subscriber connection for a 'Data' type
      * @tparam Data  Data type which this instance manages connections for
@@ -578,16 +578,18 @@ namespace sub0
     /** Interface for data provider to indicate destination buffer status
      * @see ForwardPublish
      */
-    class IBufferPublish
+    class IPublish
     {
     public:
 
-        /** Notify that the buffered data is fully populated
+        /** Publish the data owned by the object
          */
-        virtual void onBufferComplete() = 0;
+        virtual void publish() = 0;
     };
 
-    template< typename Prefix_t, typename Header_t, typename Postfix_t >
+    template< typename Prefix_t
+            , typename Header_t
+            , typename Postfix_t >
     class BinaryWriter
     {
     public:
@@ -607,36 +609,93 @@ namespace sub0
 
     };
 
-    template< typename Prefix_t, typename Header_t, typename Postfix_t >
+    struct Buffer
+    {
+        char* buffer; ///< Data buffer
+        uint_fast16_t bufferSize; ///< size of buffer
+        IPublish* publisher; ///< Type specific publish of buffer
+    };
+
+    /** @tparam  cMaxDataBufferCount  Defines the maximum number of Data type buffers the deserialiser can store
+    */
+    template< typename Header_t, uint_fast16_t cMaxDataBufferCount = 64U >
+    class BufferRegister
+    {
+        typedef std::pair<Header_t,Buffer> HeaderToBuffer;
+        typedef std::array<HeaderToBuffer, cMaxDataBufferCount> HeaderToBufferLookup;
+
+    public:
+        BufferRegister()
+            : registry_()
+            , registryEnd_(registry_.begin())
+        {}
+
+        /** Register a sink to the specified typed Data buffer
+            * @remark Performs insertion sorting on buffers by the IPublish::typeId() for the buffer
+            * @remark Called by sub0::ForwardPublish<Data>
+            *
+            * @param publisher  Buffer handling object to store and signal data completion
+            */
+        template < typename Data >
+        void set(Data& buffer, IPublish* publisher)
+        {
+            set(Header_t(buffer), {
+                  reinterpret_cast<char*>(&buffer)
+                , static_cast<uint_fast16_t>(sizeof(buffer))
+                , publisher } );
+        }
+
+        void set(const Header_t& header, const Buffer& buffer)
+        {
+            /// @todo make this a linked list to remove capacity limitations?
+            assert(registryEnd_ < std::end(registry_)); //< Capacity reached
+
+            typename HeaderToBufferLookup::iterator iInsert = std::lower_bound(std::begin(registry_), registryEnd_, header,
+                [](const HeaderToBuffer& lhs, const Header_t& rhs) { return lhs.first < rhs; });
+
+            const bool exists = (iInsert != registryEnd_) && (iInsert->first == header);
+            if (!exists) //< Insert new entry at location
+            {
+                std::move_backward(iInsert, registryEnd_, registryEnd_ + 1U);
+                ++registryEnd_;
+                iInsert->first = header;
+            }
+
+            iInsert->second = buffer;
+        }
+
+        Buffer find(const Header_t header)
+        {
+            typename HeaderToBufferLookup::iterator iFind = std::lower_bound(std::begin(registry_), registryEnd_, HeaderToBuffer(header, Buffer())
+                , [](const HeaderToBuffer& lhs, const HeaderToBuffer& rhs) { return lhs.first < rhs.first; });
+
+            if ((iFind != registryEnd_) && (iFind->first == header))
+                return iFind->second;
+            else
+                return { nullptr , 0U , nullptr };
+        }
+
+    private:
+        HeaderToBufferLookup registry_;
+        typename HeaderToBufferLookup::iterator registryEnd_; ///< Iterator to end of registry_ @note Count = registryEnd_-registry_
+    };
+
+    template< typename Prefix_t, typename Header_t, typename Postfix_t, typename BufferRegister = BufferRegister<Header_t> >
     class BinaryReader
     {
         enum class State { Prefix, Header, Data, Postfix/*, SyncLost*/ , COUNT_ };
+
     public:
         BinaryReader()
-            : currentBuffer_()
+            : dataBufferRegistery_()
+            , currentBuffer_()
             , state_()
 #if 0 /// @todo Handle void Prefix_t
             , prefix_();
 #endif
             , header_()
             , postfix_()
-            , bufferRegistry_()
-            , bufferRegistryEnd_(bufferRegistry_.begin())
         {}
-
-        /** Register a sink to the specified typed Data buffer
-         * @remark Performs insertion sorting on buffers by the IBufferPublish::typeId() for the buffer
-         * @remark Called by sub0::ForwardPublish<Data>
-         *
-         * @param bufferPublisher  Buffer handling object to store and signal data completion
-         */
-        template < typename Data >
-        void setBufferPublisher(Data& buffer, IBufferPublish* bufferPublisher)
-        {
-            assert(!currentBuffer_.buffer); // We don't intend to support adding buffers at runtime
-            setBufferPublisher(   { Header_t(buffer)
-                                , { reinterpret_cast<char*>(&buffer), static_cast<uint_fast16_t>(sizeof(buffer)), bufferPublisher } } );
-        }
 
         bool read(IStream& stream)
         {
@@ -650,27 +709,26 @@ namespace sub0
             return false; ///< @return False = Need more data
         }
 
-    private:
-
-        struct BufferPublisher
+        template < typename Data >
+        void setDataPublisher(Data& dataBuffer, IPublish* publisher)
         {
-            char* buffer; ///< Data buffer
-            uint_fast16_t bufferSize; ///< size of buffer
-            IBufferPublish* bufferPublisher; ///< Type specific publish of buffer
-        };
+            assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
+            dataBufferRegistery_.set(dataBuffer, publisher);
+        }
 
+    private:
 
         /** Returns/finds buffer for state
         */
-        BufferPublisher findStateBuffer(const State state)
+        Buffer findStateBuffer(const State state)
         {
             switch (state)
             {
             default: //< @todo unreachable
             case State::Prefix:  return { nullptr , 0U , nullptr };///< @todo Handle non-void Prefix_t: { &prefix_ , sizeof(prefix_) , nullptr }
             case State::Header:  return { (char*)&header_ , static_cast<uint_fast16_t>(sizeof(header_)) , nullptr };
-            case State::Data:    return findBufferPublisher(header_);
-            case State::Postfix: return { (char*)&postfix_ , static_cast<uint_fast16_t>(sizeof(postfix_)), currentBuffer_.bufferPublisher };///< @todo Handle void Postfix_t: { nullptr , 0U , nullptr }
+            case State::Data:    return dataBufferRegistery_.find(header_);
+            case State::Postfix: return { (char*)&postfix_ , static_cast<uint_fast16_t>(sizeof(postfix_)), currentBuffer_.publisher };///< @todo Handle void Postfix_t: { nullptr , 0U , nullptr }
             }
         }
         
@@ -710,10 +768,10 @@ namespace sub0
             case State::Header:  return State::Data;
             case State::Data:    return !std::is_same<Postfix_t,void>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
             case State::Postfix:
-                assert(currentBuffer_.bufferPublisher);
+                assert(currentBuffer_.publisher);
                 assert(checkStateOk(currentState) ); ///< @todo Handle missing/corrupted postfix
-                if (currentBuffer_.bufferPublisher)
-                    currentBuffer_.bufferPublisher->onBufferComplete(); // Signal completion of buffer content to publish data signal
+                if (currentBuffer_.publisher)
+                    currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
                 return !std::is_same<Prefix_t,void>::value ? State::Prefix : nextState(State::Prefix);
             }
         }
@@ -735,38 +793,9 @@ namespace sub0
             return currentBuffer_.buffer != nullptr;
         }
 
-
-        /** Defines the maximum number of Data type buffers the deserialiser can store
-         * @todo Make this figure compile-time configurable instead of arbitrary size!
-         */
-        static const uint32_t cMaxDataBufferCount = 64U;
-        typedef std::pair< Header_t, BufferPublisher> HeaderToBufferPublisher;
-
-        /** @see setBufferPublisher(Data&, IBufferPublish*) */
-        void setBufferPublisher(const HeaderToBufferPublisher& headerToBufferPublisher )
-        {
-            /// @todo make this a linked list to remove capacity limitations?
-            typename BufferForDataArray::iterator insertionPoint = std::upper_bound( std::begin(bufferRegistry_), bufferRegistryEnd_, headerToBufferPublisher, 
-                [](const HeaderToBufferPublisher& lhs, const HeaderToBufferPublisher& rhs) { return lhs.first < rhs.first; } );
-            *bufferRegistryEnd_ = headerToBufferPublisher; //< Insert at end
-            std::rotate(insertionPoint, bufferRegistryEnd_, bufferRegistryEnd_ + 1U); // Rotate the entries after the insertion point to move the new value into the insertion point
-            ++bufferRegistryEnd_;
-        }
-
-        BufferPublisher findBufferPublisher(const Header_t header)
-        {
-            typename BufferForDataArray::iterator iFind = std::lower_bound(std::begin(bufferRegistry_), bufferRegistryEnd_, HeaderToBufferPublisher(header, BufferPublisher())
-               , [](const HeaderToBufferPublisher& lhs, const HeaderToBufferPublisher& rhs) { return lhs.first < rhs.first; } );
-            
-            if ((iFind != bufferRegistryEnd_) && (iFind->first == header))
-                return iFind->second;
-            else
-                return { nullptr , 0U , nullptr };
-        }
-
-        typedef std::array<HeaderToBufferPublisher, cMaxDataBufferCount> BufferForDataArray;
-
-        BufferPublisher currentBuffer_; ///< Current prefix/header/payload/postfix buffer
+    private:
+        BufferRegister dataBufferRegistery_;
+        Buffer currentBuffer_; ///< Current prefix/header/payload/postfix buffer
         State state_; ///< Which buffer is being read
 
 #if 0 /// @todo Handle void Prefix_t
@@ -774,10 +803,6 @@ namespace sub0
 #endif
         Header_t header_; ///< Packet head buffer
         Postfix_t postfix_;
-
-
-        BufferForDataArray bufferRegistry_;
-        typename BufferForDataArray::iterator bufferRegistryEnd_; ///< Iterator to end of bufferRegistry_ @note Count = bufferRegistryEnd_-bufferRegistry_
     };
 
     /** Binary protocol for serialised signal and data transfer
@@ -880,9 +905,9 @@ namespace sub0
         {}
 
         template < typename Data >
-        void setBufferPublisher( Data& buffer, IBufferPublish* bufferPublisher )
+        void setDataPublisher( Data& dataBffer, IPublish* publisher )
         {
-            reader_.setBufferPublisher( buffer, bufferPublisher );
+            reader_.setDataPublisher(dataBffer, publisher );
         }
 
         /** Polls data from the input stream
@@ -894,11 +919,8 @@ namespace sub0
         }
 
     private:
-        IStream& stream_; ///< Stream from which data is deserialised
+        IStream& stream_; ///< Stream from which data is de-serialized
         typename Protocol::Reader reader_;
-        uint8_t* buffer_;
-        uint32_t bufferSize_;
-        uint32_t currentBufferReadCount_; ///< NUmber of bytes read for the header or payload depending on currentBuffer_!=nullptr
     };
 
 
@@ -940,12 +962,12 @@ namespace sub0
      * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
      * @tparam  Data  Data type which will be read into from a Provider
-     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* bufferPublisher ) via base inheritance or direct member
+     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* publisher ) via base inheritance or direct member
      *
      * @todo API not final
      */
     template<typename Data, typename Provider >
-    class ForwardPublish : public Publish<Data>, protected IBufferPublish
+    class ForwardPublish : public Publish<Data>, protected IPublish
     {
     public:
         /** Register publisher buffer with the data provider
@@ -961,16 +983,16 @@ namespace sub0
                 typeId, typeName
 #endif
               )
-            , IBufferPublish()
+            , IPublish()
         {
-            static_cast<Provider*>(this)->setBufferPublisher( buffer_, static_cast<IBufferPublish*>(this) ); // Register the buffer sink to the data provider
+            static_cast<Provider*>(this)->setDataPublisher( buffer_, static_cast<IPublish*>(this) ); // Register the buffer sink to the data provider
         }
 
     private:
 
         /** Called by Provider to notify when the buffer_ has been populated
          */
-        virtual void onBufferComplete()
+        virtual void publish() final
         { Publish<Data>::publish( buffer_ ); }
 
     private:
