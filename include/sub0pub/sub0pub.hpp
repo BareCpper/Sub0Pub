@@ -766,13 +766,13 @@ namespace sub0
             default: //< @todo unreachable
             case State::Prefix:  return State::Header;
             case State::Header:  return State::Data;
-            case State::Data:    return !std::is_same<Postfix_t,void>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
+            case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
             case State::Postfix:
                 assert(currentBuffer_.publisher);
                 assert(checkStateOk(currentState) ); ///< @todo Handle missing/corrupted postfix
                 if (currentBuffer_.publisher)
                     currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
-                return !std::is_same<Prefix_t,void>::value ? State::Prefix : nextState(State::Prefix);
+                return !std::is_void<Prefix_t>::value ? State::Prefix : nextState(State::Prefix);
             }
         }
 
@@ -798,11 +798,15 @@ namespace sub0
         Buffer currentBuffer_; ///< Current prefix/header/payload/postfix buffer
         State state_; ///< Which buffer is being read
 
-#if 0 /// @todo Handle void Prefix_t
-        Prefix_t prefix_;
-#endif
+        /// @{ Pre/Post-fix_t can be void which must be mapped to a useable member type
+        /// @todo Can we ommit the void members all together instead?
+        typedef typename std::conditional<std::is_void<Prefix_t>::value, char, Prefix_t>::type MemberPrefix_t;
+        typedef typename std::conditional<std::is_void<Postfix_t>::value,char,Postfix_t>::type MemberPostfix_t;
+        /// @}
+
+        MemberPrefix_t prefix_;
         Header_t header_; ///< Packet head buffer
-        Postfix_t postfix_;
+        MemberPostfix_t postfix_;
     };
 
     /** Binary protocol for serialised signal and data transfer
@@ -832,7 +836,7 @@ namespace sub0
                 : typeId(Broker<Data>::typeId() )
 #else
 
-                : typeId(12345) // reinterpret_cast<uint32_t>(&typeid(data)) ) ///< @todo Crude using ypeid address!!!
+                : typeId(12345) // reinterpret_cast<uint32_t>(&typeid(data)) ) ///< @todo Crude using typeid address!!!
 #endif
                 , dataBytes(sizeof(Data) )
             {}
@@ -868,8 +872,8 @@ namespace sub0
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
         StreamSerializer( OStream& stream )
-        : stream_(stream)
-        , writer_()
+            : stream_(stream)
+            , writer_()
         {}
 
         /** Receives forwarded data from a subscriber and serialises it to the output stream
@@ -923,7 +927,6 @@ namespace sub0
         typename Protocol::Reader reader_;
     };
 
-
     /** Forward receive() to  Target type convertible from this
      * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
@@ -952,7 +955,7 @@ namespace sub0
         /** Receives subscribed data and forward to target object
          * @param data  Data to forward
          */
-        inline virtual void receive( const Data& data )
+        inline void receive( const Data& data ) final
         {
             static_cast<Target*>(this)->forward( data );
         }
@@ -996,7 +999,7 @@ namespace sub0
         { Publish<Data>::publish( buffer_ ); }
 
     private:
-        Data buffer_; ///< Data buffer to be publuished 
+        Data buffer_; ///< Data buffer to be published 
                       ///< @todo Double-buffer data storage for asynchronous processing and receive?
     };
 
