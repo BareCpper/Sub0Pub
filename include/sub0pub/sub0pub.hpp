@@ -637,12 +637,12 @@ namespace sub0
             * @param publisher  Buffer handling object to store and signal data completion
             */
         template < typename Data >
-        void set(Data& buffer, IPublish* publisher)
+        void set(Data& buffer, IPublish& publisher)
         {
             set(Header_t(buffer), {
                   reinterpret_cast<char*>(&buffer)
                 , static_cast<uint_fast16_t>(sizeof(buffer))
-                , publisher } );
+                , &publisher } );
         }
 
         void set(const Header_t& header, const Buffer& buffer)
@@ -710,7 +710,7 @@ namespace sub0
         }
 
         template < typename Data >
-        void setDataPublisher(Data& dataBuffer, IPublish* publisher)
+        void setDataPublisher(Data& dataBuffer, IPublish& publisher)
         {
             assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
             dataBufferRegistery_.set(dataBuffer, publisher);
@@ -905,7 +905,7 @@ namespace sub0
         {}
 
         template < typename Data >
-        void setDataPublisher( Data& dataBffer, IPublish* publisher )
+        void setDataPublisher( Data& dataBffer, IPublish& publisher )
         {
             reader_.setDataPublisher(dataBffer, publisher );
         }
@@ -962,7 +962,7 @@ namespace sub0
      * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
      * @tparam  Data  Data type which will be read into from a Provider
-     * @tparam  Provider  Type of derived class which implements a function of type Provider::addSink( Data* publisher ) via base inheritance or direct member
+     * @tparam  Provider  CRTP Type of derived class which implements a function of type Provider::setDataPublisher( Data&, IPublish& ) via base inheritance or direct member
      *
      * @todo API not final
      */
@@ -985,18 +985,18 @@ namespace sub0
               )
             , IPublish()
         {
-            static_cast<Provider*>(this)->setDataPublisher( buffer_, static_cast<IPublish*>(this) ); // Register the buffer sink to the data provider
+            static_cast<Provider*>(this)->setDataPublisher( buffer_, static_cast<IPublish&>(*this) ); // Register the buffer sink to the data provider
         }
 
     private:
 
-        /** Called by Provider to notify when the buffer_ has been populated
+        /** Publish the data populated in buffer_
          */
         virtual void publish() final
         { Publish<Data>::publish( buffer_ ); }
 
     private:
-        Data buffer_; ///< Data buffer instance 
+        Data buffer_; ///< Data buffer to be publuished 
                       ///< @todo Double-buffer data storage for asynchronous processing and receive?
     };
 
