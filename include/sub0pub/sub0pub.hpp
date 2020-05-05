@@ -131,6 +131,7 @@ namespace sub0
             typedef uint_fast16_t StreamSize;
 
             virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
+            virtual StreamSize ignore( const StreamSize bufferCount) = 0;
         };
 #endif
 
@@ -611,12 +612,13 @@ namespace sub0
 
     struct Buffer
     {
-        char* buffer; ///< Data buffer
+        char* buffer; ///< Data buffer @note a nullptr buffer may be set for unsupported payloads where paddingSize != 0 is required
         uint_fast16_t bufferSize; ///< size of buffer
+        uint_fast16_t paddingSize; ///< size of buffer padding data to discard after buffer @note For protocol version compatibility when payloads grow
         IPublish* publisher; ///< Type specific publish of buffer
     };
 
-    /** @tparam  cMaxDataBufferCount  Defines the maximum number of Data type buffers the deserialiser can store
+    /** @tparam  cMaxDataBufferCount  Defines the maximum number of Data type buffers the deserializer can store
     */
     template< typename Header_t, uint_fast16_t cMaxDataBufferCount = 64U >
     class BufferRegister
@@ -631,17 +633,20 @@ namespace sub0
         {}
 
         /** Register a sink to the specified typed Data buffer
-            * @remark Performs insertion sorting on buffers by the IPublish::typeId() for the buffer
-            * @remark Called by sub0::ForwardPublish<Data>
-            *
-            * @param publisher  Buffer handling object to store and signal data completion
-            */
+         * @remark Performs insertion sorting on buffers by the IPublish::typeId() for the buffer
+         * @remark Called by sub0::ForwardPublish<Data>
+         *
+         * @param[in] publisher  Buffer handling object to store and signal data completion
+         * @param[in] paddingSize  Number of trailing bytes after sizeof(Data) has been consumed to ignore/discard 
+         *                         for alignment or protocol-version compatibility
+         */
         template < typename Data >
-        void set(Data& buffer, IPublish& publisher)
+        void set(Data& buffer, IPublish& publisher, const uint_fast16_t paddingSize = 0U )
         {
             set(Header_t(buffer), {
                   reinterpret_cast<char*>(&buffer)
                 , static_cast<uint_fast16_t>(sizeof(buffer))
+                , paddingSize
                 , &publisher } );
         }
 
@@ -672,7 +677,7 @@ namespace sub0
             if ((iFind != registryEnd_) && (iFind->first == header))
                 return iFind->second;
             else
-                return { nullptr , 0U , nullptr };
+                return { nullptr, 0U , 0U, nullptr };
         }
 
     private:
@@ -725,10 +730,10 @@ namespace sub0
             switch (state)
             {
             default: //< @todo unreachable
-            case State::Prefix:  return { nullptr , 0U , nullptr };///< @todo Handle non-void Prefix_t: { &prefix_ , sizeof(prefix_) , nullptr }
-            case State::Header:  return { (char*)&header_ , static_cast<uint_fast16_t>(sizeof(header_)) , nullptr };
+            case State::Prefix:  return { nullptr };///< @todo Handle non-void Prefix_t: { &prefix_ , sizeof(prefix_) , nullptr }
+            case State::Header:  return { (char*)&header_ , static_cast<uint_fast16_t>(sizeof(header_)), 0U, nullptr };
             case State::Data:    return dataBufferRegistery_.find(header_);
-            case State::Postfix: return { (char*)&postfix_ , static_cast<uint_fast16_t>(sizeof(postfix_)), currentBuffer_.publisher };///< @todo Handle void Postfix_t: { nullptr , 0U , nullptr }
+            case State::Postfix: return { (char*)&postfix_ , static_cast<uint_fast16_t>(sizeof(postfix_)), 0U, currentBuffer_.publisher };///< @todo Handle void Postfix_t: { nullptr , 0U , nullptr }
             }
         }
         
@@ -737,14 +742,38 @@ namespace sub0
         */
         bool readBuffer(IStream& stream)
         {
+            if (currentBuffer_.bufferSize > 0)
+            {
 #if SUB0PUB_STD
-            const uint_fast16_t readCount = static_cast<uint_fast16_t>(stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize).gcount()); ///< @todo readsome() for async
+                const uint_fast16_t readCount = static_cast<uint_fast16_t>(stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize).gcount()); ///< @todo readsome() for async
 #else
-            const uint_fast16_t readCount = stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize);
+                const uint_fast16_t readCount = stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize);
 #endif
-            currentBuffer_.buffer += readCount;
-            currentBuffer_.bufferSize -= readCount;
-            return (currentBuffer_.bufferSize==0) ? stateComplete() : false;
+                currentBuffer_.buffer += readCount;
+                currentBuffer_.bufferSize -= readCount;
+
+                /// If buffer not complete then we need to return and await more data
+                if (currentBuffer_.bufferSize > 0)
+                    return false;
+            }
+
+            if (currentBuffer_.paddingSize > 0)
+            {
+#if SUB0PUB_STD
+                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.ignore(currentBuffer_.paddingSize).gcount()); ///< @todo readsome() for async
+#else
+                const uint_fast16_t ignoreCount = stream.ignore(currentBuffer_.paddingSize);
+#endif
+                currentBuffer_.paddingSize -= ignoreCount;
+
+                /// If padding not complete then we need to return and await more data
+                /// @todo We could publish the data before completion of the padding... however we cannot check for a post-fix delimiter without doing pad first!?
+                if (currentBuffer_.paddingSize > 0)
+                    return false;
+            }
+
+            //If we got here the buffer and any padding has been read from the stream
+            return stateComplete();
         }
 
         bool checkStateOk(const State state) const
