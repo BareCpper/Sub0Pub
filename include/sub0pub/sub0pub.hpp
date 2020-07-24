@@ -685,6 +685,11 @@ namespace sub0
                 return { nullptr, 0U , 0U, nullptr };
         }
 
+        void close()///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
+        {
+            /** Do nothing - no state to clear */
+        }
+
     private:
         HeaderToBufferLookup registry_;
         typename HeaderToBufferLookup::iterator registryEnd_; ///< Iterator to end of registry_ @note Count = registryEnd_-registry_
@@ -728,6 +733,7 @@ namespace sub0
 
         void close( IStream& stream  )
         {
+            dataBufferRegistery_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
             currentBuffer_ = {};
             state_ = {};
         }
