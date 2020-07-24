@@ -608,6 +608,11 @@ namespace sub0
             utility::write<Postfix_t>(stream);
         }
 
+        void close( OStream& stream  )
+        {
+            /* Do nothing */
+        }
+
     };
 
     struct Buffer
@@ -719,6 +724,12 @@ namespace sub0
         {
             assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
             dataBufferRegistery_.set(dataBuffer, publisher);
+        }
+
+        void close( IStream& stream  )
+        {
+            currentBuffer_ = {};
+            state_ = {};
         }
 
     private:
@@ -914,6 +925,13 @@ namespace sub0
             writer_.write( stream_, data );
         }
 
+        /** Reset writer internal  state
+        */
+        void close()
+        {
+            writer_.close( stream_ );
+        }
+
     private:
         OStream& stream_; ///< Stream into which data is serialised
         typename Protocol::Writer writer_;
@@ -949,6 +967,13 @@ namespace sub0
         bool update()
         {
             return reader_.read(stream_);
+        }
+
+        /** Reset reader internal  state
+        */
+        void close()
+        {
+            reader_.close( stream_  );
         }
 
     private:
