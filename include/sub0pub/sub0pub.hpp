@@ -123,6 +123,10 @@ namespace sub0
             typedef uint_fast16_t StreamSize;
 
             virtual StreamSize write(const char* const buffer, const StreamSize bufferCount) = 0;
+
+            /** Clear all buffers for this stream and causes any buffered data to be written to the underlying device.
+            */
+            virtual void flush() = 0;
         };
 
         class IStream
@@ -131,7 +135,11 @@ namespace sub0
             typedef uint_fast16_t StreamSize;
 
             virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
-            virtual StreamSize ignore( const StreamSize bufferCount) = 0;
+
+            /** Discards specified number of characters from inputSequence
+            * @note Setting std::numeric_limits<std::streamsize>::max() discards ONLY the currently buffered bytes
+            */
+            virtual StreamSize ignore( const StreamSize bufferCount ) = 0;
         };
 #endif
 
@@ -944,6 +952,7 @@ namespace sub0
         void close()
         {
             writer_.close( stream_ );
+            stream_.flush();
         }
 
     private:
@@ -987,7 +996,7 @@ namespace sub0
         */
         void close()
         {
-            reader_.close( stream_  );
+            reader_.close( stream_ );
         }
 
     private:
