@@ -569,12 +569,20 @@ namespace sub0
      * @param[in] data  Data that will be published using the base Publish<Data> object of From
      */
     template<typename From, typename Data>
-    inline void publish(const From& from, const Data& data)
+    inline void publish(From& from, const Data& data)
     {
         const Publish<Data>& publisher = from;
         publisher.publish(data);
     }
 
+    /** @see publish(const From&,const Data&)
+    */
+    template<typename From, typename Data>
+    inline void publish(From* const from, const Data& data)
+    {
+        assert(from != nullptr);
+        publish(*from, data);
+    }
     
     /** Interface for data provider to indicate destination buffer status
      * @see ForwardPublish
