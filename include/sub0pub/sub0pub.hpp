@@ -120,6 +120,19 @@ namespace sub0
 #if SUB0PUB_STD
         typedef std::ostream OStream;
         typedef std::istream IStream;
+
+        template< typename Type_t >
+        inline bool write(OStream& stream, const Type_t& value )
+        {
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
+        }
+
+        template< typename Type_t >
+        inline bool write(OStream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)).good();
+        }
 #else
         class OStream
         {
@@ -145,18 +158,26 @@ namespace sub0
             */
             virtual StreamSize ignore( const StreamSize bufferCount ) = 0;
         };
-#endif
 
         template< typename Type_t >
-        inline void write(OStream& stream)
+        inline bool write(OStream& stream, const Type_t& value)
         {
-            const Type_t defaulted;
-            stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted));
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)) == sizeof(value);
         }
 
+        template< typename Type_t >
+        inline bool write(OStream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
+        }
+#endif
+
         template<>
-        inline void write<void>(OStream& stream)
-        {}
+        inline bool write<void>(OStream& stream)
+        {
+            return true;
+        }
 
     } // END: utility
     
@@ -632,13 +653,13 @@ namespace sub0
          * @param data  Data to construct a header record and data payload for
          */
         template<typename Data>
-        inline void write(OStream& stream, const Data& data) const
+        inline bool write(OStream& stream, const Data& data) const
         {
-            utility::write<Prefix_t>(stream);
             Header_t header(data);
-            stream.write(reinterpret_cast<const char*>(&header), sizeof(header));
-            stream.write(reinterpret_cast<const char*>(&data), sizeof(data));
-            utility::write<Postfix_t>(stream);
+            return utility::write<Prefix_t>(stream)
+                && utility::write(stream, Header_t(data) )
+                && utility::write(stream, data )
+                && utility::write<Postfix_t>(stream);
         }
 
         void close( OStream& stream  )
