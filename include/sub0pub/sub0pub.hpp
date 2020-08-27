@@ -56,7 +56,11 @@
 #endif
 
 #ifndef SUB0PUB_TYPEIDNAME
-#define SUB0PUB_TYPEIDNAME false ///< Typs iven unitq/user-defined type index and strng name for diagnostis and IPC
+#define SUB0PUB_TYPEIDNAME false ///< Types given unique/user-defined type index and string name for diagnostics and IPC
+#endif
+
+#ifndef SUB0_EXPERIMENTAL
+#define SUB0_EXPERIMENTAL false ///< Experimental functionality that may be later removed/dropped
 #endif
 
 /** Helper macro for stringifying value using compiler preprocessor
@@ -378,7 +382,7 @@ namespace sub0
         void publish( const Data& data ) const
         {
             detail::Check::onPublish( *this, data );
-            broker_.publish(data);
+            broker_.publish(data); //< @todo Add 'this' as traceability to data source for broker specialisation etc
         }
 
 #if SUB0PUB_TYPEIDNAME
@@ -495,7 +499,7 @@ namespace sub0
         /** Send data to registered subscribers
          * @param data  Data sent to subscribers via their 'receive()' function
          */
-        void publish(const Data & data) const
+        void publish(const Data& data) const
         {
             for (uint32_t iSubscription = 0U; iSubscription < state_.subscriptionCount; ++iSubscription )
             {
@@ -591,7 +595,20 @@ namespace sub0
         assert(from != nullptr);
         publish(*from, data);
     }
-    
+
+#if SUB0_EXPERIMENTAL //< @todo Decide if this should be part of the API to allow calling from global code easily... better make it the users duty? i.e.e use of static non-owner traceability of data sources could compilcate future features?
+    /** C-compatibile global-publish wihout use of registered Publisher
+    * @warning Use with caution as each instantiation creates a static
+    * @see publish(const From&,const Data&)
+    */
+    template<typename Data>
+    inline void publish_cstatic( const Data& data)
+    {
+        static Publish<Data> publisher = {}; ///< Create an object instance @note SUB0_EXPERIMENTAL
+        publish(publisher, data);
+    }
+#endif
+
     /** Interface for data provider to indicate destination buffer status
      * @see ForwardPublish
      */
