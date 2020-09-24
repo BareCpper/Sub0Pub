@@ -134,6 +134,9 @@ namespace sub0
             return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)).good();
         }
 #else
+        /**
+        * @note char* to unify interface against std::ostream
+        */
         class OStream
         {
         public:
@@ -146,6 +149,9 @@ namespace sub0
             virtual void flush() = 0;
         };
 
+        /**
+        * @note char* to unify interface against std::istream
+        */
         class IStream
         {
         public:
@@ -155,8 +161,16 @@ namespace sub0
 
             /** Discards specified number of characters from inputSequence
             * @note Setting std::numeric_limits<std::streamsize>::max() discards ONLY the currently buffered bytes
+            * @return The number of bytes ignored
             */
             virtual StreamSize ignore( const StreamSize bufferCount ) = 0;
+
+            /** Discards specified number of characters from inputSequence until the specified delimiter is found
+            * @note The delimiting character is extracted, and thus the next input operation will continue on the character that follows it (if any).
+            * @warning This function may (TBC) block if there isn't any data in the stream
+            * @return The number of bytes ignored including the delimiter character
+            */
+            virtual StreamSize ignore(const StreamSize bufferCount, const char delimiter ) = 0;
         };
 
         template< typename Type_t >
