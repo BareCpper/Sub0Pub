@@ -171,6 +171,12 @@ namespace sub0
             * @return The number of bytes ignored including the delimiter character
             */
             virtual StreamSize ignore(const StreamSize bufferCount, const char delimiter ) = 0;
+
+            /** Returns whether end of stream has been reached
+             * @note For Files this is explicit but for a pipe (e.g. TCP or command pipe '|' ) this may never occur until the pipe is forcefully closed by the other end etc
+             * @return True if no more data, false otherwise
+            */
+            virtual bool isEof() = 0;
         };
 
         template< typename Type_t >
