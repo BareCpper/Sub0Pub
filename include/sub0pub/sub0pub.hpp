@@ -140,7 +140,7 @@ namespace sub0
         class OStream
         {
         public:
-            typedef uint_fast16_t StreamSize;
+            typedef uint_fast32_t StreamSize;
 
             virtual StreamSize write(const char* const buffer, const StreamSize bufferCount) = 0;
 
@@ -155,7 +155,7 @@ namespace sub0
         class IStream
         {
         public:
-            typedef uint_fast16_t StreamSize;
+            typedef uint_fast32_t StreamSize;
 
             virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
 
