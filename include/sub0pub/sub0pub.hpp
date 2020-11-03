@@ -713,6 +713,7 @@ namespace sub0
 
         /** Register a sink to the specified typed Data buffer
          * @remark Performs insertion sorting on buffers by the IPublish::typeId() for the buffer
+         * @todo Make search meahcnism selectable i.e. Array-index, hash, or binary-lookup etc
          * @remark Called by sub0::ForwardPublish<Data>
          *
          * @param[in] publisher  Buffer handling object to store and signal data completion
@@ -722,11 +723,13 @@ namespace sub0
         template < typename Data >
         void set(Data& buffer, IPublish& publisher, const uint_fast16_t paddingSize = 0U )
         {
-            set(Header_t(buffer), {
-                  reinterpret_cast<char*>(&buffer)
-                , static_cast<uint_fast16_t>(sizeof(buffer))
-                , paddingSize
-                , &publisher } );
+            set( Header_t(buffer)
+               , Buffer{
+                      reinterpret_cast<char*>(&buffer)
+                    , static_cast<uint_fast16_t>(sizeof(buffer))
+                    , paddingSize
+                    , &publisher 
+               } );
         }
 
         void set(const Header_t& header, const Buffer& buffer)
@@ -759,7 +762,18 @@ namespace sub0
                 return { nullptr, 0U , 0U, nullptr };
         }
 
-        void close()///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
+        /** Default validation check against provided header
+         * @note No validation occurs by default and processing is pushed onto find() to perform respective lookup operation
+         * @todo Unify find/validate so that find returns a handle that can be validated or buffer accessed etc i.e. Iterator or the likes!
+         * @param header Header data to validate against
+         * @return True always
+        */
+        bool validate(const Header_t& header) const
+        {
+            return true;
+        }
+
+        void close()///< @TODO This is here as a use-case contained stream state within the buffer map! Remove/deprecate this when/as possible
         {
             /** Do nothing - no state to clear */
         }
@@ -772,7 +786,16 @@ namespace sub0
     template< typename Prefix_t, typename Header_t, typename Postfix_t, typename BufferRegister = BufferRegister<Header_t> >
     class BinaryReader
     {
-        enum class State { Prefix, Header, Data, Postfix/*, SyncLost*/ , COUNT_ };
+        enum class State { 
+              Prefix///< [optional] Prefix-Delimiter is being read
+            , Header ///< Data-Header  is being read
+            , Data ///< Data payload is being  read
+            , Postfix ///< [optional] Postfix-Delimiter is being read
+
+            , SyncLost ///< Error state entered when an error occurs in any state i.e. Corrupted input stream
+
+            , COUNT_ 
+        };
 
     public:
         BinaryReader()
@@ -867,19 +890,19 @@ namespace sub0
             return stateComplete();
         }
 
-        bool checkStateOk(const State state) const
+        constexpr bool getStateStatus(const State state) const
         {
             switch (state)
             {
-            default: //< @todo unreachable
+            default: //< @todo SyncLost
             case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Postfix_t())
-            case State::Header:  return true; ///< @todo Check on header?
+            case State::Header:  return dataBufferRegistery_.validate(header_);
             case State::Data:    return true;
             case State::Postfix: return postfix_ == Postfix_t();///< @todo Handle void Postfix_t
             }
         }
 
-        inline State nextState(const State currentState ) const
+        constexpr State nextState(const State currentState ) const
         {
             switch (currentState)
             {
@@ -889,25 +912,66 @@ namespace sub0
             case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
             case State::Postfix:
                 assert(currentBuffer_.publisher);
-                assert(checkStateOk(currentState) ); ///< @todo Handle missing/corrupted postfix
                 if (currentBuffer_.publisher)
                     currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
                 return !std::is_void<Prefix_t>::value ? State::Prefix : nextState(State::Prefix);
             }
         }
 
+        bool checkStatusOfState(const State currentState) const
+        {
+            const bool stateStatus = getStateStatus(currentState);
+            if(stateStatus)
+                return true;
+
+            const char* failureMessage = nullptr;
+            switch(currentState)
+            {
+                case State::Header: failureMessage = "Binary-Header mismatch - stream corruption or incompatible data-stream"; break;
+                case State::Postfix: failureMessage = "Binary-Postfix mismatch - stream corruption or incompatible data-stream"; break;
+                default: failureMessage = "Sync-Lost - TODO Details"; break;
+            }
+
+            if(failureMessage != nullptr)
+            {
+#if __cpp_exceptions
+                throw std::runtime_error(failureMessage);
+#else
+                assert((void*)0 == failureMessage);
+#endif
+            }
+
+            return false;
+        }
+
         bool stateComplete()
         {
+            if(!checkStatusOfState(state_))
+            {
+                state_ = State::SyncLost;
+                return false;
+            }
+
             state_ = nextState( state_ );
             currentBuffer_ = findStateBuffer(state_);
 
             // Check if header maps to a recognised Data
             if ( currentBuffer_.buffer == nullptr)/// @todo Does not handle and discard unrecognised typeId [Critical]
             {
+                const char* failureMessage = nullptr;
                 if ( state_ == State::Data )
-                    assert((void*)0 == "Data of 'expectedTypeName' is not size 'expectedPayloadSize'"); /// @todo Does not handle changed data structure size [Critical]
+                    failureMessage = "Sub0Pub - Data buffer is null, potential payload size mismatch or unrecognised Id"; /// @todo Does not handle changed data structure size [Critical]
                 else
-                    assert((void*)0 == "Agh - some logic is wrong!");
+                    failureMessage = "Sub0Pub - some logic is wrong!";
+               
+                if(failureMessage != nullptr)
+                {
+#if __cpp_exceptions
+                    throw std::runtime_error(failureMessage);
+#else
+                    assert((void*)0 == failureMessage);
+#endif
+                }
             }
             
             return currentBuffer_.buffer != nullptr;
