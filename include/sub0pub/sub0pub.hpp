@@ -802,9 +802,7 @@ namespace sub0
             : dataBufferRegistery_()
             , currentBuffer_()
             , state_()
-#if 0 /// @todo Handle void Prefix_t
-            , prefix_();
-#endif
+            , prefix_()
             , header_()
             , postfix_()
         {}
@@ -843,15 +841,19 @@ namespace sub0
         {
             switch (state)
             {
-            default: //< @todo unreachable
-            case State::Prefix:  return { nullptr };///< @todo Handle non-void Prefix_t: { &prefix_ , sizeof(prefix_) , nullptr }
-            case State::Header:  return { (char*)&header_ , static_cast<uint_fast16_t>(sizeof(header_)), 0U, nullptr };
-            case State::Data:    return dataBufferRegistery_.find(header_);
-            case State::Postfix: return { (char*)&postfix_ , static_cast<uint_fast16_t>(sizeof(postfix_)), 0U, currentBuffer_.publisher };///< @todo Handle void Postfix_t: { nullptr , 0U , nullptr }
+            default: //< @todo unreachable unless SyncLost
+            case State::Prefix: 
+                return {reinterpret_cast<char*>(&prefix_), static_cast<uint_fast16_t>( !std::is_void<Prefix_t>::value ? sizeof(prefix_) : 0U), 0U, nullptr};
+            case State::Header: 
+                return {reinterpret_cast<char*>(&header_), static_cast<uint_fast16_t>(sizeof(header_)), 0U, nullptr };
+            case State::Data:   
+                return dataBufferRegistery_.find(header_);
+            case State::Postfix: 
+                return {reinterpret_cast<char*>(&postfix_), static_cast<uint_fast16_t> ( !std::is_void<Postfix_t>::value ? sizeof(postfix_) : 0U), 0U, currentBuffer_.publisher };
             }
         }
         
-        /** Read payload data form stream and detect payload completion
+        /** Read payload data from stream and detect payload completion
          * @return True when data packet(s) have been published, false if no completed packet was present in stream
         */
         bool readBuffer(IStream& stream)
@@ -895,7 +897,7 @@ namespace sub0
             switch (state)
             {
             default: //< @todo SyncLost
-            case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Postfix_t())
+            case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Prefix_t())
             case State::Header:  return dataBufferRegistery_.validate(header_);
             case State::Data:    return true;
             case State::Postfix: return postfix_ == Postfix_t();///< @todo Handle void Postfix_t
@@ -1163,12 +1165,12 @@ namespace sub0
     /** Register publication of data with a provider instance
      * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
-     * @tparam  Data  Data type which will be read into from a Provider
-     * @tparam  Provider  CRTP Type of derived class which implements a function of type Provider::setDataPublisher( Data&, IPublish& ) via base inheritance or direct member
+     * @tparam  Data  Data type which will be read into from a DataProvider
+     * @tparam  DataProvider  CRTP Type of derived class which implements a function of type DataProvider::setDataPublisher( Data&, IPublish& ) via base inheritance or direct member
      *
      * @todo API not final
      */
-    template<typename Data, typename Provider >
+    template<typename Data, typename DataProvider >
     class ForwardPublish : public Publish<Data>, protected IPublish
     {
     public:
@@ -1187,7 +1189,8 @@ namespace sub0
               )
             , IPublish()
         {
-            static_cast<Provider*>(this)->setDataPublisher( buffer_, static_cast<IPublish&>(*this) ); // Register the buffer sink to the data provider
+            DataProvider& provider = static_cast<DataProvider&>(*this);
+            provider.setDataPublisher( buffer_, static_cast<IPublish&>(*this) ); // Register the buffer sink to the data provider
         }
 
     private:
