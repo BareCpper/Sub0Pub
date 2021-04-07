@@ -693,7 +693,10 @@ namespace sub0
     {
         char* buffer; ///< Data buffer @note a nullptr buffer may be set for unsupported payloads where paddingSize != 0 is required
         uint_fast16_t bufferSize; ///< size of buffer
-        uint_fast16_t paddingSize; ///< size of buffer padding data to discard after buffer @note For protocol version compatibility when payloads grow
+        int_fast16_t paddingSize; /**< size of buffer padding data to ignore after buffer
+                                  * @note Negative pad leaves unopulated bytes in buffer which are zeroed
+                                  * @note For protocol version compatibility when payloads grow
+                                  */
         IPublish* publisher; ///< Type specific publish of buffer
     };
 
@@ -721,7 +724,7 @@ namespace sub0
          *                         for alignment or protocol-version compatibility
          */
         template < typename Data >
-        void set(Data& buffer, IPublish& publisher, const uint_fast16_t paddingSize = 0U )
+        void set(Data& buffer, IPublish& publisher, const int_fast16_t paddingSize = 0U )
         {
             set( Header_t(buffer)
                , Buffer{
@@ -749,6 +752,12 @@ namespace sub0
             }
 
             iInsert->second = buffer;
+
+            if ( buffer.paddingSize < 0 ) //< Nullify unpopulated bytess
+            {
+                char* bufferEnd = buffer.buffer + buffer.bufferSize;
+                std::fill(bufferEnd + buffer.paddingSize, bufferEnd, 0x00); //< Clear content that will not be written
+            }
         }
 
         Buffer find(const Header_t header)
@@ -976,6 +985,13 @@ namespace sub0
                 }
             }
             
+            //Normalise buffer in respect of negative padding bytes indicate unpopulated buffer space
+            if (currentBuffer_.paddingSize < 0)
+            {
+                currentBuffer_.bufferSize += currentBuffer_.paddingSize;
+                currentBuffer_.paddingSize = 0;
+            }
+
             return currentBuffer_.buffer != nullptr;
         }
 
