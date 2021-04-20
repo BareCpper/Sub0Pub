@@ -191,13 +191,32 @@ namespace sub0
             const Type_t defaulted;
             return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
         }
-#endif
+
 
         template<>
         inline bool write<void>(OStream& stream)
         {
             return true;
         }
+#endif  
+
+        template< typename Type_t >
+        constexpr bool sizeOf() { return sizeof(Type_t); }
+
+        template<>
+        constexpr bool sizeOf<void>() { return 0; }
+
+        template< typename Type_t >
+        constexpr void copyTo(char* buffer)
+        { constexpr Type_t temp; std::memcpy(buffer, (const void*)&temp, sizeof(temp) ); }
+
+        template< typename Type_t >
+        constexpr void copyTo(char* buffer, const Type_t& value)
+        { std::memcpy(buffer, (const void*)&value, sizeof(value)); }
+
+        template<>
+        constexpr void copyTo<void>( char* buffer ) {}
+
 
     } // END: utility
     
@@ -672,14 +691,22 @@ namespace sub0
          * @param stream  Stream to write into
          * @param data  Data to construct a header record and data payload for
          */
-        template<typename Data>
-        inline bool write(OStream& stream, const Data& data) const
+        template<typename Data_t>
+        inline bool write(OStream& stream, const Data_t& data) const
         {
-            Header_t header(data);
+#if 0
+            char buffer[utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>() + utility::sizeOf<Data_t>() + utility::sizeOf<Postfix_t>()];
+            utility::copyTo<Prefix_t>(buffer);
+            utility::copyTo<Header_t>(buffer + (utility::sizeOf<Prefix_t>()), Header_t(data));
+            utility::copyTo<Data_t>(buffer + (utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>()), data);
+            utility::copyTo<Postfix_t>(buffer + (utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>() + utility::sizeOf<Data_t>()));
+            return stream.write(buffer, sizeof(buffer));
+#else
             return utility::write<Prefix_t>(stream)
                 && utility::write(stream, Header_t(data) )
                 && utility::write(stream, data )
                 && utility::write<Postfix_t>(stream);
+#endif
         }
 
         void close( OStream& stream  )
@@ -691,13 +718,13 @@ namespace sub0
 
     struct Buffer
     {
+        IPublish* publisher; ///< Type specific publish of buffer
         char* buffer; ///< Data buffer @note a nullptr buffer may be set for unsupported payloads where paddingSize != 0 is required
-        uint_fast16_t bufferSize; ///< size of buffer
-        int_fast16_t paddingSize; /**< size of buffer padding data to ignore after buffer
+        uint_least16_t bufferSize; ///< size of buffer
+        int_least16_t paddingSize; /**< size of buffer padding data to ignore after buffer
                                   * @note Negative pad leaves unopulated bytes in buffer which are zeroed
                                   * @note For protocol version compatibility when payloads grow
                                   */
-        IPublish* publisher; ///< Type specific publish of buffer
     };
 
     /** @tparam  cMaxDataBufferCount  Defines the maximum number of Data type buffers the deserializer can store
@@ -724,14 +751,14 @@ namespace sub0
          *                         for alignment or protocol-version compatibility
          */
         template < typename Data >
-        void set(Data& buffer, IPublish& publisher, const int_fast16_t paddingSize = 0U )
+        void set(Data& buffer, IPublish& publisher, const int_least16_t paddingSize = 0U )
         {
             set( Header_t(buffer)
                , Buffer{
-                      reinterpret_cast<char*>(&buffer)
-                    , static_cast<uint_fast16_t>(sizeof(buffer))
+                     &publisher 
+                    , reinterpret_cast<char*>(&buffer)
+                    , static_cast<uint_least16_t>(sizeof(buffer))
                     , paddingSize
-                    , &publisher 
                } );
         }
 
@@ -768,7 +795,7 @@ namespace sub0
             if ((iFind != registryEnd_) && (iFind->first == header))
                 return iFind->second;
             else
-                return { nullptr, 0U , 0U, nullptr };
+                return { nullptr, nullptr, 0U , 0U };
         }
 
         /** Default validation check against provided header
@@ -852,13 +879,13 @@ namespace sub0
             {
             default: //< @todo unreachable unless SyncLost
             case State::Prefix: 
-                return {reinterpret_cast<char*>(&prefix_), static_cast<uint_fast16_t>( !std::is_void<Prefix_t>::value ? sizeof(prefix_) : 0U), 0U, nullptr};
+                return {nullptr, reinterpret_cast<char*>(&prefix_), static_cast<uint_least16_t>( !std::is_void<Prefix_t>::value ? sizeof(prefix_) : 0U), 0U};
             case State::Header: 
-                return {reinterpret_cast<char*>(&header_), static_cast<uint_fast16_t>(sizeof(header_)), 0U, nullptr };
+                return {nullptr, reinterpret_cast<char*>(&header_), static_cast<uint_least16_t>(sizeof(header_)), 0U };
             case State::Data:   
                 return dataBufferRegistery_.find(header_);
             case State::Postfix: 
-                return {reinterpret_cast<char*>(&postfix_), static_cast<uint_fast16_t> ( !std::is_void<Postfix_t>::value ? sizeof(postfix_) : 0U), 0U, currentBuffer_.publisher };
+                return {currentBuffer_.publisher , reinterpret_cast<char*>(&postfix_), static_cast<uint_least16_t>( !std::is_void<Postfix_t>::value ? sizeof(postfix_) : 0U), 0U};
             }
         }
         
