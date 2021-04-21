@@ -246,11 +246,10 @@ namespace sub0
     namespace detail
     {
         /** Provides debug assertion/exception checks for Broker<>
-         * @tparam cMessageTrace   Enable logging for broker events
-         * @tparam cDoAssert         Enable assertion tests for invalid parameters
+         * @see SUB0PUB_TRACE   Enable logging for broker events
+         * @see SUB0PUB_ASSERT   Enable assertion tests for invalid parameters
          */
-        template< const bool cMessageTrace = false, const bool cDoAssert = true >
-        struct CheckT
+        struct Check
         {
             /** Diagnose creation of new subscriber
              * @param broker  Broker instance that manages the connection
@@ -261,16 +260,12 @@ namespace sub0
             template<typename Data>
             inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
             {
-                if ( cDoAssert )
-                {
-                    assert( subscriber );
-                    assert( subscriptionCount < subscriptionCapacity );
-                }
+#if SUB0PUB_ASSERT
+                assert( subscriber );
+                assert( subscriptionCount < subscriptionCapacity );
+#endif
 #if SUB0PUB_TRACE /// @todo iostream removal:
-                if ( cMessageTrace )
-                { 
-                    std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
-                }
+                std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
 #endif
             }
 
@@ -283,16 +278,12 @@ namespace sub0
             template<typename Data>
             inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
             {
-                if ( cDoAssert )
-                {
-                    assert( publisher );
-                    assert( publisherCount < publisherCapacity );
-                }
+#if SUB0PUB_ASSERT
+                assert( publisher );
+                assert( publisherCount < publisherCapacity );
+#endif
 #if SUB0PUB_TRACE /// @todo iostream removal:
-                if ( cMessageTrace )
-                { 
-                    std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
-                }
+                std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
 #endif
             }
 
@@ -304,12 +295,9 @@ namespace sub0
             inline static void onPublish( const Publish<Data>& publisher, const Data& data )
             {
 #if SUB0PUB_TRACE /// @todo iostream removal: 
-                if ( cMessageTrace )
-                {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Published " << publisher
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
-                }
 #endif
             }
 
@@ -317,41 +305,21 @@ namespace sub0
              * @param subscriber  Subscriber that is receiving the data
              * @param data  The data that is received
              */
+             /// @todo GCC 7.2(TBC) publish(const Data & data) bug on inlining this function and calling detail::Check::onReceive()? needs __attribute__((noinline))?
             template<typename Data>
-            static void 
-#if __GNUG__ /// @todo GCC 7.2(TBC) publish(const Data & data) bug on inlining this function and calling detail::Check::onReceive()?
-                __attribute__((noinline)) 
-#endif
-                onReceive( Subscribe<Data>* subscriber, const Data& data )
+            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
             {
-                if ( cDoAssert )
-                {
-#if 0 ///< @temp
-                    while (!subscriber)
-                    {
-                        delay(1);
-                    }
+#if SUB0PUB_ASSERT
+                    assert(subscriber );
 #endif
-                    if ( subscriber == nullptr )
-                    {
-                       // while (true) {};
-                       assert(subscriber );
-                    }
-                }
 #if SUB0PUB_TRACE /// @todo iostream removal: 
-                if ( cMessageTrace )
-                {
                     (void)data; ///< @todo Data serialize
                     std::cout << "[Sub0Pub] Received " << *subscriber
                         << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
-                }
 #endif
             }
         };
 
-        /** Runtime checker type with support for assert/exception/trace etc
-         */
-        typedef CheckT<SUB0PUB_TRACE,SUB0PUB_ASSERT> Check;
     } // END: detail
 
 #pragma warning(push)
@@ -524,7 +492,9 @@ namespace sub0
             Subscribe<Data>** const iBegin = state_.subscriptions;
             Subscribe<Data>** const iEnd = iBegin + state_.subscriptionCount;
             Subscribe<Data>** const iPend = std::remove(iBegin, iEnd, subscriber );
+#if SUB0PUB_ASSERT
             assert(std::distance(iPend,iEnd ) == 1);
+#endif
             --state_.subscriptionCount;
         }
 
@@ -543,14 +513,18 @@ namespace sub0
             if (typeId)
             {
                 // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
                 assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
                 state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
             }
 
             if (typeName)
             {
                 // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
                 assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
                 state_.typeName = typeName;
             }
         }
@@ -652,7 +626,9 @@ namespace sub0
     template<typename From, typename Data>
     inline void publish(From* const from, const Data& data)
     {
+#if SUB0PUB_ASSERT
         assert(from != nullptr);
+#endif
         publish(*from, data);
     }
 
@@ -765,7 +741,9 @@ namespace sub0
         void set(const Header_t& header, const Buffer& buffer)
         {
             /// @todo make this a linked list to remove capacity limitations?
+#if SUB0PUB_ASSERT
             assert(registryEnd_ < std::end(registry_)); //< Capacity reached
+#endif
 
             typename HeaderToBufferLookup::iterator iInsert = std::lower_bound(std::begin(registry_), registryEnd_, header,
                 [](const HeaderToBuffer& lhs, const Header_t& rhs) { return lhs.first < rhs; });
@@ -858,7 +836,9 @@ namespace sub0
         template < typename Data >
         void setDataPublisher(Data& dataBuffer, IPublish& publisher)
         {
+#if SUB0PUB_ASSERT
             assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
+#endif
             dataBufferRegistery_.set(dataBuffer, publisher);
         }
 
@@ -949,7 +929,9 @@ namespace sub0
             case State::Header:  return State::Data;
             case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
             case State::Postfix:
+#if SUB0PUB_ASSERT
                 assert(currentBuffer_.publisher);
+#endif
                 if (currentBuffer_.publisher)
                     currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
                 return !std::is_void<Prefix_t>::value ? State::Prefix : nextState(State::Prefix);
@@ -974,7 +956,7 @@ namespace sub0
             {
 #if __cpp_exceptions
                 throw std::runtime_error(failureMessage);
-#else
+#elif SUB0PUB_ASSERT
                 assert((void*)0 == failureMessage);
 #endif
             }
@@ -1006,7 +988,7 @@ namespace sub0
                 {
 #if __cpp_exceptions
                     throw std::runtime_error(failureMessage);
-#else
+#elif SUB0PUB_ASSERT
                     assert((void*)0 == failureMessage);
 #endif
                 }
