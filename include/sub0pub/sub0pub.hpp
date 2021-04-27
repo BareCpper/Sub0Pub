@@ -191,14 +191,13 @@ namespace sub0
             const Type_t defaulted;
             return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
         }
-
+#endif 
 
         template<>
         inline bool write<void>(OStream& stream)
         {
             return true;
         }
-#endif  
 
         template< typename Type_t >
         constexpr bool sizeOf() { return sizeof(Type_t); }
