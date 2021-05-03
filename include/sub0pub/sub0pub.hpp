@@ -159,6 +159,11 @@ namespace sub0
 
             virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
 
+            /** Read stream line-by line until '\r', '\n', or '\r\n'
+                @note Extends sub0::IStream
+            */
+            virtual StreamSize readline(char* const buffer, const StreamSize bufferCount) = 0;
+
             /** Discards specified number of characters from inputSequence
             * @note Setting std::numeric_limits<std::streamsize>::max() discards ONLY the currently buffered bytes
             * @return The number of bytes ignored
