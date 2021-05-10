@@ -26,7 +26,7 @@
 #include <cassert> //< assert
 #include <cstring> //< std::strcmp
 #include <array> //< std::array @todo Should we not use this one occurrence for C++98 compatibility?
-//#include <typeinfo> //< typeid()
+#include <tuple> //< std::tuple
 #include <type_traits> //< std::is_same
 
  /// @todo 0 vs nullptr C++11 only
@@ -382,6 +382,33 @@ namespace sub0
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
 
+
+    /**  Subscribe to many
+    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
+    */
+    template< typename... Datas >
+    class SubscribeAll : public Subscribe<Datas>... 
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /**  Subscribe to many defined by std::tuple type list
+    */
+    template<typename... Datas>
+    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
+    */
+    template<typename... Datas, typename... OtherTuples>
+    class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
+        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
+    {};
+        
     /** Base type for an object that publishes to some strong-typed Data
      * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
      */
@@ -1099,7 +1126,7 @@ namespace sub0
      * @remark Can be used to create inter-process transfers very easily using the specified Protocol @see sub0::DefaultSerialisation
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
-    template< typename Protocol = DefaultSerialisation, typename ProtocolWriter = Protocol::Writer >
+    template< typename Protocol = DefaultSerialisation, typename ProtocolWriter = typename Protocol::Writer >
     class StreamSerializer
     {
     public:
@@ -1151,7 +1178,7 @@ namespace sub0
      *  corresponding StreamSerializer instance for the same Protocol.
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
-    template< typename Protocol = DefaultSerialisation, typename ProtocolReader = Protocol::Reader >
+    template< typename Protocol = DefaultSerialisation, typename ProtocolReader = typename Protocol::Reader >
     class StreamDeserializer
     {
     public:
@@ -1183,7 +1210,7 @@ namespace sub0
             return reader_.close( stream_ );
         }
 
-    private:
+    protected:
         IStream& stream_; ///< Stream from which data is de-serialized
         ProtocolReader reader_;
     };
