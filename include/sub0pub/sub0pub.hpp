@@ -689,6 +689,12 @@ namespace sub0
 #endif
         }
 
+        bool open(OStream& stream)
+        {
+            /* Do nothing */
+            return true;
+        }
+
         void close( OStream& stream  )
         {
             /* Do nothing */
@@ -791,9 +797,10 @@ namespace sub0
             return true;
         }
 
-        void close()///< @TODO This is here as a use-case contained stream state within the buffer map! Remove/deprecate this when/as possible
+        bool close()///< @TODO This is here as a use-case contained stream state within the buffer map! Remove/deprecate this when/as possible
         {
             /** Do nothing - no state to clear */
+            return true;
         }
 
     private:
@@ -825,7 +832,19 @@ namespace sub0
             , postfix_()
         {}
 
-        bool read(IStream& stream)
+        /** Initialise from IStream
+        */
+        bool open(IStream& stream)
+        {
+            //TODO: Do this on open or close?
+            currentBuffer_ = {};
+            state_ = {};
+            return true;
+        }
+
+        /** Read from the stream
+        */
+        bool update(IStream& stream)
         {
             /// Read data until an incomplete message
             while (readBuffer(stream))
@@ -846,11 +865,12 @@ namespace sub0
             dataBufferRegistery_.set(dataBuffer, publisher);
         }
 
-        void close( IStream& stream  )
+        bool close( IStream& stream  )
         {
             dataBufferRegistery_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
             currentBuffer_ = {};
             state_ = {};
+            return true;
         }
 
     private:
@@ -1079,7 +1099,7 @@ namespace sub0
      * @remark Can be used to create inter-process transfers very easily using the specified Protocol @see sub0::DefaultSerialisation
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
-    template< typename Protocol = DefaultSerialisation >
+    template< typename Protocol = DefaultSerialisation, typename ProtocolWriter = Protocol::Writer >
     class StreamSerializer
     {
     public:
@@ -1087,7 +1107,7 @@ namespace sub0
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
         StreamSerializer( OStream& stream )
-            : stream_(stream)
+            : ostream_(stream)
             , writer_()
         {}
 
@@ -1097,20 +1117,31 @@ namespace sub0
         template<typename Data>
         void forward( const Data& data )
         {
-            writer_.write( stream_, data );
+            writer_.write( ostream_, data );
+        }
+
+        bool open()
+        {
+            return writer_.open(ostream_);
+        }
+
+        bool update()
+        {
+            return writer_.update(ostream_);
         }
 
         /** Reset writer internal  state
         */
-        void close()
+        bool close()
         {
-            writer_.close( stream_ );
-            stream_.flush();
+            writer_.close( ostream_ );
+            ostream_.flush();
+            return true;
         }
 
-    private:
-        OStream& stream_; ///< Stream into which data is serialised
-        typename Protocol::Writer writer_;
+    protected:
+        OStream& ostream_; ///< Stream into which data is serialised
+        ProtocolWriter writer_;
     };
 
 
@@ -1120,7 +1151,7 @@ namespace sub0
      *  corresponding StreamSerializer instance for the same Protocol.
      * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
      */
-    template< typename Protocol = DefaultSerialisation >
+    template< typename Protocol = DefaultSerialisation, typename ProtocolReader = Protocol::Reader >
     class StreamDeserializer
     {
     public:
@@ -1142,19 +1173,19 @@ namespace sub0
          */
         bool update()
         {
-            return reader_.read(stream_);
+            return reader_.update(stream_);
         }
 
         /** Reset reader internal  state
         */
-        void close()
+        bool close()
         {
-            reader_.close( stream_ );
+            return reader_.close( stream_ );
         }
 
     private:
         IStream& stream_; ///< Stream from which data is de-serialized
-        typename Protocol::Reader reader_;
+        ProtocolReader reader_;
     };
 
     /** Forward receive() to  Target type convertible from this
