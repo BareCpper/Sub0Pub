@@ -28,6 +28,7 @@
 #include <array> //< std::array @todo Should we not use this one occurrence for C++98 compatibility?
 #include <tuple> //< std::tuple
 #include <type_traits> //< std::is_same
+#include <variant> //< std::monostate
 
  /// @todo 0 vs nullptr C++11 only
 #if 1 /// @todo cstdint not always available ... C++11/C99 only 
@@ -694,6 +695,9 @@ namespace sub0
     class BinaryWriter
     {
     public:
+        using Config = std::monostate; //< Not configurable by default
+
+    public:
         /** Output header and pay-load for data as binary
          * @param stream  Stream to write into
          * @param data  Data to construct a header record and data payload for
@@ -838,6 +842,9 @@ namespace sub0
     template< typename Prefix_t, typename Header_t, typename Postfix_t, typename BufferRegister = BufferRegister<Header_t> >
     class BinaryReader
     {
+    public:
+        using Config = std::monostate; //< Not configurable by default
+
         enum class State { 
               Prefix///< [optional] Prefix-Delimiter is being read
             , Header ///< Data-Header  is being read
@@ -1130,6 +1137,10 @@ namespace sub0
     class StreamSerializer
     {
     public:
+
+        using WriterConfig = typename ProtocolWriter::Config;
+
+    public:
         /** Construct from stream
          * @param[in] stream  Stream reference stored and used to write serialised data into
          */
@@ -1137,6 +1148,14 @@ namespace sub0
             : ostream_(stream)
             , writer_()
         {}
+
+        bool configure( const WriterConfig& config )
+        {
+            if constexpr (!std::is_same_v<WriterConfig, std::monostate>)
+                return writer_.configure(ostream_, config);
+            else
+                return true;
+        }
 
         /** Receives forwarded data from a subscriber and serialises it to the output stream
          * @param[in] data  Forwarded data
@@ -1182,12 +1201,24 @@ namespace sub0
     class StreamDeserializer
     {
     public:
+
+        using ReaderConfig = typename ProtocolReader::Config;
+
+    public:
         /** Store reference to supplied IStream which will be read on update()
         */
-        StreamDeserializer( IStream& stream )
-            : stream_(stream)
+        StreamDeserializer( IStream& istream )
+            : istream_(istream)
             , reader_()
         {}
+
+        bool configure(const ReaderConfig& config)
+        {
+            if constexpr (!std::is_same_v<ReaderConfig, std::monostate>)
+                return reader_.configure(ostream_, config);
+            else
+                return true;
+        }
 
         template < typename Data >
         void setDataPublisher( Data& dataBffer, IPublish& publisher )
@@ -1195,23 +1226,23 @@ namespace sub0
             reader_.setDataPublisher(dataBffer, publisher );
         }
 
-        /** Polls data from the input stream
-         * @return True when data packet(s) have been published, false if no completed packet was present in stream
+        /** Polls data from the input istream
+         * @return True when data packet(s) have been published, false if no completed packet was present in istream
          */
         bool update()
         {
-            return reader_.update(stream_);
+            return reader_.update(istream_);
         }
 
         /** Reset reader internal  state
         */
         bool close()
         {
-            return reader_.close( stream_ );
+            return reader_.close( istream_ );
         }
 
     protected:
-        IStream& stream_; ///< Stream from which data is de-serialized
+        IStream& istream_; ///< Stream from which data is de-serialized
         ProtocolReader reader_;
     };
 
