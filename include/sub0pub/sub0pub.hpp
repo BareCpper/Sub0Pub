@@ -1215,7 +1215,7 @@ namespace sub0
         bool configure(const ReaderConfig& config)
         {
             if constexpr (!std::is_same_v<ReaderConfig, std::monostate>)
-                return reader_.configure(ostream_, config);
+                return reader_.configure(istream_, config);
             else
                 return true;
         }
