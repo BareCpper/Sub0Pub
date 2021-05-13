@@ -26,6 +26,7 @@
 #include <cassert> //< assert
 #include <cstring> //< std::strcmp
 #include <array> //< std::array @todo Should we not use this one occurrence for C++98 compatibility?
+#include <iosfwd> //< std::istream, std::ostream
 #include <tuple> //< std::tuple
 #include <type_traits> //< std::is_same
 #include <variant> //< std::monostate
@@ -118,23 +119,6 @@ namespace sub0
             return hash;
         }
 
-#if SUB0PUB_STD
-        typedef std::ostream OStream;
-        typedef std::istream IStream;
-
-        template< typename Type_t >
-        inline bool write(OStream& stream, const Type_t& value )
-        {
-            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
-        }
-
-        template< typename Type_t >
-        inline bool write(OStream& stream)
-        {
-            const Type_t defaulted;
-            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)).good();
-        }
-#else
         /**
         * @note char* to unify interface against std::ostream
         */
@@ -185,10 +169,30 @@ namespace sub0
             virtual bool isEof() = 0;
         };
 
+// TODO: Need to refactor use of streams!?
+#if SUB0PUB_STD
+        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
+        inline size_t readline(std::istream& istream, char* const buffer, const size_t bufferCount)
+        {
+            return istream.getline(buffer, bufferCount).gcount();
+        }
+#else
+        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
+        inline size_t readline(IStream& istream, char* const buffer, const size_t bufferCount)
+        {
+            return istream.readline(buffer, bufferCount);
+        }
+#endif
+
         template< typename Type_t >
         inline bool write(OStream& stream, const Type_t& value)
         {
             return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)) == sizeof(value);
+        }
+        template< typename Type_t >
+        inline bool write(std::ostream& stream, const Type_t& value)
+        {
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
         }
 
         template< typename Type_t >
@@ -197,10 +201,22 @@ namespace sub0
             const Type_t defaulted;
             return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
         }
-#endif 
+
+        template< typename Type_t >
+        inline bool write(std::ostream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)).good();
+        }
 
         template<>
         inline bool write<void>(OStream& stream)
+        {
+            return true;
+        }
+
+        template<>
+        inline bool write<void>(std::ostream& stream)
         {
             return true;
         }
@@ -224,9 +240,14 @@ namespace sub0
 
 
     } // END: utility
-    
+
+#if SUB0PUB_STD
+    typedef std::ostream OStream;
+    typedef std::istream IStream;
+#else
     typedef utility::OStream OStream;
     typedef utility::IStream IStream;
+#endif
 
     /** Broker manages publisher-subscriber connection for a 'Data' type
      * @tparam Data  Data type which this instance manages connections for
