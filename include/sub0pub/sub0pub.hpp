@@ -1340,7 +1340,7 @@ namespace sub0
         { Publish<Data>::publish( buffer_ ); }
 
     private:
-        Data buffer_; ///< Data buffer to be published 
+        Data buffer_ = {}; ///< Data buffer to be published 
                       ///< @todo Double-buffer data storage for asynchronous processing and receive?
     };
 
