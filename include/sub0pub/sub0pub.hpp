@@ -176,31 +176,12 @@ namespace sub0
         {
             return istream.getline(buffer, bufferCount).gcount();
         }
-#else
-        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
-        inline size_t readline(IStream& istream, char* const buffer, const size_t bufferCount)
-        {
-            return istream.readline(buffer, bufferCount);
-        }
-#endif
 
-        template< typename Type_t >
-        inline bool write(OStream& stream, const Type_t& value)
-        {
-            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)) == sizeof(value);
-        }
         template< typename Type_t >
         inline bool write(std::ostream& stream, const Type_t& value)
         {
             return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
-        }
-
-        template< typename Type_t >
-        inline bool write(OStream& stream)
-        {
-            const Type_t defaulted;
-            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
-        }
+        }s
 
         template< typename Type_t >
         inline bool write(std::ostream& stream)
@@ -210,16 +191,38 @@ namespace sub0
         }
 
         template<>
-        inline bool write<void>(OStream& stream)
-        {
-            return true;
-        }
-
-        template<>
         inline bool write<void>(std::ostream& stream)
         {
             return true;
         }
+#else
+        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
+        inline size_t readline(IStream& istream, char* const buffer, const size_t bufferCount)
+        {
+            return istream.readline(buffer, bufferCount);
+        }
+
+        template< typename Type_t >
+        inline bool write(OStream& stream, const Type_t& value)
+        {
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)) == sizeof(value);
+        }
+
+        template< typename Type_t >
+        inline bool write(OStream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
+        }
+
+        template<>
+        inline bool write<void>(OStream& stream)
+        {
+            return true;
+        }
+#endif
+
+
 
         template< typename Type_t >
         constexpr bool sizeOf() { return sizeof(Type_t); }
