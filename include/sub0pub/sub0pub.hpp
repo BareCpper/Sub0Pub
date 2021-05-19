@@ -973,11 +973,22 @@ namespace sub0
 
             if (currentBuffer_.paddingSize > 0)
             {
-#if SUB0PUB_STD
-                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.ignore(currentBuffer_.paddingSize).gcount()); ///< @todo readsome() for async
+#if 1 /// @todo stream.ignore() functionality does not act as expected!?
+                char ignoreBuff[256];
+                const size_t ignoreSize = std::min(std::size(ignoreBuff), static_cast<size_t>(currentBuffer_.paddingSize));
+    #if SUB0PUB_STD
+                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.read(ignoreBuff, ignoreSize ).gcount()); ///< @todo readsome() for async
+    #else
+                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, ignoreSize );
+    #endif
 #else
+    #if SUB0PUB_STD
+                 const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.ignore(currentBuffer_.paddingSize).gcount()); ///< @todo readsome() for async
+    #else
                 const uint_fast16_t ignoreCount = stream.ignore(currentBuffer_.paddingSize);
+    #endif
 #endif
+
                 currentBuffer_.paddingSize -= ignoreCount;
 
                 /// If padding not complete then we need to return and await more data
