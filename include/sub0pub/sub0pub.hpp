@@ -181,7 +181,7 @@ namespace sub0
         inline bool write(std::ostream& stream, const Type_t& value)
         {
             return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
-        }s
+        }
 
         template< typename Type_t >
         inline bool write(std::ostream& stream)
