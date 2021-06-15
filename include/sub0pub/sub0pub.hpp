@@ -895,8 +895,8 @@ namespace sub0
         bool open(IStream& stream)
         {
             //TODO: Do this on open or close?
-            currentBuffer_ = {};
-            state_ = {};
+            state_ = !std::is_void<Prefix_t>::value ? State::Prefix : stateAfter(State::Prefix);
+            currentBuffer_ = findStateBuffer(state_);
             return true;
         }
 
@@ -926,8 +926,6 @@ namespace sub0
         bool close( IStream& stream  )
         {
             dataBufferRegistery_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
-            currentBuffer_ = {};
-            state_ = {};
             return true;
         }
 
@@ -1013,21 +1011,21 @@ namespace sub0
             }
         }
 
-        constexpr State nextState(const State currentState ) const
+        constexpr bool isPublishReady(const State currentState) const
+        {
+            // @todo In absence of Postfix we should probably wait for Prefix instead of just Data completion?
+            return currentState == (!std::is_void<Postfix_t>::value ? State::Postfix : State::Data);
+        }
+
+        constexpr State stateAfter(const State currentState ) const
         {
             switch (currentState)
             {
             default: //< @todo unreachable
             case State::Prefix:  return State::Header;
             case State::Header:  return State::Data;
-            case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : nextState(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
-            case State::Postfix:
-#if SUB0PUB_ASSERT
-                assert(currentBuffer_.publisher);
-#endif
-                if (currentBuffer_.publisher)
-                    currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
-                return !std::is_void<Prefix_t>::value ? State::Prefix : nextState(State::Prefix);
+            case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : stateAfter(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
+            case State::Postfix: return !std::is_void<Prefix_t>::value ? State::Prefix : stateAfter(State::Prefix);
             }
         }
 
@@ -1059,13 +1057,22 @@ namespace sub0
 
         bool stateComplete()
         {
-            if(!checkStatusOfState(state_))
+            if( !checkStatusOfState(state_) )
             {
                 state_ = State::SyncLost;
                 return false;
             }
 
-            state_ = nextState( state_ );
+            if ( isPublishReady(state_) )
+            {
+#if SUB0PUB_ASSERT
+                assert(currentBuffer_.publisher);
+#endif
+                if (currentBuffer_.publisher)
+                    currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
+            }
+
+            state_ = stateAfter( state_ );
             currentBuffer_ = findStateBuffer(state_);
 
             // Check if header maps to a recognised Data
