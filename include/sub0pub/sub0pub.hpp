@@ -29,7 +29,6 @@
 #include <iosfwd> //< std::istream, std::ostream
 #include <tuple> //< std::tuple
 #include <type_traits> //< std::is_same
-#include <variant> //< std::monostate
 
  /// @todo 0 vs nullptr C++11 only
 #if 1 /// @todo cstdint not always available ... C++11/C99 only 
@@ -274,6 +273,10 @@ namespace sub0
      */
     namespace detail
     {
+        /** Empty type for optional specialisations e.g. config()
+        */
+        struct Empty {};
+
         /** Provides debug assertion/exception checks for Broker<>
          * @see SUB0PUB_TRACE   Enable logging for broker events
          * @see SUB0PUB_ASSERT   Enable assertion tests for invalid parameters
@@ -719,7 +722,7 @@ namespace sub0
     class BinaryWriter
     {
     public:
-        using Config = std::monostate; //< Not configurable by default
+        using Config = detail::Empty; //< Not configurable by default
 
     public:
         /** Output header and pay-load for data as binary
@@ -867,7 +870,7 @@ namespace sub0
     class BinaryReader
     {
     public:
-        using Config = std::monostate; //< Not configurable by default
+        using Config = detail::Empty; //< Not configurable by default
 
         enum class State { 
               Prefix///< [optional] Prefix-Delimiter is being read
@@ -1123,7 +1126,7 @@ namespace sub0
     /** Binary protocol for serialised signal and data transfer
      * @remark The protocol consists of a Header chunk followed by Header::dataBytes bytes of payload data
      */
-    class DefaultSerialisation
+    struct DefaultSerialisation
     {
         struct Prefix
         {
@@ -1154,11 +1157,13 @@ namespace sub0
 
             /** Sort by typeId only
             */
-            bool operator < (const Header& rhs) { return typeId < rhs.typeId; }
+            bool operator < (const Header& rhs) const
+            { return typeId < rhs.typeId; }
 
             /** Compare full equality 
             */
-            bool operator == (const Header& rhs) { return (typeId == rhs.typeId) && (dataBytes == rhs.dataBytes); }
+            bool operator == (const Header& rhs) const
+            { return (typeId == rhs.typeId) && (dataBytes == rhs.dataBytes); }
         };
 
         struct Postfix
@@ -1193,7 +1198,7 @@ namespace sub0
 
         bool configure( const WriterConfig& config )
         {
-            if constexpr (!std::is_same_v<WriterConfig, std::monostate>)
+            if constexpr (!std::is_same_v<WriterConfig, detail::Empty>)
                 return writer_.configure(ostream_, config);
             else
                 return true;
@@ -1256,7 +1261,7 @@ namespace sub0
 
         bool configure(const ReaderConfig& config)
         {
-            if constexpr (!std::is_same_v<ReaderConfig, std::monostate>)
+            if constexpr (!std::is_same_v<ReaderConfig, detail::Empty>)
                 return reader_.configure(istream_, config);
             else
                 return true;

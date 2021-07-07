@@ -10,8 +10,6 @@ endif()
 
 project(Sub0Pub VERSION 0.1.2 LANGUAGES CXX )
 
-set(CMAKE_CXX_STANDARD 98)
-
 # Provide path for scripts
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
 
@@ -22,7 +20,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
 
 #option(SUB0PUB_USE_VALGRIND "Perform SelfTests with Valgrind" OFF)
 option(SUB0PUB_BUILD_TESTING "Build unit-tests" ON)
-option(SUB0PUB_BUILD_EXAMPLES "Build examples" ON)
+option(SUB0PUB_BUILD_EXAMPLES "Build examples" OFF)
 #option(SUB0PUB_ENABLE_COVERAGE "Generate coverage for unit-tests" OFF)
 #option(SUB0PUB_ENABLE_WERROR "Enable all warnings as errors" ON)
 #option(SUB0PUB_INSTALL_DOCS "Install documentation alongside library" ON)
@@ -46,6 +44,7 @@ endif()
 # Sub0Pub as header only target
 # + Namespaced alias for linking against core library from client
 add_library(Sub0Pub INTERFACE)
+target_compile_features( Sub0Pub INTERFACE cxx_std_11 ) # NOTE: Was C++98 but no longer worth supporting?!
 add_library(Sub0Pub::Sub0Pub ALIAS Sub0Pub)
 
 target_include_directories(Sub0Pub
