@@ -354,9 +354,6 @@ namespace sub0
 
     } // END: detail
 
-#pragma warning(push)
-#pragma warning(disable:4355) ///< warning C4355: 'this' : used in base member initializer list
-
     /** Base type for an object that subscribes to some strong-typed Data
      * @tparam  Data  Type that will be received from publishers of corresponding type
      */
@@ -497,8 +494,6 @@ namespace sub0
     private:
         Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
-
-#pragma warning(pop)
 
     /** Broker manages publisher-subscriber connection for a data-type
      * @tparam Data  Data type which this instance manages connections for
