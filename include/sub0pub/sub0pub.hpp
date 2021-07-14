@@ -634,32 +634,37 @@ namespace sub0
          */
         struct State
         {
-            uint32_t subscriptionCount; ///< Count of subscriptions_
-            Subscribe<Data>* subscriptions[cMaxSubscriptions];    ///< Subscription table @todo More flexible count-support
+            uint32_t subscriptionCount = 0; ///< Count of subscriptions_
+            Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
 #if SUB0PUB_TYPEIDNAME
             uint32_t typeId; ///< Type identifier index or name hash
             const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
 #endif
-            State() 
-                : subscriptionCount(0)
-                , subscriptions() 
-            {}
         };
+
+#ifdef __cpp_inline_variables
+        inline static State state_ = {}; ///< MonoState subscription table
+#else
         static State state_; ///< MonoState subscription table
+#endif
     };
 
+#ifndef __cpp_inline_variables
     /** Monotonic broker state
      * @todo State should be shared across module boundaries and owned/defined in a single module e.g. std::cout like singleton
      */
     template<typename Data>
     typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
+#endif
 
+#if 0 //< @todo Not necessary since c++11?
     /** Explicit allocation of monotonic state
     @note Enables appearing within Globals for ELF embedded targets
     */
 #define SUB0_BROKERSTATE(Data) \
     namespace sub0 {  template<> Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State(); } 
-    
+#endif
+
     /** Publish data, used when inheriting from multiple Publish<> base types
      * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
         i.e. publish( 1.0F) is ambiguous in this case.
