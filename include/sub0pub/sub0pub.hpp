@@ -543,13 +543,13 @@ namespace sub0
 
         void unsubscribe(Subscribe<Data>* subscriber)
         {
-            Subscribe<Data>** const iBegin = state_.subscriptions;
-            Subscribe<Data>** const iEnd = iBegin + state_.subscriptionCount;
-            Subscribe<Data>** const iPend = std::remove(iBegin, iEnd, subscriber );
+            Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
 #if SUB0PUB_ASSERT
-            assert(std::distance(iPend,iEnd ) == 1);
-#endif
+            assert(iRemove != state_.subscriptions + state_.subscriptionCount);
+#endif           
             --state_.subscriptionCount;
+            *iRemove = state_.subscriptions[state_.subscriptionCount]; //< Insert last into removed slot @todo This changes the 'Order' of subscriptions, may have unexpected behaviour?
+
         }
 
         void unsubscribe(Publish<Data>* publisher)
