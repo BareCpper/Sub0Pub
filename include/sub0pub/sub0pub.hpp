@@ -433,6 +433,7 @@ namespace sub0
     class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
         : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
     {};
+
         
     /** Base type for an object that publishes to some strong-typed Data
      * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
@@ -1208,7 +1209,7 @@ namespace sub0
          * @param[in] data  Forwarded data
          */
         template<typename Data>
-        void forward( const Data& data )
+        void receive( const Data& data )
         {
             writer_.write( ostream_, data );
         }
@@ -1294,41 +1295,26 @@ namespace sub0
     };
 
     /** Forward receive() to  Target type convertible from this
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
      * @tparam  Data  Data type which will be forwarded to the derived Target implementation
-     * @tparam  Target  Type of derived class which implements a function of type Target::forward( const Data& data ) via base inheritance or direct member
+     * @tparam  Target  Type of derived class which implements a function of type Target::receive<>( const Data& data ) via base inheritance or direct member
      */
     template<typename Data, typename Target >
     class ForwardSubscribe : public Subscribe<Data>
     {
     public:
-        /** Create subscription to the data type
-         * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
-         */
-        ForwardSubscribe(
-#if SUB0PUB_TYPEIDNAME
-            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-            : Subscribe<Data>(
-#if SUB0PUB_TYPEIDNAME
-                typeId, typeName
-#endif
-                )
-        {}
-
         /** Receives subscribed data and forward to target object
          * @param data  Data to forward
          */
-        inline void receive( const Data& data ) final
+        inline void receive( const Data& data ) override
         {
-            static_cast<Target*>(this)->forward( data );
+            static_cast<Target*>(this)->receive<>( data );
         }
     };
 
     /** Register publication of data with a provider instance
-     * @remark The call is made with Data type allowing for templated forward() handler functions @see class StreamSerializer
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
      * @tparam  Data  Data type which will be read into from a DataProvider
      * @tparam  DataProvider  CRTP Type of derived class which implements a function of type DataProvider::setDataPublisher( Data&, IPublish& ) via base inheritance or direct member
@@ -1369,6 +1355,19 @@ namespace sub0
         Data buffer_ = {}; ///< Data buffer to be published 
                       ///< @todo Double-buffer data storage for asynchronous processing and receive?
     };
+
+    /** Forward receive() to Target type convertible from this for all Datas types listed
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see `class StreamSerializer` for example `template receive<>()`
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
+     * @tparam  Data  Data type which will be forwarded to the derived Target implementation
+     * @tparam  Target  Type of derived class which implements a function of type Target::receive<>( const Data& data ) via base inheritance or direct member
+     */
+    template< typename SubscriberTarget, typename... Datas >
+    class ForwardSubscribeAll : public ForwardSubscribe<Datas, SubscriberTarget>... {};
+
+    template<typename SubscriberTarget, typename... Datas>
+    class ForwardSubscribeAll<SubscriberTarget, std::tuple<Datas...> > : public ForwardSubscribe<Datas, SubscriberTarget>... {};
+
 
 } // END: sub0
 
