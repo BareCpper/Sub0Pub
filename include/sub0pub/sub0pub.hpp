@@ -237,9 +237,38 @@ namespace sub0
         constexpr void copyTo(char* buffer, const Type_t& value)
         { std::memcpy(buffer, (const void*)&value, sizeof(value)); }
 
-        template<>
-        constexpr void copyTo<void>( char* buffer ) {}
+        /// std::experimental::is_detected
+        /// https://en.cppreference.com/w/cpp/experimental/is_detected
+        namespace detail {
+            template <class Default, class AlwaysVoid,
+                template<class...> class Op, class... Args>
+            struct detector {
+                using value_t = std::false_type;
+                using type = Default;
+            };
 
+            template <class Default, template<class...> class Op, class... Args>
+            struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
+                using value_t = std::true_type;
+                using type = Op<Args...>;
+            };
+
+        } // namespace detail
+
+        struct nonesuch {
+            ~nonesuch() = delete;
+            nonesuch(nonesuch const&) = delete;
+            void operator=(nonesuch const&) = delete;
+        };
+
+        template <template<class...> class Op, class... Args>
+        using is_detected = typename detail::detector<nonesuch, void, Op, Args...>::value_t;
+
+        template <template<class...> class Op, class... Args>
+        using detected_t = typename detail::detector<nonesuch, void, Op, Args...>::type;
+
+        template <class Default, template<class...> class Op, class... Args>
+        using detected_or_t = typename detail::detector<Default, void, Op, Args...>::type;
 
     } // END: utility
 
@@ -1188,6 +1217,8 @@ namespace sub0
 
         using WriterConfig = typename ProtocolWriter::Config;
 
+        using ForwardReceiver = StreamSerializer<Protocol,ProtocolWriter>; //<@note Allow disambiguation for forwarding from derived classes
+
     public:
         /** Construct from stream
          * @param[in] stream  Stream reference stored and used to write serialised data into
@@ -1294,6 +1325,11 @@ namespace sub0
         ProtocolReader reader_;
     };
 
+    /** Check for `Target::ForwardReceiver` for SFINAE 
+    */
+    template<typename Target>
+    using forward_receiver_t = typename Target::ForwardReceiver;
+
     /** Forward receive() to  Target type convertible from this
      * @remark The call is made with Data type allowing for templated receive<>() handler functions @see class StreamSerializer
      * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
@@ -1309,7 +1345,14 @@ namespace sub0
          */
         inline void receive( const Data& data ) override
         {
-            static_cast<Target*>(this)->receive<>( data );
+            /** @remark If the `Target` inherits from a base defining`ForwardReceiver` then 
+            *           we call `ForwardReceiver::receive()`, otherwise default to call `Target::receive()`
+            * @note If this call is 'ambiguous' then a `using ForwardReceiver = MyBaseClassName` may  be 
+            *       defined within `Target` or is Base-class to disambiguate the `receive()` lookup
+            */
+            using ForwardReceiver_t = utility::detected_or_t<Target, forward_receiver_t, Target>;
+
+            static_cast<Target*>(this)->ForwardReceiver_t::receive(data);
         }
     };
 
