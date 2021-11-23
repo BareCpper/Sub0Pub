@@ -1305,6 +1305,13 @@ namespace sub0
             reader_.setDataPublisher(dataBffer, publisher );
         }
 
+        /** Prime reader internal  state
+        */
+        bool open()
+        {
+            return reader_.open(istream_);
+        }
+
         /** Polls data from the input istream
          * @return True when data packet(s) have been published, false if no completed packet was present in istream
          */
