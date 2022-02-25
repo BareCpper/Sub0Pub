@@ -723,7 +723,7 @@ namespace sub0
     typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
 
     template<typename Data>
-    thread_local typename Broker<Data>* Broker<Data>::threadCurrent_ = nullptr;
+    thread_local const typename Broker<Data>* Broker<Data>::threadCurrent_ = nullptr;
 #endif
 
 #if 0 //< @todo Not necessary since c++11?
