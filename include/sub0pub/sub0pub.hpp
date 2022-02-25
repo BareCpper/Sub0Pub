@@ -416,6 +416,9 @@ namespace sub0
         virtual bool filter(const Data& data)
         {  return true; }
 
+        inline void cancel()
+        { broker_.cancel(); }
+
 #if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
          * @return Broker null-terminated type name
@@ -497,6 +500,13 @@ namespace sub0
         {
             detail::Check::onPublish( *this, data );
             broker_.publish(data); //< @todo Add 'this' as traceability to data source for broker specialisation etc
+        }
+        
+        /** TODO: Doc
+         */
+        void cancel() const
+        {
+            broker_.cancel();
         }
 
 #if SUB0PUB_TYPEIDNAME
@@ -613,22 +623,43 @@ namespace sub0
             }
         }
 #endif
+        
+        /**
+         * @return  Get the broker instance on the current thread
+        */
+        const Broker* active() const
+        { return threadCurrent_; }
+
+        /** Cancel the broker publish on the current thread preventing further receive of data 
+        */
+        void cancel() const
+        {
+            assert(active() == this); //< Sanity check only cancel the active broker?
+            active()->publishCanceled_ = true;
+        }
 
         /** Send data to registered subscribers
          * @param data  Data sent to subscribers via their 'receive()' function
          */
         void publish(const Data& data) const
         {
-            for (uint32_t iSubscription = 0U; iSubscription < state_.subscriptionCount; ++iSubscription )
+            assert(publishCanceled_ == false);
+
+            const Broker* previousPublisher = this;
+            std::swap(threadCurrent_, previousPublisher);
+
+            for (uint32_t iSubscription = 0U; !publishCanceled_ && iSubscription < state_.subscriptionCount; ++iSubscription )
             {
                 Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
                 detail::Check::onReceive( subscription, data );
 
                 if ( subscription->filter(data))
-                {
                     subscription->receive(data);
-                }
             }
+
+            publishCanceled_ = false;
+            std::swap(threadCurrent_, previousPublisher); //< Restore for recursive calls
+            assert(previousPublisher == this);
         }
 
         /** Prints address of monotonic state
@@ -664,6 +695,7 @@ namespace sub0
          */
         struct State
         {
+
             uint32_t subscriptionCount = 0; ///< Count of subscriptions_
             Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
 #if SUB0PUB_TYPEIDNAME
@@ -674,9 +706,13 @@ namespace sub0
 
 #ifdef __cpp_inline_variables
         inline static State state_ = {}; ///< MonoState subscription table
+        inline static thread_local const Broker* threadCurrent_ = nullptr; //< Active publisher
 #else
         static State state_; ///< MonoState subscription table
+        static thread_local const Broker* threadCurrent_ = nullptr; //< Active publisher
 #endif
+
+        mutable bool publishCanceled_ = false; //< Flag indicating this instance of publish is cancelled
     };
 
 #ifndef __cpp_inline_variables
@@ -685,6 +721,9 @@ namespace sub0
      */
     template<typename Data>
     typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
+
+    template<typename Data>
+    thread_local typename Broker<Data>* Broker<Data>::threadCurrent_ = nullptr;
 #endif
 
 #if 0 //< @todo Not necessary since c++11?
@@ -709,6 +748,16 @@ namespace sub0
         const Publish<Data>& publisher = from;
         publisher.publish(data);
     }
+
+    /** TODO: Docs
+     */
+    template<typename From, typename Data>
+    inline void cancel(From& from, const Data& data)
+    {
+        const Publish<Data>& publisher = from;
+        publisher.cancel();
+    }
+
 
     /** @see publish(const From&,const Data&)
     */
