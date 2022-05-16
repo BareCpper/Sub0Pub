@@ -1468,6 +1468,14 @@ namespace sub0
     class ForwardSubscribeAll<SubscriberTarget, std::tuple<Datas...> > : public ForwardSubscribe<Datas, SubscriberTarget>... {};
 
 
+    /** Register publication of data with a provider instance
+    */
+    template< typename DataProvider, typename... Datas >
+    class ForwardPublishAll : public ForwardPublish<Datas, DataProvider>... {};
+
+    template<typename DataProvider, typename... Datas>
+    class ForwardPublishAll<DataProvider, std::tuple<Datas...> > : public ForwardPublish<Datas, DataProvider>... {};
+
 } // END: sub0
 
 #endif
