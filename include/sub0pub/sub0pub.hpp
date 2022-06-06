@@ -634,7 +634,8 @@ namespace sub0
         */
         void cancel() const
         {
-            assert(active() == this); //< Sanity check only cancel the active broker?
+            //@todo Sanity check only cancel the active broker? assert(active() == this);
+            assert( active() != nullptr ); //< Critical cannot be called from outside callback context
             active()->publishCanceled_ = true;
         }
 
