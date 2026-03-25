@@ -1212,39 +1212,40 @@ namespace sub0
         */
         bool update(IStream& stream)
         {
-            // Handle SyncLost: scan for next valid prefix
-            if (state_ == State::SyncLost)
+            for (;;)
             {
-                if (!tryResync(stream))
-                    return false;
-            }
+                // Handle SyncLost: scan for next valid prefix
+                if (state_ == State::SyncLost)
+                {
+                    if (!tryResync(stream))
+                        return false;
+                }
 
-            // Handle skip of unknown payload
-            if (skipRemaining_ > 0)
-            {
-                char skipBuf[256];
-                const auto toSkip = std::min(static_cast<uint32_t>(sizeof(skipBuf)), skipRemaining_);
-#if SUB0PUB_STD
-                const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip).gcount());
-#else
-                const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip));
-#endif
-                skipRemaining_ -= skipped;
+                // Handle skip of unknown payload (data + postfix bytes)
                 if (skipRemaining_ > 0)
-                    return false;
-                // Skip complete — advance to postfix (or next prefix if no postfix)
-                state_ = stateAfter(State::Data);
-                currentBuffer_ = findStateBuffer(state_);
-            }
+                {
+                    char skipBuf[256];
+                    const auto toSkip = std::min(static_cast<uint32_t>(sizeof(skipBuf)), skipRemaining_);
+#if SUB0PUB_STD
+                    const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip).gcount());
+#else
+                    const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip));
+#endif
+                    skipRemaining_ -= skipped;
+                    if (skipRemaining_ > 0)
+                        return false;
+                    // Skip complete — reset to next prefix
+                    state_ = !std::is_void_v<Prefix_t> ? State::Prefix : stateAfter(State::Prefix);
+                    currentBuffer_ = findStateBuffer(state_);
+                    continue;
+                }
 
-            // Normal read loop
-            while (readBuffer(stream))
-            {
+                // Normal read
+                if (!readBuffer(stream))
+                    return false;
                 if (state_ == State::Header)
                     return true;
             }
-
-            return false;
         }
 
         template < typename Data >
@@ -1402,12 +1403,13 @@ namespace sub0
             state_ = stateAfter( state_ );
             currentBuffer_ = findStateBuffer(state_);
 
-            // Unknown typeId: skip the payload bytes and continue to next frame
+            // Unknown typeId: skip the payload + postfix bytes and continue to next frame
             if (currentBuffer_.buffer == nullptr && state_ == State::Data)
             {
-                // Set up a skip buffer: discard header_.dataBytes bytes
                 skipRemaining_ = header_.dataBytes;
-                return true; // Continue reading to consume the skip bytes
+                if constexpr (!std::is_void_v<Postfix_t>)
+                    skipRemaining_ += sizeof(Postfix_t);
+                return true;
             }
 
             if (currentBuffer_.paddingSize < 0)

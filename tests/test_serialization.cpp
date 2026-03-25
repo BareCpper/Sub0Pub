@@ -90,6 +90,29 @@ struct FloatReceiver : sub0::Subscribe<float> {
     void receive(const float& v) noexcept override { lastValue = v; ++count; }
 };
 
+// Deserializer that only knows about int (not float) — for unknown typeId test
+class IntOnlyDeserializer : public sub0::StreamDeserializer<>
+                          , public sub0::ForwardPublish<int, IntOnlyDeserializer>
+{
+public:
+    IntOnlyDeserializer(sub0::IStream& in) : sub0::StreamDeserializer<>(in) {}
+};
+
+// ForwardSubscribeAll / ForwardPublishAll variants
+class AllSerializer : public sub0::StreamSerializer<>
+                    , public sub0::ForwardSubscribeAll<AllSerializer, int, float>
+{
+public:
+    AllSerializer(sub0::OStream& out) : sub0::StreamSerializer<>(out) {}
+};
+
+class AllDeserializer : public sub0::StreamDeserializer<>
+                      , public sub0::ForwardPublishAll<AllDeserializer, int, float>
+{
+public:
+    AllDeserializer(sub0::IStream& in) : sub0::StreamDeserializer<>(in) {}
+};
+
 } // namespace
 
 TEST_CASE("Serialization round-trip: int") {
@@ -184,4 +207,137 @@ TEST_CASE("DefaultSerialisation protocol structure") {
 
     // Check postfix delimiter
     CHECK(outStream.data.back() == '\n');
+}
+
+// --- IPC error path tests ---
+
+TEST_CASE("IPC: unknown typeId is skipped gracefully") {
+    MemoryOStream outStream;
+
+    // Serialize int and float
+    {
+        IntPublisher intPub;
+        FloatPublisher floatPub;
+        TestSerializer serializer(outStream);
+        intPub.send(42);
+        floatPub.send(3.14f); // float is unknown to IntOnlyDeserializer
+        intPub.send(99);
+    }
+
+    // Deserialize with a reader that only knows int — float should be skipped
+    IntReceiver receiver;
+    MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+    {
+        IntOnlyDeserializer deserializer(inStream);
+        deserializer.open();
+        while (deserializer.update()) {}
+    }
+
+    // Should receive both ints, skipping the unknown float
+    CHECK(receiver.count == 2);
+    CHECK(receiver.lastValue == 99);
+}
+
+TEST_CASE("IPC: corrupted postfix triggers error handling") {
+    MemoryOStream outStream;
+
+    {
+        TestSerializer serializer(outStream);
+        IntPublisher pub;
+        pub.send(42);
+    }
+
+    // Corrupt the postfix byte (last byte)
+    outStream.data.back() = 'X'; // was '\n'
+
+    IntReceiver receiver;
+    MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+
+    // Should either throw or silently fail depending on exception support
+#if __cpp_exceptions
+    bool threw = false;
+    try {
+        TestDeserializer deserializer(inStream);
+        deserializer.open();
+        while (deserializer.update()) {}
+    } catch (const std::runtime_error&) {
+        threw = true;
+    }
+    CHECK(threw);
+#else
+    // Without exceptions, just verify it doesn't crash
+    TestDeserializer deserializer(inStream);
+    deserializer.open();
+    deserializer.update();
+    CHECK(receiver.count == 0); // Should not have published
+#endif
+}
+
+TEST_CASE("IPC: corrupted magic prefix triggers error handling") {
+    MemoryOStream outStream;
+
+    {
+        TestSerializer serializer(outStream);
+        IntPublisher pub;
+        pub.send(42);
+    }
+
+    // Corrupt the magic prefix (first 4 bytes)
+    outStream.data[0] = 'B';
+    outStream.data[1] = 'A';
+    outStream.data[2] = 'D';
+    outStream.data[3] = '!';
+
+    IntReceiver receiver;
+    MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+
+#if __cpp_exceptions
+    bool threw = false;
+    try {
+        TestDeserializer deserializer(inStream);
+        deserializer.open();
+        while (deserializer.update()) {}
+    } catch (const std::runtime_error&) {
+        threw = true;
+    }
+    CHECK(threw);
+#else
+    TestDeserializer deserializer(inStream);
+    deserializer.open();
+    deserializer.update();
+    CHECK(receiver.count == 0);
+#endif
+}
+
+// --- ForwardSubscribeAll / ForwardPublishAll tests ---
+
+TEST_CASE("ForwardSubscribeAll/ForwardPublishAll round-trip") {
+    MemoryOStream outStream;
+
+    // Serialize using the All variant
+    {
+        IntPublisher intPub;
+        FloatPublisher floatPub;
+        AllSerializer serializer(outStream);
+
+        intPub.send(123);
+        floatPub.send(2.718f);
+    }
+
+    CHECK(outStream.data.size() > 0);
+
+    // Deserialize using the All variant
+    IntReceiver intReceiver;
+    FloatReceiver floatReceiver;
+    MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+    {
+        AllDeserializer deserializer(inStream);
+        deserializer.open();
+        while (deserializer.update()) {}
+    }
+
+    CHECK(intReceiver.count == 1);
+    CHECK(intReceiver.lastValue == 123);
+    CHECK(floatReceiver.count == 1);
+    CHECK(floatReceiver.lastValue == doctest::Approx(2.718f));
 }
