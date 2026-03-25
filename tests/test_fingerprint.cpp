@@ -158,6 +158,122 @@ TEST_CASE("SUB0_MEMBER_LAYOUT: single member struct") {
     CHECK(layout.layoutHash != 0);
 }
 
+// --- Recursive fingerprinting: arrays and nested structs ---
+
+struct Vec3 {
+    float x, y, z;
+};
+
+struct Particle {
+    Vec3 position;
+    Vec3 velocity;
+    float mass;
+};
+
+struct ParticleSystem {
+    Particle particles[64];
+    uint32_t count;
+};
+
+// Variant where Vec3 has changed
+struct Vec3_v2 {
+    double x, y, z; // float -> double
+};
+
+struct Particle_v2 {
+    Vec3_v2 position;
+    Vec3_v2 velocity;
+    float mass;
+};
+
+struct ParticleSystem_v2 {
+    Particle_v2 particles[64];
+    uint32_t count;
+};
+
+struct WithArray {
+    float data[4];
+    int tag;
+};
+
+struct WithDifferentArray {
+    float data[8]; // changed extent
+    int tag;
+};
+
+struct Matrix4x4 {
+    float m[4][4];
+};
+
+TEST_CASE("TypeFingerprint: array type includes element info") {
+    constexpr auto scalar = sub0::utility::makeFingerprint<float>();
+    constexpr auto arr4 = sub0::utility::makeFingerprint<float[4]>();
+    constexpr auto arr8 = sub0::utility::makeFingerprint<float[8]>();
+
+    // Arrays have extent, scalars don't
+    CHECK(scalar.extent == 0);
+    CHECK(arr4.extent == 4);
+    CHECK(arr8.extent == 8);
+
+    // Element hash is non-zero for arrays
+    CHECK(scalar.elementHash == 0);
+    CHECK(arr4.elementHash != 0);
+
+    // Same element type, different extent
+    CHECK(arr4.elementHash == arr8.elementHash);
+    CHECK(arr4 != arr8); // different size and extent
+}
+
+TEST_CASE("TypeFingerprint: nested array (2D)") {
+    constexpr auto flat = sub0::utility::makeFingerprint<float[16]>();
+    constexpr auto mat = sub0::utility::makeFingerprint<float[4][4]>();
+
+    // Same total size but different structure
+    CHECK(flat.size == mat.size);
+    CHECK(flat.extent == 16);
+    CHECK(mat.extent == 4); // outer extent
+    // Element hashes differ: float vs float[4]
+    CHECK(flat.elementHash != mat.elementHash);
+}
+
+TEST_CASE("SUB0_MEMBER_LAYOUT: array member is recursively fingerprinted") {
+    constexpr auto layout = SUB0_MEMBER_LAYOUT(WithArray, data, tag);
+
+    CHECK(layout.fingerprint.arity == 5); // 4 elements + 1 tag
+    CHECK(layout.layoutHash != 0);
+
+    // Different array extent must produce different layout
+    constexpr auto layout2 = SUB0_MEMBER_LAYOUT(WithDifferentArray, data, tag);
+    CHECK(layout != layout2);
+}
+
+TEST_CASE("SUB0_MEMBER_LAYOUT: struct member is recursively fingerprinted") {
+    constexpr auto layout = SUB0_MEMBER_LAYOUT(Particle, position, velocity, mass);
+
+    CHECK(layout.fingerprint.arity == 3);
+    CHECK(layout.layoutHash != 0);
+}
+
+TEST_CASE("SUB0_MEMBER_LAYOUT: detects change in nested struct through array") {
+    // ParticleSystem contains Particle[64] which contains Vec3
+    // ParticleSystem_v2 contains Particle_v2[64] which contains Vec3_v2 (double instead of float)
+    constexpr auto v1 = SUB0_MEMBER_LAYOUT(ParticleSystem, particles, count);
+    constexpr auto v2 = SUB0_MEMBER_LAYOUT(ParticleSystem_v2, particles, count);
+
+    // The change to Vec3 (float->double) must propagate up through
+    // Particle -> Particle[64] -> ParticleSystem
+    CHECK(v1 != v2);
+    CHECK(v1.layoutHash != v2.layoutHash);
+}
+
+TEST_CASE("SUB0_MEMBER_LAYOUT: 2D array member") {
+    constexpr auto layout = SUB0_MEMBER_LAYOUT(Matrix4x4, m);
+
+    CHECK(layout.fingerprint.arity == 16); // 16 elements in the 4x4 array
+    CHECK(layout.fingerprint.size == sizeof(float) * 16);
+    CHECK(layout.layoutHash != 0);
+}
+
 // 32-member struct — well beyond the old 16-member macro limit
 struct Ridiculous {
     uint8_t  m00; uint8_t  m01; uint8_t  m02; uint8_t  m03;

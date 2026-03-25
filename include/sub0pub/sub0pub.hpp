@@ -172,7 +172,7 @@ namespace sub0
             };
 
             template<typename T>
-            struct detect : detect_impl<T, 0, sizeof(T)> {};
+            struct detect : detect_impl<T, 0, (sizeof(T) < 64 ? sizeof(T) : 64)> {};
         } // namespace arity
 
         /** Compile-time count of aggregate members in T
@@ -183,70 +183,125 @@ namespace sub0
         template<typename T>
         constexpr std::size_t memberCount = arity::detect<T>::value;
 
-        /** Layout fingerprint combining sizeof, alignof, and member count
+        /** Layout fingerprint combining sizeof, alignof, member count, and element info
          * @remark A cheap compile-time check for struct compatibility across IPC.
-         *         If two peers produce the same fingerprint for a type, the layout
-         *         is very likely identical. Not a guarantee (reordered same-sized
-         *         members would match) but catches size changes, padding differences,
-         *         and added/removed fields.
+         *         Recursive: arrays include the element fingerprint, so changes to
+         *         a struct used inside an array are always detected.
          */
         struct TypeFingerprint
         {
-            uint32_t size;       ///< sizeof(T)
-            uint32_t alignment;  ///< alignof(T)
-            uint32_t arity;      ///< number of aggregate members
+            uint32_t size;          ///< sizeof(T)
+            uint32_t alignment;     ///< alignof(T)
+            uint32_t arity;         ///< number of aggregate members (or 1 for scalars)
+            uint32_t extent;        ///< array element count (0 for non-arrays)
+            uint32_t elementHash;   ///< recursive fingerprint hash of element type (0 for non-arrays)
 
             bool operator==(const TypeFingerprint& rhs) const
-            { return size == rhs.size && alignment == rhs.alignment && arity == rhs.arity; }
+            {
+                return size == rhs.size && alignment == rhs.alignment
+                    && arity == rhs.arity && extent == rhs.extent
+                    && elementHash == rhs.elementHash;
+            }
 
             bool operator!=(const TypeFingerprint& rhs) const
             { return !(*this == rhs); }
         };
 
-        /** Create a TypeFingerprint for an aggregate type at compile time
+        /** Hash a TypeFingerprint into a single uint32_t for embedding in parent fingerprints
+         */
+        constexpr uint32_t hashFingerprint(const TypeFingerprint& fp)
+        {
+            uint32_t h = 5381U;
+            h = ((h << 5) + h) + fp.size;
+            h = ((h << 5) + h) + fp.alignment;
+            h = ((h << 5) + h) + fp.arity;
+            h = ((h << 5) + h) + fp.extent;
+            h = ((h << 5) + h) + fp.elementHash;
+            return h;
+        }
+
+        /** Create a TypeFingerprint for any type at compile time
+         * @remark Recursive: for array types T[N], the fingerprint includes
+         *         the element type's fingerprint hash so that changes to nested
+         *         structs are always detected through any depth of array nesting.
          */
         template<typename T>
         constexpr TypeFingerprint makeFingerprint()
         {
-            return { static_cast<uint32_t>(sizeof(T)),
-                     static_cast<uint32_t>(alignof(T)),
-                     static_cast<uint32_t>(memberCount<T>) };
+            if constexpr (std::is_array_v<T>)
+            {
+                using Elem = std::remove_extent_t<T>;
+                constexpr auto elemFp = makeFingerprint<Elem>();
+                return { static_cast<uint32_t>(sizeof(T)),
+                         static_cast<uint32_t>(alignof(T)),
+                         static_cast<uint32_t>(elemFp.arity), //, Arity is from the Elem for arrays
+                         static_cast<uint32_t>(std::extent_v<T>),
+                         hashFingerprint(elemFp) };
+            }
+            else
+            {
+                return { static_cast<uint32_t>(sizeof(T)),
+                         static_cast<uint32_t>(alignof(T)),
+                         static_cast<uint32_t>(memberCount<T>),
+                         0U, 0U };
+            }
         }
 
-        /** Per-member layout entry: offset and size within the containing struct
+        /** Per-member layout entry: offset, size, and recursive element hash
          */
         struct MemberEntry
         {
-            uint32_t offset; ///< byte offset from struct base
-            uint32_t size;   ///< sizeof this member
+            uint32_t offset;      ///< byte offset from struct base
+            uint32_t size;        ///< sizeof this member
+            uint32_t elementHash; ///< recursive fingerprint hash (non-zero for arrays and structs with members)
         };
 
         /** Compute a hash over an array of MemberEntry for wire comparison
-         * @remark Uses djb2 over the raw bytes of the member table to produce a
-         *         single uint32_t that captures the exact byte layout of a struct.
-         *         If this hash differs between peers, the struct layout is incompatible.
+         * @remark Uses djb2 over offset, size, and elementHash of each member
+         *         to produce a single uint32_t capturing the exact recursive
+         *         byte layout of a struct.
          */
         constexpr uint32_t hashMemberLayout(const MemberEntry* entries, std::size_t count)
         {
             uint32_t h = 5381U;
             for (std::size_t i = 0; i < count; ++i)
             {
-                // Hash offset
                 h = ((h << 5) + h) + entries[i].offset;
-                // Hash size
                 h = ((h << 5) + h) + entries[i].size;
+                h = ((h << 5) + h) + entries[i].elementHash;
             }
             return h;
         }
 
-        /** Extended layout fingerprint with per-member offset and size verification
+        /** Create a MemberEntry with recursive element fingerprinting
+         * @tparam MemberType  The type of the struct member
+         */
+        template<typename MemberType>
+        constexpr MemberEntry makeMemberEntry(uint32_t offset, uint32_t size)
+        {
+            if constexpr (std::is_array_v<MemberType>)
+            {
+                return { offset, size, hashFingerprint(makeFingerprint<MemberType>()) };
+            }
+            else if constexpr (std::is_class_v<MemberType> && memberCount<MemberType> > 0)
+            {
+                return { offset, size, hashFingerprint(makeFingerprint<MemberType>()) };
+            }
+            else
+            {
+                return { offset, size, 0U };
+            }
+        }
+
+        /** Extended layout fingerprint with per-member offset, size, and recursive element verification
          * @remark Built via the SUB0_MEMBER_LAYOUT macro which uses offsetof to
-         *         capture the exact byte position of each member.
+         *         capture the exact byte position of each member. Array and struct
+         *         members are recursively fingerprinted.
          */
         struct TypeLayout
         {
-            TypeFingerprint fingerprint; ///< sizeof + alignof + arity
-            uint32_t layoutHash;         ///< hash of per-member {offset, size} pairs
+            TypeFingerprint fingerprint; ///< sizeof + alignof + arity + array info
+            uint32_t layoutHash;         ///< hash of per-member {offset, size, elementHash} triples
 
             bool operator==(const TypeLayout& rhs) const
             { return fingerprint == rhs.fingerprint && layoutHash == rhs.layoutHash; }
@@ -312,9 +367,11 @@ namespace sub0
  */
 #define SUB0_MAP(f, ...) SUB0_EVAL(SUB0_MAP1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
 
-// Internal: per-member MemberEntry using the SUB0_DETAIL_LAYOUT_TYPE_ alias set by SUB0_MEMBER_LAYOUT
+// Internal: per-member MemberEntry with recursive element fingerprinting
 #define SUB0_DETAIL_MEMBER_ENTRY_OF(Member) \
-    sub0::utility::MemberEntry{ static_cast<uint32_t>(offsetof(SUB0_DETAIL_LAYOUT_TYPE_, Member)), static_cast<uint32_t>(sizeof(SUB0_DETAIL_LAYOUT_TYPE_::Member)) },
+    sub0::utility::makeMemberEntry<decltype(SUB0_DETAIL_LAYOUT_TYPE_::Member)>( \
+        static_cast<uint32_t>(offsetof(SUB0_DETAIL_LAYOUT_TYPE_, Member)), \
+        static_cast<uint32_t>(sizeof(SUB0_DETAIL_LAYOUT_TYPE_::Member))),
 
         /**
         * @note char* to unify interface against std::ostream
