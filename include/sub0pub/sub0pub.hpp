@@ -163,8 +163,380 @@ namespace sub0
 
     } // END: detail (Check)
 
-    /** Internal utility functions
+
+    /** Base type for an object that subscribes to some strong-typed Data
+     * @tparam  Data  Type that will be received from publishers of corresponding type
+     */
+    template< typename Data >
+    class Subscribe
+    {
+    public:
+        /** Registers the subscriber within the broker framework
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
+         */
+        Subscribe( 
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName 
+#endif
+        )
+        {}
+
+        virtual ~Subscribe()
+        {  broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
+        
+        /** Receive published Data
+         * @remark Data is published from Publish<Data>::publish
+         */
+        virtual void receive( const Data& data ) noexcept = 0;
+
+        virtual bool filter(const Data& data) noexcept
+        {  return true; }
+
+        inline void cancel()
+        { broker_.cancel(); }
+
+#if SUB0PUB_TYPEIDNAME
+        /** Get name identifier of the Data from the broker
+         * @return Broker null-terminated type name
+        */
+        const char* typeName() const
+        { return broker_.typeName(); }
+
+        /** Stream operator for diagnostics reporting
+         * @param stream  Stream to report into
+         * @param subscriber  Subscriber instance to be written into stream
+         * @return Reference to 'stream'
+         */
+        friend OStream& operator<< ( OStream& stream, const Subscribe<Data>& subscriber )
+        { return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
+#endif
+
+    private:
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+    };
+
+
+    /**  Subscribe to many
+    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
     */
+    template< typename... Datas >
+    class SubscribeAll : public Subscribe<Datas>... 
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /**  Subscribe to many defined by std::tuple type list
+    */
+    template<typename... Datas>
+    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
+    */
+    template<typename... Datas, typename... OtherTuples>
+    class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
+        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
+    {};
+
+        
+    /** Base type for an object that publishes to some strong-typed Data
+     * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
+     */
+    template< typename Data >
+    class Publish
+    {
+    public:
+        /** Registers the publisher within the broker framework
+         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
+         */
+        Publish(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName
+#endif
+        )
+        {}
+
+        virtual ~Publish()
+        { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
+
+        /** Publish data to subscribers
+         * @param[in]  data  Data value to publish to subscribers
+         * @remark Data will be received by Subscribe<Data>::receive
+         */
+        void publish( const Data& data ) const
+        {
+            detail::Check::onPublish( *this, data );
+            broker_.publish(data); //< @todo Add 'this' as traceability to data source for broker specialisation etc
+        }
+        
+        /** TODO: Doc
+         */
+        void cancel() const
+        {
+            broker_.cancel();
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** Get name identifier of the Data from the broker
+         * @return Broker null-terminated type name
+        */
+        const char* typeName() const
+        { return broker_.typeName(); }
+
+        /** Get unique identifier of the Data from the broker
+         * @return Broker unique type index
+        */
+        uint32_t typeId() const
+        { return broker_.typeId(); }
+
+        /** Stream operator for diagnostics reporting
+         * @param stream  Stream to report into
+         * @param publisher  Publisher instance to be written into stream
+         * @return Reference to 'stream'
+         */
+        friend OStream& operator<< ( OStream& stream, const Publish<Data>& publisher )
+        { return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
+#endif
+
+    private:
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+    };
+
+// ============================================================================
+// Section 2: Internal — Broker implementation (detail)
+// ============================================================================
+
+    namespace detail
+    {
+    template< typename Data >
+    class Broker
+    {
+    public:
+        static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
+
+    public:
+        /** Registers subscriber in brokers subscription table
+         * @param[in] typeName Optional unique data name given to data for inter-process signaling. 
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
+         */
+        Broker( Subscribe<Data>* subscriber
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+        {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+            Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+#if SUB0PUB_TYPEIDNAME
+            setDataName(typeId, typeName);
+#endif
+            state_.subscriptions[state_.subscriptionCount++] = subscriber;
+        }
+
+        /** Validated publication
+         * @remark No record of publishers of data is currently maintained
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
+         */
+        Broker ( Publish<Data>* publisher
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        {
+            Check::onPublication( publisher, *this, 0, 1 );
+#if SUB0PUB_TYPEIDNAME
+            setDataName(typeId, typeName);
+#endif
+            // Do nothing for now...
+        }
+
+        void unsubscribe(Subscribe<Data>* subscriber)
+        {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+            Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
+#if SUB0PUB_ASSERT
+            assert(iRemove != state_.subscriptions + state_.subscriptionCount);
+#endif
+            --state_.subscriptionCount;
+            std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
+        }
+
+        void unsubscribe(Publish<Data>* publisher)
+        {
+            // Do nothing for now...
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** Set a unique identifier for the data the broker manages
+         * @remark This name is used during serialisation for inter-process communications
+         * @param[in]  typeName  Null terminated compile-time string constant
+         */
+        void setDataName(const uint32_t typeId, const char* const typeName )
+        {
+            if (typeId)
+            {
+                // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
+                assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
+                state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
+            }
+
+            if (typeName)
+            {
+                // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
+                assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
+                state_.typeName = typeName;
+            }
+        }
+#endif
+        
+        /**
+         * @return  Get the broker instance on the current thread
+        */
+        const Broker* active() const
+        { return threadCurrent_; }
+
+        /** Cancel the broker publish on the current thread preventing further receive of data 
+        */
+        void cancel() const
+        {
+            assert( active() != nullptr ); //< Cannot be called from outside a publish callback
+            active()->publishCanceled_.store(true, std::memory_order_relaxed);
+        }
+
+        /** Send data to registered subscribers
+         * @param data  Data sent to subscribers via their 'receive()' function
+         */
+        void publish(const Data& data) const noexcept
+        {
+            assert(!publishCanceled_.load(std::memory_order_relaxed));
+
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+            const Broker* previousPublisher = this;
+            std::swap(threadCurrent_, previousPublisher);
+
+            for (uint32_t iSubscription = 0U;
+                 !publishCanceled_.load(std::memory_order_relaxed) && iSubscription < state_.subscriptionCount;
+                 ++iSubscription)
+            {
+                Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
+                Check::onReceive( subscription, data );
+
+                if (subscription->filter(data))
+                    subscription->receive(data);
+            }
+
+            publishCanceled_.store(false, std::memory_order_relaxed);
+            std::swap(threadCurrent_, previousPublisher);
+            assert(previousPublisher == this);
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** @return Unique identifier index for inter-process binary connections
+         */
+        static uint32_t typeId()
+        {
+            return state_.typeId;
+        }
+
+        /** @return Unique identifier name for inter-process text connections
+         */
+        static const char* typeName()
+        {
+            return state_.typeName;
+        }
+#endif
+
+    private:
+        /** Object state as monotonic object shared by all instances
+         */
+        struct State
+        {
+#if SUB0PUB_THREAD_SAFE
+            mutable std::mutex mtx; ///< Protects subscriptions[] for multi-threaded pub/sub
+#endif
+            uint32_t subscriptionCount = 0; ///< Count of subscriptions_
+            Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
+#if SUB0PUB_TYPEIDNAME
+            uint32_t typeId; ///< Type identifier index or name hash
+            const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
+#endif
+        };
+
+        inline static State state_ = {};
+        inline static thread_local const Broker* threadCurrent_ = nullptr;
+
+        mutable std::atomic<bool> publishCanceled_{false};
+    };
+
+    } // END: detail
+
+    /** Publish data, used when inheriting from multiple Publish<> base types
+     * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
+        i.e. publish( 1.0F) is ambiguous in this case.
+     * @note Compiler error will occur if From does not inherit Publish<Data>
+     *
+     * @param[in] from  Producer object inheriting from one or more Publish<> objects
+     * @param[in] data  Data that will be published using the base Publish<Data> object of From
+     */
+    template<typename From, typename Data>
+    inline void publish(From& from, const Data& data) noexcept
+    {
+        const Publish<Data>& publisher = from;
+        publisher.publish(data);
+    }
+
+    /** Cancel the active publish on a publisher
+     * @param[in] from  Producer object inheriting from Publish<Data>
+     * @note Must only be called from within a receive() callback
+     */
+    template<typename Data, typename From>
+    inline void cancel(From& from)
+    {
+        const Publish<Data>& publisher = from;
+        publisher.cancel();
+    }
+
+
+    /** @see publish(const From&,const Data&)
+    */
+    template<typename From, typename Data>
+    inline void publish(From* const from, const Data& data) noexcept
+    {
+#if SUB0PUB_ASSERT
+        assert(from != nullptr);
+#endif
+        publish(*from, data);
+    }
+
+// ============================================================================
+// Section 3: Utility — Streams, hashing, arity detection, layout fingerprinting
+// ============================================================================
+
     namespace utility
     {
         /** Create 4byte packed value at compile time
@@ -617,378 +989,6 @@ namespace sub0
 
     } // END: utility
 
-    /** Base type for an object that subscribes to some strong-typed Data
-     * @tparam  Data  Type that will be received from publishers of corresponding type
-     */
-    template< typename Data >
-    class Subscribe
-    {
-    public:
-        /** Registers the subscriber within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
-         */
-        Subscribe( 
-#if SUB0PUB_TYPEIDNAME
-            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
-#endif
-        )
-        : broker_( this
-#if SUB0PUB_TYPEIDNAME
-            , typeId, typeName 
-#endif
-        )
-        {}
-
-        virtual ~Subscribe()
-        {  broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
-        
-        /** Receive published Data
-         * @remark Data is published from Publish<Data>::publish
-         */
-        virtual void receive( const Data& data ) noexcept = 0;
-
-        virtual bool filter(const Data& data) noexcept
-        {  return true; }
-
-        inline void cancel()
-        { broker_.cancel(); }
-
-#if SUB0PUB_TYPEIDNAME
-        /** Get name identifier of the Data from the broker
-         * @return Broker null-terminated type name
-        */
-        const char* typeName() const
-        { return broker_.typeName(); }
-
-        /** Stream operator for diagnostics reporting
-         * @param stream  Stream to report into
-         * @param subscriber  Subscriber instance to be written into stream
-         * @return Reference to 'stream'
-         */
-        friend OStream& operator<< ( OStream& stream, const Subscribe<Data>& subscriber )
-        { return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
-#endif
-
-    private:
-        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
-    };
-
-
-    /**  Subscribe to many
-    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
-    */
-    template< typename... Datas >
-    class SubscribeAll : public Subscribe<Datas>... 
-    {
-    public:
-        static constexpr size_t Count = sizeof...(Datas);
-    };
-
-    /**  Subscribe to many defined by std::tuple type list
-    */
-    template<typename... Datas>
-    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
-    {
-    public:
-        static constexpr size_t Count = sizeof...(Datas);
-    };
-
-    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
-    */
-    template<typename... Datas, typename... OtherTuples>
-    class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
-        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
-    {};
-
-        
-    /** Base type for an object that publishes to some strong-typed Data
-     * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
-     */
-    template< typename Data >
-    class Publish
-    {
-    public:
-        /** Registers the publisher within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
-         */
-        Publish(
-#if SUB0PUB_TYPEIDNAME
-            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-        : broker_( this
-#if SUB0PUB_TYPEIDNAME
-            , typeId, typeName
-#endif
-        )
-        {}
-
-        virtual ~Publish()
-        { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
-
-        /** Publish data to subscribers
-         * @param[in]  data  Data value to publish to subscribers
-         * @remark Data will be received by Subscribe<Data>::receive
-         */
-        void publish( const Data& data ) const
-        {
-            detail::Check::onPublish( *this, data );
-            broker_.publish(data); //< @todo Add 'this' as traceability to data source for broker specialisation etc
-        }
-        
-        /** TODO: Doc
-         */
-        void cancel() const
-        {
-            broker_.cancel();
-        }
-
-#if SUB0PUB_TYPEIDNAME
-        /** Get name identifier of the Data from the broker
-         * @return Broker null-terminated type name
-        */
-        const char* typeName() const
-        { return broker_.typeName(); }
-
-        /** Get unique identifier of the Data from the broker
-         * @return Broker unique type index
-        */
-        uint32_t typeId() const
-        { return broker_.typeId(); }
-
-        /** Stream operator for diagnostics reporting
-         * @param stream  Stream to report into
-         * @param publisher  Publisher instance to be written into stream
-         * @return Reference to 'stream'
-         */
-        friend OStream& operator<< ( OStream& stream, const Publish<Data>& publisher )
-        { return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
-#endif
-
-    private:
-        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
-    };
-
-// ============================================================================
-// Section 2: Internal — Broker implementation (detail)
-// ============================================================================
-
-    namespace detail
-    {
-    template< typename Data >
-    class Broker
-    {
-    public:
-        static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
-
-    public:
-        /** Registers subscriber in brokers subscription table
-         * @param[in] typeName Optional unique data name given to data for inter-process signaling. 
-         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
-         */
-        Broker( Subscribe<Data>* subscriber
-#if SUB0PUB_TYPEIDNAME
-            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
-#endif
-        )
-        {
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
-#if SUB0PUB_TYPEIDNAME
-            setDataName(typeId, typeName);
-#endif
-            state_.subscriptions[state_.subscriptionCount++] = subscriber;
-        }
-
-        /** Validated publication
-         * @remark No record of publishers of data is currently maintained
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
-         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
-         */
-        Broker ( Publish<Data>* publisher
-#if SUB0PUB_TYPEIDNAME
-            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-        {
-            Check::onPublication( publisher, *this, 0, 1 );
-#if SUB0PUB_TYPEIDNAME
-            setDataName(typeId, typeName);
-#endif
-            // Do nothing for now...
-        }
-
-        void unsubscribe(Subscribe<Data>* subscriber)
-        {
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
-#if SUB0PUB_ASSERT
-            assert(iRemove != state_.subscriptions + state_.subscriptionCount);
-#endif
-            --state_.subscriptionCount;
-            std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
-        }
-
-        void unsubscribe(Publish<Data>* publisher)
-        {
-            // Do nothing for now...
-        }
-
-#if SUB0PUB_TYPEIDNAME
-        /** Set a unique identifier for the data the broker manages
-         * @remark This name is used during serialisation for inter-process communications
-         * @param[in]  typeName  Null terminated compile-time string constant
-         */
-        void setDataName(const uint32_t typeId, const char* const typeName )
-        {
-            if (typeId)
-            {
-                // Check if assigning a different name or Id is when already set
-#if SUB0PUB_ASSERT
-                assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
-#endif
-                state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
-            }
-
-            if (typeName)
-            {
-                // Check if assigning a different name or Id is when already set
-#if SUB0PUB_ASSERT
-                assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
-#endif
-                state_.typeName = typeName;
-            }
-        }
-#endif
-        
-        /**
-         * @return  Get the broker instance on the current thread
-        */
-        const Broker* active() const
-        { return threadCurrent_; }
-
-        /** Cancel the broker publish on the current thread preventing further receive of data 
-        */
-        void cancel() const
-        {
-            assert( active() != nullptr ); //< Cannot be called from outside a publish callback
-            active()->publishCanceled_.store(true, std::memory_order_relaxed);
-        }
-
-        /** Send data to registered subscribers
-         * @param data  Data sent to subscribers via their 'receive()' function
-         */
-        void publish(const Data& data) const noexcept
-        {
-            assert(!publishCanceled_.load(std::memory_order_relaxed));
-
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            const Broker* previousPublisher = this;
-            std::swap(threadCurrent_, previousPublisher);
-
-            for (uint32_t iSubscription = 0U;
-                 !publishCanceled_.load(std::memory_order_relaxed) && iSubscription < state_.subscriptionCount;
-                 ++iSubscription)
-            {
-                Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
-                Check::onReceive( subscription, data );
-
-                if (subscription->filter(data))
-                    subscription->receive(data);
-            }
-
-            publishCanceled_.store(false, std::memory_order_relaxed);
-            std::swap(threadCurrent_, previousPublisher);
-            assert(previousPublisher == this);
-        }
-
-#if SUB0PUB_TYPEIDNAME
-        /** @return Unique identifier index for inter-process binary connections
-         */
-        static uint32_t typeId()
-        {
-            return state_.typeId;
-        }
-
-        /** @return Unique identifier name for inter-process text connections
-         */
-        static const char* typeName()
-        {
-            return state_.typeName;
-        }
-#endif
-
-    private:
-        /** Object state as monotonic object shared by all instances
-         */
-        struct State
-        {
-#if SUB0PUB_THREAD_SAFE
-            mutable std::mutex mtx; ///< Protects subscriptions[] for multi-threaded pub/sub
-#endif
-            uint32_t subscriptionCount = 0; ///< Count of subscriptions_
-            Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
-#if SUB0PUB_TYPEIDNAME
-            uint32_t typeId; ///< Type identifier index or name hash
-            const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
-#endif
-        };
-
-        inline static State state_ = {};
-        inline static thread_local const Broker* threadCurrent_ = nullptr;
-
-        mutable std::atomic<bool> publishCanceled_{false};
-    };
-
-    } // END: detail
-
-    /** Publish data, used when inheriting from multiple Publish<> base types
-     * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
-        i.e. publish( 1.0F) is ambiguous in this case.
-     * @note Compiler error will occur if From does not inherit Publish<Data>
-     *
-     * @param[in] from  Producer object inheriting from one or more Publish<> objects
-     * @param[in] data  Data that will be published using the base Publish<Data> object of From
-     */
-    template<typename From, typename Data>
-    inline void publish(From& from, const Data& data) noexcept
-    {
-        const Publish<Data>& publisher = from;
-        publisher.publish(data);
-    }
-
-    /** Cancel the active publish on a publisher
-     * @param[in] from  Producer object inheriting from Publish<Data>
-     * @note Must only be called from within a receive() callback
-     */
-    template<typename Data, typename From>
-    inline void cancel(From& from)
-    {
-        const Publish<Data>& publisher = from;
-        publisher.cancel();
-    }
-
-
-    /** @see publish(const From&,const Data&)
-    */
-    template<typename From, typename Data>
-    inline void publish(From* const from, const Data& data) noexcept
-    {
-#if SUB0PUB_ASSERT
-        assert(from != nullptr);
-#endif
-        publish(*from, data);
-    }
-
-// ============================================================================
-// Section 3: Utility — Streams, hashing, arity detection, layout fingerprinting
-// ============================================================================
 
     // OStream/IStream type aliases (needed by IPC section below)
 #if SUB0PUB_STD
