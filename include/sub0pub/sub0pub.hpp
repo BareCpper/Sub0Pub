@@ -134,6 +134,181 @@ namespace sub0
 #endif
         }
 
+        /** Aggregate arity detection via structured bindings / aggregate init
+         * @remark Detects the number of members in an aggregate type at compile time.
+         *         Used to create a cheap struct-layout fingerprint for IPC verification.
+         *         Only works for aggregate types (no user-declared constructors, no virtual functions).
+         * @note   Technique from Boost.PFR / Antony Polukhin
+         */
+        namespace arity {
+            // A type that is implicitly convertible to anything
+            struct ubiq { template<typename T> operator T() const; };
+
+            // Test whether T can be aggregate-initialized with N arguments
+            template<typename T, typename Seq, typename = void>
+            struct is_aggregate_constructible : std::false_type {};
+
+            template<typename T, std::size_t... Is>
+            struct is_aggregate_constructible<T, std::index_sequence<Is...>,
+                std::void_t<decltype(T{ (void(Is), ubiq{})... })>>
+                : std::true_type {};
+
+            template<typename T, std::size_t N>
+            constexpr bool can_construct = is_aggregate_constructible<T, std::make_index_sequence<N>>::value;
+
+            // Binary search for the maximum N where T{ubiq, ubiq, ..., ubiq} compiles
+            template<typename T, std::size_t Lo, std::size_t Hi, typename = void>
+            struct detect_impl {
+                static constexpr std::size_t value = Lo;
+            };
+
+            template<typename T, std::size_t Lo, std::size_t Hi>
+            struct detect_impl<T, Lo, Hi, std::enable_if_t<(Lo < Hi)>> {
+                static constexpr std::size_t Mid = Lo + (Hi - Lo + 1) / 2;
+                static constexpr std::size_t value =
+                    can_construct<T, Mid>
+                        ? detect_impl<T, Mid, Hi>::value
+                        : detect_impl<T, Lo, Mid - 1>::value;
+            };
+
+            template<typename T>
+            struct detect : detect_impl<T, 0, sizeof(T)> {};
+        } // namespace arity
+
+        /** Compile-time count of aggregate members in T
+         * @tparam T  Aggregate type to count members of
+         * @return Number of direct data members (0 for non-aggregate types)
+         * @note Only valid for aggregate types (POD structs, C-style structs)
+         */
+        template<typename T>
+        constexpr std::size_t memberCount = arity::detect<T>::value;
+
+        /** Layout fingerprint combining sizeof, alignof, and member count
+         * @remark A cheap compile-time check for struct compatibility across IPC.
+         *         If two peers produce the same fingerprint for a type, the layout
+         *         is very likely identical. Not a guarantee (reordered same-sized
+         *         members would match) but catches size changes, padding differences,
+         *         and added/removed fields.
+         */
+        struct TypeFingerprint
+        {
+            uint32_t size;       ///< sizeof(T)
+            uint32_t alignment;  ///< alignof(T)
+            uint32_t arity;      ///< number of aggregate members
+
+            bool operator==(const TypeFingerprint& rhs) const
+            { return size == rhs.size && alignment == rhs.alignment && arity == rhs.arity; }
+
+            bool operator!=(const TypeFingerprint& rhs) const
+            { return !(*this == rhs); }
+        };
+
+        /** Create a TypeFingerprint for an aggregate type at compile time
+         */
+        template<typename T>
+        constexpr TypeFingerprint makeFingerprint()
+        {
+            return { static_cast<uint32_t>(sizeof(T)),
+                     static_cast<uint32_t>(alignof(T)),
+                     static_cast<uint32_t>(memberCount<T>) };
+        }
+
+        /** Per-member layout entry: offset and size within the containing struct
+         */
+        struct MemberEntry
+        {
+            uint32_t offset; ///< byte offset from struct base
+            uint32_t size;   ///< sizeof this member
+        };
+
+        /** Compute a hash over an array of MemberEntry for wire comparison
+         * @remark Uses djb2 over the raw bytes of the member table to produce a
+         *         single uint32_t that captures the exact byte layout of a struct.
+         *         If this hash differs between peers, the struct layout is incompatible.
+         */
+        constexpr uint32_t hashMemberLayout(const MemberEntry* entries, std::size_t count)
+        {
+            uint32_t h = 5381U;
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                // Hash offset
+                h = ((h << 5) + h) + entries[i].offset;
+                // Hash size
+                h = ((h << 5) + h) + entries[i].size;
+            }
+            return h;
+        }
+
+        /** Extended layout fingerprint with per-member offset and size verification
+         * @remark Built via the SUB0_MEMBER_LAYOUT macro which uses offsetof to
+         *         capture the exact byte position of each member.
+         */
+        struct TypeLayout
+        {
+            TypeFingerprint fingerprint; ///< sizeof + alignof + arity
+            uint32_t layoutHash;         ///< hash of per-member {offset, size} pairs
+
+            bool operator==(const TypeLayout& rhs) const
+            { return fingerprint == rhs.fingerprint && layoutHash == rhs.layoutHash; }
+
+            bool operator!=(const TypeLayout& rhs) const
+            { return !(*this == rhs); }
+        };
+
+/** Declare a detailed member layout fingerprint for IPC type verification
+ * @remark Captures the exact byte offset and size of each named member.
+ *         Use this at connection time to verify struct compatibility across peers.
+ *
+ * Example:
+ * @code
+ *   struct SensorData { float temperature; uint32_t timestamp; uint8_t flags; };
+ *   constexpr auto layout = SUB0_MEMBER_LAYOUT(SensorData, temperature, timestamp, flags);
+ *   // layout.fingerprint contains sizeof/alignof/arity
+ *   // layout.layoutHash captures per-member offset+size
+ * @endcode
+ */
+#define SUB0_MEMBER_LAYOUT(Type, ...)                                              \
+    []{                                                                            \
+        constexpr sub0::utility::MemberEntry entries[] = {                         \
+            SUB0_DETAIL_MEMBER_ENTRIES(Type, __VA_ARGS__)                           \
+        };                                                                         \
+        constexpr std::size_t count = sizeof(entries) / sizeof(entries[0]);         \
+        return sub0::utility::TypeLayout{                                           \
+            sub0::utility::makeFingerprint<Type>(),                                 \
+            sub0::utility::hashMemberLayout(entries, count)                         \
+        };                                                                         \
+    }()
+
+// Internal: expand each member name to a MemberEntry using offsetof
+#define SUB0_DETAIL_MEMBER_ENTRY(Type, Member) \
+    sub0::utility::MemberEntry{ static_cast<uint32_t>(offsetof(Type, Member)), static_cast<uint32_t>(sizeof(std::declval<Type>().Member)) }
+
+// Internal: variadic expansion helpers (up to 16 members)
+#define SUB0_DETAIL_EXPAND(x) x
+#define SUB0_DETAIL_GET_17TH(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) N
+#define SUB0_DETAIL_COUNT(...) SUB0_DETAIL_EXPAND(SUB0_DETAIL_GET_17TH(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+
+#define SUB0_DETAIL_ENTRIES_1(T,m1) SUB0_DETAIL_MEMBER_ENTRY(T,m1)
+#define SUB0_DETAIL_ENTRIES_2(T,m1,m2) SUB0_DETAIL_ENTRIES_1(T,m1), SUB0_DETAIL_MEMBER_ENTRY(T,m2)
+#define SUB0_DETAIL_ENTRIES_3(T,m1,m2,m3) SUB0_DETAIL_ENTRIES_2(T,m1,m2), SUB0_DETAIL_MEMBER_ENTRY(T,m3)
+#define SUB0_DETAIL_ENTRIES_4(T,m1,m2,m3,m4) SUB0_DETAIL_ENTRIES_3(T,m1,m2,m3), SUB0_DETAIL_MEMBER_ENTRY(T,m4)
+#define SUB0_DETAIL_ENTRIES_5(T,m1,m2,m3,m4,m5) SUB0_DETAIL_ENTRIES_4(T,m1,m2,m3,m4), SUB0_DETAIL_MEMBER_ENTRY(T,m5)
+#define SUB0_DETAIL_ENTRIES_6(T,m1,m2,m3,m4,m5,m6) SUB0_DETAIL_ENTRIES_5(T,m1,m2,m3,m4,m5), SUB0_DETAIL_MEMBER_ENTRY(T,m6)
+#define SUB0_DETAIL_ENTRIES_7(T,m1,m2,m3,m4,m5,m6,m7) SUB0_DETAIL_ENTRIES_6(T,m1,m2,m3,m4,m5,m6), SUB0_DETAIL_MEMBER_ENTRY(T,m7)
+#define SUB0_DETAIL_ENTRIES_8(T,m1,m2,m3,m4,m5,m6,m7,m8) SUB0_DETAIL_ENTRIES_7(T,m1,m2,m3,m4,m5,m6,m7), SUB0_DETAIL_MEMBER_ENTRY(T,m8)
+#define SUB0_DETAIL_ENTRIES_9(T,m1,m2,m3,m4,m5,m6,m7,m8,m9) SUB0_DETAIL_ENTRIES_8(T,m1,m2,m3,m4,m5,m6,m7,m8), SUB0_DETAIL_MEMBER_ENTRY(T,m9)
+#define SUB0_DETAIL_ENTRIES_10(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10) SUB0_DETAIL_ENTRIES_9(T,m1,m2,m3,m4,m5,m6,m7,m8,m9), SUB0_DETAIL_MEMBER_ENTRY(T,m10)
+#define SUB0_DETAIL_ENTRIES_11(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11) SUB0_DETAIL_ENTRIES_10(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10), SUB0_DETAIL_MEMBER_ENTRY(T,m11)
+#define SUB0_DETAIL_ENTRIES_12(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12) SUB0_DETAIL_ENTRIES_11(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11), SUB0_DETAIL_MEMBER_ENTRY(T,m12)
+#define SUB0_DETAIL_ENTRIES_13(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13) SUB0_DETAIL_ENTRIES_12(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12), SUB0_DETAIL_MEMBER_ENTRY(T,m13)
+#define SUB0_DETAIL_ENTRIES_14(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14) SUB0_DETAIL_ENTRIES_13(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13), SUB0_DETAIL_MEMBER_ENTRY(T,m14)
+#define SUB0_DETAIL_ENTRIES_15(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15) SUB0_DETAIL_ENTRIES_14(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14), SUB0_DETAIL_MEMBER_ENTRY(T,m15)
+#define SUB0_DETAIL_ENTRIES_16(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16) SUB0_DETAIL_ENTRIES_15(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15), SUB0_DETAIL_MEMBER_ENTRY(T,m16)
+
+#define SUB0_DETAIL_PASTE2(a, b) a ## b
+#define SUB0_DETAIL_PASTE(a, b) SUB0_DETAIL_PASTE2(a, b)
+#define SUB0_DETAIL_MEMBER_ENTRIES(Type, ...) SUB0_DETAIL_EXPAND(SUB0_DETAIL_PASTE(SUB0_DETAIL_ENTRIES_, SUB0_DETAIL_COUNT(__VA_ARGS__))(Type, __VA_ARGS__))
+
         /**
         * @note char* to unify interface against std::ostream
         */
