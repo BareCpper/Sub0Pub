@@ -23,23 +23,17 @@
 #define CROG_SUB0PUB_HPP
 
 #include <algorithm>
-#include <cassert> //< assert
-#include <cstring> //< std::strcmp
-#include <array> //< std::array @todo Should we not use this one occurrence for C++98 compatibility?
-#include <iosfwd> //< std::istream, std::ostream
-#include <tuple> //< std::tuple
-#include <type_traits> //< std::is_same
+#include <atomic>
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <cstring>
+#include <iosfwd>
+#include <tuple>
+#include <type_traits>
 
 #if SUB0PUB_THREAD_SAFE
-#include <mutex> //< std::mutex, std::lock_guard (optional thread safety)
-#endif
-
- /// @todo 0 vs nullptr C++11 only
-#if 1 /// @todo cstdint not always available ... C++11/C99 only 
-    #include <cstdint> //< uint32_t
-#else
-    typedef unsigned char uint8_t;
-    typedef unsigned int uint32_t;
+#include <mutex>
 #endif
 
 /** Logging output for event tracing
@@ -62,10 +56,6 @@
 
 #ifndef SUB0PUB_TYPEIDNAME
 #define SUB0PUB_TYPEIDNAME false ///< Types given unique/user-defined type index and string name for diagnostics and IPC
-#endif
-
-#ifndef SUB0_EXPERIMENTAL
-#define SUB0_EXPERIMENTAL false ///< Experimental functionality that may be later removed/dropped
 #endif
 
 #ifndef SUB0PUB_THREAD_SAFE
@@ -117,17 +107,30 @@ namespace sub0
 
         /** Hash a string using djb2 hash
          * @param[in] str  Null-terminated string to calculate hash of
-         * @todo Implement as compile time with name
          * @return djb2 hash value for input 'str'
          */
-        inline uint32_t hash( const char* str)
+        constexpr uint32_t hash(const char* str)
         {
-            uint32_t hash = 5381U;
-            for ( ; str[0U] != '\0'; ++str )
-            {
-                hash = ((hash << 5) + hash) + str[0U]; /* hash * 33 + c */
-            }
-            return hash;
+            uint32_t h = 5381U;
+            for ( ; str[0U] != '\0'; ++str)
+                h = ((h << 5) + h) + static_cast<uint32_t>(str[0U]);
+            return h;
+        }
+
+        /** Compile-time unique type identifier using __PRETTY_FUNCTION__ / __FUNCSIG__
+         * @tparam T  Type to generate a unique ID for
+         * @return Unique uint32_t hash for type T, stable within a single build
+         */
+        template<typename T>
+        constexpr uint32_t typeHash()
+        {
+#if defined(__GNUC__) || defined(__clang__)
+            return hash(__PRETTY_FUNCTION__);
+#elif defined(_MSC_VER)
+            return hash(__FUNCSIG__);
+#else
+            static_assert(false, "Sub0Pub: typeHash requires GCC, Clang, or MSVC");
+#endif
         }
 
         /**
@@ -292,31 +295,20 @@ namespace sub0
     typedef utility::IStream IStream;
 #endif
 
-    /** Broker manages publisher-subscriber connection for a 'Data' type
-     * @tparam Data  Data type which this instance manages connections for
-     */
-    template< typename Data >
-    class Broker;
+    template< typename Data > class Publish;
+    template< typename Data > class Subscribe;
 
-    /** Base type for publishing signals of 'Data' type
-     * @tparam Data  Data type which this instance manages publishing for
-     */
-    template< typename Data >
-    class Publish;
-
-    /** Base type for subscription to receive signals of 'Data' type
-     * @tparam Data  Data type which this instance manages subscriptions for
-     */
-    template< typename Data >
-    class Subscribe;
-    
-    /** Internal configured details for tracing and error handling
-     */
     namespace detail
     {
         /** Empty type for optional specialisations e.g. config()
         */
         struct Empty {};
+
+        /** Broker manages publisher-subscriber connection for a data-type
+         * @tparam Data  Data type which this instance manages connections for
+         */
+        template< typename Data >
+        class Broker;
 
         /** Provides debug assertion/exception checks for Broker<>
          * @see SUB0PUB_TRACE   Enable logging for broker events
@@ -448,7 +440,7 @@ namespace sub0
 #endif
 
     private:
-        Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
 
 
@@ -544,13 +536,11 @@ namespace sub0
 #endif
 
     private:
-        Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
 
-    /** Broker manages publisher-subscriber connection for a data-type
-     * @tparam Data  Data type which this instance manages connections for
-     * @todo Cross-module support
-     */
+    namespace detail
+    {
     template< typename Data >
     class Broker
     {
@@ -571,7 +561,7 @@ namespace sub0
 #if SUB0PUB_THREAD_SAFE
             std::lock_guard<std::mutex> lk{state_.mtx};
 #endif
-            detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+            Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
 #if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
 #endif
@@ -589,7 +579,7 @@ namespace sub0
 #endif
         )
         {
-            detail::Check::onPublication( publisher, *this, 0, 1/* @note No limit at present */ );
+            Check::onPublication( publisher, *this, 0, 1 );
 #if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
 #endif
@@ -606,8 +596,7 @@ namespace sub0
             assert(iRemove != state_.subscriptions + state_.subscriptionCount);
 #endif
             --state_.subscriptionCount;
-            *iRemove = state_.subscriptions[state_.subscriptionCount]; //< Insert last into removed slot @todo This changes the 'Order' of subscriptions, may have unexpected behaviour?
-
+            std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
         }
 
         void unsubscribe(Publish<Data>* publisher)
@@ -652,9 +641,8 @@ namespace sub0
         */
         void cancel() const
         {
-            //@todo Sanity check only cancel the active broker? assert(active() == this);
-            assert( active() != nullptr ); //< Critical cannot be called from outside callback context
-            active()->publishCanceled_ = true;
+            assert( active() != nullptr ); //< Cannot be called from outside a publish callback
+            active()->publishCanceled_.store(true, std::memory_order_relaxed);
         }
 
         /** Send data to registered subscribers
@@ -662,7 +650,7 @@ namespace sub0
          */
         void publish(const Data& data) const noexcept
         {
-            assert(publishCanceled_ == false);
+            assert(!publishCanceled_.load(std::memory_order_relaxed));
 
 #if SUB0PUB_THREAD_SAFE
             std::lock_guard<std::mutex> lk{state_.mtx};
@@ -670,31 +658,21 @@ namespace sub0
             const Broker* previousPublisher = this;
             std::swap(threadCurrent_, previousPublisher);
 
-            for (uint32_t iSubscription = 0U; !publishCanceled_ && iSubscription < state_.subscriptionCount; ++iSubscription )
+            for (uint32_t iSubscription = 0U;
+                 !publishCanceled_.load(std::memory_order_relaxed) && iSubscription < state_.subscriptionCount;
+                 ++iSubscription)
             {
                 Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
-                detail::Check::onReceive( subscription, data );
+                Check::onReceive( subscription, data );
 
-                if ( subscription->filter(data))
+                if (subscription->filter(data))
                     subscription->receive(data);
             }
 
-            publishCanceled_ = false;
-            std::swap(threadCurrent_, previousPublisher); //< Restore for recursive calls
+            publishCanceled_.store(false, std::memory_order_relaxed);
+            std::swap(threadCurrent_, previousPublisher);
             assert(previousPublisher == this);
         }
-
-        /** Prints address of monotonic state
-         * @param stream  Stream to output into
-         * @param broker  Broker instance to output for
-         * @return The 'stream' instance
-         */
-#if 0 ///@todo Remove unecessary stream operations: 
-        friend OStream& operator<< ( OStream& stream, const Broker<Data>& broker )
-        {
-            return stream << (void*)&broker.state_;
-        }
-#endif
 
 #if SUB0PUB_TYPEIDNAME
         /** @return Unique identifier index for inter-process binary connections
@@ -728,35 +706,13 @@ namespace sub0
 #endif
         };
 
-#ifdef __cpp_inline_variables
-        inline static State state_ = {}; ///< MonoState subscription table
-        inline static thread_local const Broker* threadCurrent_ = nullptr; //< Active publisher
-#else
-        static State state_; ///< MonoState subscription table
-        static thread_local const Broker* threadCurrent_ = nullptr; //< Active publisher
-#endif
+        inline static State state_ = {};
+        inline static thread_local const Broker* threadCurrent_ = nullptr;
 
-        mutable bool publishCanceled_ = false; //< Flag indicating this instance of publish is cancelled
+        mutable std::atomic<bool> publishCanceled_{false};
     };
 
-#ifndef __cpp_inline_variables
-    /** Monotonic broker state
-     * @todo State should be shared across module boundaries and owned/defined in a single module e.g. std::cout like singleton
-     */
-    template<typename Data>
-    typename Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State();
-
-    template<typename Data>
-    thread_local const typename Broker<Data>* Broker<Data>::threadCurrent_ = nullptr;
-#endif
-
-#if 0 //< @todo Not necessary since c++11?
-    /** Explicit allocation of monotonic state
-    @note Enables appearing within Globals for ELF embedded targets
-    */
-#define SUB0_BROKERSTATE(Data) \
-    namespace sub0 {  template<> Broker<Data>::State Broker<Data>::state_ = Broker<Data>::State(); } 
-#endif
+    } // END: detail
 
     /** Publish data, used when inheriting from multiple Publish<> base types
      * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
@@ -773,10 +729,12 @@ namespace sub0
         publisher.publish(data);
     }
 
-    /** TODO: Docs
+    /** Cancel the active publish on a publisher
+     * @param[in] from  Producer object inheriting from Publish<Data>
+     * @note Must only be called from within a receive() callback
      */
-    template<typename From, typename Data>
-    inline void cancel(From& from, const Data& data)
+    template<typename Data, typename From>
+    inline void cancel(From& from)
     {
         const Publish<Data>& publisher = from;
         publisher.cancel();
@@ -793,19 +751,6 @@ namespace sub0
 #endif
         publish(*from, data);
     }
-
-#if SUB0_EXPERIMENTAL //< @todo Decide if this should be part of the API to allow calling from global code easily... better make it the users duty? i.e.e use of static non-owner traceability of data sources could compilcate future features?
-    /** C-compatibile global-publish wihout use of registered Publisher
-    * @warning Use with caution as each instantiation creates a static
-    * @see publish(const From&,const Data&)
-    */
-    template<typename Data>
-    inline void publish_cstatic( const Data& data)
-    {
-        static Publish<Data> publisher = {}; ///< Create an object instance @note SUB0_EXPERIMENTAL
-        publish(publisher, data);
-    }
-#endif
 
     /** Interface for data provider to indicate destination buffer status
      * @see ForwardPublish
@@ -835,19 +780,10 @@ namespace sub0
         template<typename Data_t>
         inline bool write(OStream& stream, const Data_t& data) const
         {
-#if 0
-            char buffer[utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>() + utility::sizeOf<Data_t>() + utility::sizeOf<Postfix_t>()];
-            utility::copyTo<Prefix_t>(buffer);
-            utility::copyTo<Header_t>(buffer + (utility::sizeOf<Prefix_t>()), Header_t(data));
-            utility::copyTo<Data_t>(buffer + (utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>()), data);
-            utility::copyTo<Postfix_t>(buffer + (utility::sizeOf<Prefix_t>() + utility::sizeOf<Header_t>() + utility::sizeOf<Data_t>()));
-            return stream.write(buffer, sizeof(buffer));
-#else
             return utility::write<Prefix_t>(stream)
-                && utility::write(stream, Header_t(data) )
-                && utility::write(stream, data )
+                && utility::write(stream, Header_t(data))
+                && utility::write(stream, data)
                 && utility::write<Postfix_t>(stream);
-#endif
         }
 
         bool open(OStream& stream)
@@ -988,7 +924,7 @@ namespace sub0
 
     public:
         BinaryReader()
-            : dataBufferRegistery_()
+            : dataBufferRegistry_()
             , currentBuffer_()
             , state_()
             , prefix_()
@@ -1026,12 +962,12 @@ namespace sub0
 #if SUB0PUB_ASSERT
             assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
 #endif
-            dataBufferRegistery_.set(dataBuffer, publisher);
+            dataBufferRegistry_.set(dataBuffer, publisher);
         }
 
         bool close( IStream& stream  )
         {
-            dataBufferRegistery_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
+            dataBufferRegistry_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
             return true;
         }
 
@@ -1049,7 +985,7 @@ namespace sub0
             case State::Header: 
                 return {nullptr, reinterpret_cast<char*>(&header_), static_cast<uint_least16_t>(sizeof(header_)), 0U };
             case State::Data:   
-                return dataBufferRegistery_.find(header_);
+                return dataBufferRegistry_.find(header_);
             case State::Postfix: 
                 return {currentBuffer_.publisher , reinterpret_cast<char*>(&postfix_), static_cast<uint_least16_t>( !std::is_void<Postfix_t>::value ? sizeof(postfix_) : 0U), 0U};
             }
@@ -1077,21 +1013,13 @@ namespace sub0
 
             if (currentBuffer_.paddingSize > 0)
             {
-#if 1 /// @todo stream.ignore() functionality does not act as expected!?
                 char ignoreBuff[256];
                 const size_t ignoreSize = std::min(std::size(ignoreBuff), static_cast<size_t>(currentBuffer_.paddingSize));
     #if SUB0PUB_STD
-                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.read(ignoreBuff, ignoreSize ).gcount()); ///< @todo readsome() for async
+                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.read(ignoreBuff, ignoreSize).gcount());
     #else
-                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, ignoreSize );
+                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, ignoreSize);
     #endif
-#else
-    #if SUB0PUB_STD
-                 const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.ignore(currentBuffer_.paddingSize).gcount()); ///< @todo readsome() for async
-    #else
-                const uint_fast16_t ignoreCount = stream.ignore(currentBuffer_.paddingSize);
-    #endif
-#endif
 
                 currentBuffer_.paddingSize -= ignoreCount;
 
@@ -1111,7 +1039,7 @@ namespace sub0
             {
             default: //< @todo SyncLost
             case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Prefix_t())
-            case State::Header:  return dataBufferRegistery_.validate(header_);
+            case State::Header:  return dataBufferRegistry_.validate(header_);
             case State::Data:    return true;
             case State::Postfix: return postfix_ == Postfix_t();///< @todo Handle void Postfix_t
             }
@@ -1211,7 +1139,7 @@ namespace sub0
         }
 
     private:
-        BufferRegister dataBufferRegistery_;
+        BufferRegister dataBufferRegistry_;
         Buffer currentBuffer_; ///< Current prefix/header/payload/postfix buffer
         State state_; ///< Which buffer is being read
 
@@ -1250,12 +1178,11 @@ namespace sub0
             template<typename Data>
             Header( const Data& data )
 #if SUB0PUB_TYPEIDNAME
-                : typeId(Broker<Data>::typeId() )
+                : typeId(detail::Broker<Data>::typeId() )
 #else
-
-                : typeId(12345) // reinterpret_cast<uint32_t>(&typeid(data)) ) ///< @todo Crude using typeid address!!!
+                : typeId(utility::typeHash<Data>())
 #endif
-                , dataBytes(sizeof(Data) )
+                , dataBytes(sizeof(Data))
             {}
 
             /** Sort by typeId only
@@ -1373,9 +1300,9 @@ namespace sub0
         }
 
         template < typename Data >
-        void setDataPublisher( Data& dataBffer, IPublish& publisher )
+        void setDataPublisher( Data& dataBuffer, IPublish& publisher )
         {
-            reader_.setDataPublisher(dataBffer, publisher );
+            reader_.setDataPublisher(dataBuffer, publisher );
         }
 
         /** Prime reader internal  state
@@ -1423,15 +1350,9 @@ namespace sub0
         /** Receives subscribed data and forward to target object
          * @param data  Data to forward
          */
-        inline void receive( const Data& data ) override
+        inline void receive( const Data& data ) noexcept override
         {
-            /** @remark If the `Target` inherits from a base defining`ForwardReceiver` then 
-            *           we call `ForwardReceiver::receive()`, otherwise default to call `Target::receive()`
-            * @note If this call is 'ambiguous' then a `using ForwardReceiver = MyBaseClassName` may  be 
-            *       defined within `Target` or is Base-class to disambiguate the `receive()` lookup
-            */
             using ForwardReceiver_t = utility::detected_or_t<Target, forward_receiver_t, Target>;
-
             static_cast<Target*>(this)->ForwardReceiver_t::receive(data);
         }
     };
