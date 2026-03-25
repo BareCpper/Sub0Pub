@@ -112,3 +112,15 @@ The fixed `cMaxSubscriptions = 8` is now configurable via `#define SUB0PUB_MAX_S
 ### `SUB0PUB_THREAD_SAFE` (new in v1.0, carried to v2)
 
 Define `SUB0PUB_THREAD_SAFE true` to enable mutex-guarded subscribe/unsubscribe/publish operations.
+
+---
+
+## IPC Design Notes
+
+### Endianness
+
+Sub0Pub does **not** perform per-message byte-swapping. All peers on a given IPC channel must share the same byte order. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase, with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
+
+### Type Layout
+
+The serialization protocol transmits raw bytes (`reinterpret_cast` of the data struct). Both peers must have identical struct layout (size, alignment, member order). There is currently no verification of this at connection time. Future Sub0Reflect integration will enable declaring and checking type layouts across the wire.

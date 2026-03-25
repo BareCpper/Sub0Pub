@@ -73,14 +73,18 @@ int main() {
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 
+### Design Decisions
+
+**Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle. For cross-architecture deployments, a future optional handshake protocol will allow peers to signal and verify layout compatibility. Full type-layout introspection is planned via integration with [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect), which will enable checking member layout, size, and alignment across the wire at connection time rather than per-message.
+
 ### Known Remaining Limitations
 
 | Issue | Severity | Plan |
 |-------|----------|------|
 | **Cross-module isolation** -- MonoState `static` state is per-DLL | Medium | Document and provide explicit instantiation pattern |
-| **No endianness handling** -- IPC assumes same-endian peers | Medium | Add byte-swap to serialization headers |
 | **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
 | **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
+| **No type-layout verification** -- IPC trusts that both peers have identical struct layout | Medium | Future [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration |
 
 ### Roadmap
 
@@ -88,7 +92,9 @@ int main() {
 
 **Phase 2 -- Safety:** ~~Type-ID fix, configurable limits, ordered removal, thread-safe option.~~ Done.
 
-**Phase 3 -- Polish (in progress):** Cross-module documentation, endianness handling, CRC/checksum, serialization round-trip tests.
+**Phase 3 -- Polish:** ~~Serialization round-trip tests, cross-platform examples.~~ Done.
+
+**Phase 4 -- IPC Hardening:** Optional CRC/checksum protocol layer, connection-time layout verification handshake, [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration for type introspection across the wire.
 
 ---
 
