@@ -56,29 +56,39 @@ int main() {
 | Auto-wiring | Yes | No | No | No |
 | Built-in IPC | Yes | No | No | No |
 
-### Known Limitations & Current Status
+### Current Status
 
-> **Status: Alpha (v0.1.2)** -- See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the full review.
+> **Status: v2.0.0-alpha** -- See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the full discipline review.
 
-This project is under active development. The following are known issues with planned mitigations:
+| Area | Status |
+|------|--------|
+| Test suite (doctest) | Done -- core pub/sub, cancellation, SubscribeAll, ordering |
+| CI/CD (GitHub Actions) | Done -- Linux GCC/Clang, Windows MSVC, macOS |
+| Performance benchmarks (nanobench) | Done -- system info capture, 8 scenarios |
+| Pre-push test hook | Done -- blocks push on test failure |
+| Atomic publish cancellation | Done -- `std::atomic<bool>` |
+| Configurable subscriber limit | Done -- `SUB0PUB_MAX_SUBSCRIPTIONS` |
+| Compile-time type IDs for IPC | Done -- `utility::typeHash<T>()` |
+| Subscription order preservation | Done -- `std::move` replaces swap-remove |
+| Broker hidden from public API | Done -- moved to `sub0::detail` |
+| Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 
-| Issue | Severity | Mitigation Plan |
-|-------|----------|-----------------|
-| **No thread safety** -- Shared static state has no synchronization; multi-threaded use is currently UB | Critical | Phase 2: Add `std::shared_mutex` or document single-threaded contract |
-| **No unit tests** -- Zero automated test coverage | High | Phase 1: Integrate test framework, write core + cancellation + serialization tests |
-| **CI/CD non-functional** -- Travis config is a skeleton | High | Phase 1: GitHub Actions with GCC/Clang/MSVC matrix + sanitizers |
-| **Fixed subscriber limit** -- `cMaxSubscriptions = 8`, silent assert on overflow | Medium | Phase 2: Make configurable via template parameter or `#define` override |
-| **IPC type-ID collision** -- All types default to ID `12345` without `SUB0PUB_TYPEIDNAME` | High | Phase 2: Compile-time type hash fallback or `static_assert` |
-| **Cross-module isolation** -- MonoState `static` state is per-DLL | Medium | Phase 2: Document and provide `SUB0_BROKERSTATE` macro |
-| **C++ standard** -- Claims C++11 but requires C++17 | Low | Phase 1: Update to `cxx_std_17` |
+### Known Remaining Limitations
+
+| Issue | Severity | Plan |
+|-------|----------|------|
+| **Cross-module isolation** -- MonoState `static` state is per-DLL | Medium | Document and provide explicit instantiation pattern |
+| **No endianness handling** -- IPC assumes same-endian peers | Medium | Add byte-swap to serialization headers |
+| **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
+| **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
 
 ### Roadmap
 
-**Phase 1 -- Foundation:** Fix CMake bugs, add test suite, set up GitHub Actions CI, make `publishCanceled_` atomic.
+**Phase 1 -- Foundation:** ~~Fix CMake, add tests, CI, atomic cancellation.~~ Done.
 
-**Phase 2 -- Safety:** Add Broker synchronization, fix IPC type-ID fallback, make subscriber limit configurable, preserve subscription ordering on removal.
+**Phase 2 -- Safety:** ~~Type-ID fix, configurable limits, ordered removal, thread-safe option.~~ Done.
 
-**Phase 3 -- Polish:** API documentation, endianness handling for cross-architecture IPC, CRC/checksum option, consolidate publish conventions.
+**Phase 3 -- Polish (in progress):** Cross-module documentation, endianness handling, CRC/checksum, serialization round-trip tests.
 
 ---
 

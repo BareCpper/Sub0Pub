@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 
@@ -1198,7 +1199,8 @@ namespace sub0
 
         struct Postfix
         {
-            const uint8_t delim = '\n';
+            uint8_t delim = '\n';
+            bool operator==(const Postfix& rhs) const { return delim == rhs.delim; }
         };
 
         using Writer = BinaryWriter<Prefix, Header, Postfix>;

@@ -3,6 +3,7 @@ add_executable(Sub0Pub_Tests
     test_pubsub.cpp
     test_cancel.cpp
     test_subscribe_all.cpp
+    test_serialization.cpp
 )
 
 target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub::Sub0Pub)
