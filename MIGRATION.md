@@ -69,11 +69,21 @@ In v1, `unsubscribe()` used swap-with-last, silently reordering the subscriber l
 
 **Action:** No code change needed. If you relied on the v1 reordering behavior (unlikely), be aware that order is now stable.
 
-### `publishCanceled_` is now `std::atomic<bool>`
+### Publish cancel flag redesigned
 
-The cancel flag is now atomic, eliminating data races when cancellation occurs across threads.
+In v1, `publishCanceled_` was a per-`Broker`-instance `mutable bool`. In v2, it is a `thread_local bool` scoped to the active publish invocation, with save/restore for re-entrant calls.
 
 **Action:** No code change needed.
+
+### `Publish::publish()` is now `protected`
+
+The member function `Publish<Data>::publish(data)` is no longer public. Use the free function `sub0::publish(this, data)` from derived classes.
+
+**Action:** Replace `myPublisher.publish(data)` with `sub0::publish(myPublisher, data)`, or call `publish(data)` from within the derived class (protected access).
+
+### Re-entrant publish safety is now snapshot-based
+
+`Broker::publish()` snapshot-copies the subscriber list before dispatching, preventing deadlock when a subscriber publishes the same type from within `receive()`. This adds ~1.5ns overhead per publish. Disable with `#define SUB0PUB_REENTRANT_SAFE false` if re-entrant publish is guaranteed not to occur.
 
 ### Type ID fallback uses compile-time hash
 
@@ -112,6 +122,36 @@ The fixed `cMaxSubscriptions = 8` is now configurable via `#define SUB0PUB_MAX_S
 ### `SUB0PUB_THREAD_SAFE` (new in v1.0, carried to v2)
 
 Define `SUB0PUB_THREAD_SAFE true` to enable mutex-guarded subscribe/unsubscribe/publish operations.
+
+### `SUB0PUB_REENTRANT_SAFE` (new in v2)
+
+Default `true`. Controls whether `publish()` snapshot-copies the subscriber list before dispatching. Set `false` to skip the snapshot for ~1.5ns faster publish if you guarantee no subscriber will re-entrantly publish the same type from within `receive()`.
+
+### `SUB0_STRINGIFY` renamed to `SUB0PUB_STRINGIFY`
+
+The macro was renamed for prefix consistency. The old name no longer exists.
+
+**Action:** Replace `SUB0_STRINGIFY(x)` with `SUB0PUB_STRINGIFY(x)`.
+
+---
+
+## IPC Improvements
+
+### BinaryReader now validates the prefix magic
+
+In v1, the SUB0 magic prefix was read but never checked. In v2, the prefix is validated via `memcmp` against the expected value. A mismatch enters `SyncLost` state.
+
+### Unknown typeIds are skipped instead of crashing
+
+In v1, an unrecognized typeId in the stream caused a throw/assert with no recovery. In v2, the payload bytes (+ postfix) are discarded and the reader continues to the next frame. This allows version-skewed peers to coexist.
+
+### SyncLost has a recovery path
+
+In v1, `SyncLost` was a permanent dead end. In v2, the reader byte-scans forward for the next valid prefix magic and re-enters normal reading.
+
+### `paddingSize` type widened
+
+Changed from `int_least16_t` to `int32_t` to prevent overflow on large payloads.
 
 ---
 
