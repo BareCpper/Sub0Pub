@@ -116,16 +116,16 @@ Benchmarks are built alongside tests and capture system info automatically. Run 
 
 | Benchmark | ns/op | ops/s |
 |-----------|------:|------:|
-| Publish (1 subscriber) | 2.6 | 384M |
-| Publish (4 subscribers) | 7.2 | 140M |
-| Publish (8 subscribers) | 12.6 | 79M |
-| Filtered publish (pass) | 3.0 | 337M |
-| Filtered publish (reject) | 2.2 | 462M |
-| Multi-type dispatch | 2.3 | 427M |
-| Subscribe/unsubscribe churn | 3.2 | 310M |
+| Publish (1 subscriber) | 4.2 | 238M |
+| Publish (4 subscribers) | 8.3 | 120M |
+| Publish (8 subscribers) | 15.0 | 67M |
+| Filtered publish (pass) | 4.3 | 230M |
+| Filtered publish (reject) | 4.0 | 249M |
+| Multi-type dispatch | 4.3 | 233M |
+| Subscribe/unsubscribe churn | 3.2 | 315M |
 | Empty publish (0 subscribers) | 1.9 | 515M |
 
-Publish cost scales linearly with subscriber count at ~1.4ns per additional subscriber. Filter rejection is faster than delivery since `receive()` is skipped. Multi-type dispatch has zero overhead compared to single-type.
+Publish cost scales linearly with subscriber count at ~1.5ns per additional subscriber. The ~1.6ns fixed overhead vs v1 is from the snapshot-copy approach that prevents mutex deadlock on re-entrant publish — a correctness trade-off. Multi-type dispatch has zero overhead compared to single-type.
 
 ---
 
@@ -191,6 +191,15 @@ class Listener : public sub0::SubscribeAll<float, int, std::string> {
 };
 ```
 
+### Message Filtering
+
+```cpp
+class EvenOnly : public sub0::Subscribe<int> {
+    void receive(const int& value) noexcept override { /* handle even values */ }
+    bool filter(const int& value) noexcept override { return (value % 2) == 0; }
+};
+```
+
 ### Cross-Module / IPC Serialization
 
 ```cpp
@@ -223,7 +232,9 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_ASSERT` | `true` | Enable assertion checks |
 | `SUB0PUB_STD` | `false` | Use `std::ostream`/`std::istream` instead of lightweight internal stream types |
 | `SUB0PUB_TYPEIDNAME` | `false` | Enable user-defined type IDs and names for IPC |
-| `SUB0_EXPERIMENTAL` | `false` | Enable experimental features (may be removed) |
+| `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub |
+| `SUB0PUB_REENTRANT_SAFE` | `true` | Snapshot subscribers before dispatch for re-entrant safety. Adds ~1.5ns overhead per publish. Set `false` if you guarantee no subscriber will publish the same type from within `receive()` |
+| `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>` |
 
 ---
 

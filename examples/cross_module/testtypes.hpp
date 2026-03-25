@@ -39,14 +39,12 @@ class B : public sub0::Subscribe<float>
 	, public sub0::Subscribe<int>
 {
 public:
-	virtual void receive( const float& data )
+	void receive( const float& data ) noexcept override
 	{
-		std::cout << "B received float : " << data << std::endl;
 		total += data;
 	}
-	virtual void receive( const int& data )
+	void receive( const int& data ) noexcept override
 	{
-		std::cout << "B received int : " << data << std::endl;
 		total += data;
 	}
 };

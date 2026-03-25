@@ -67,17 +67,22 @@
 #define SUB0PUB_MAX_SUBSCRIPTIONS 8 ///< Fixed subscription table size per Broker<T>. Override globally or per-TU.
 #endif
 
+#ifndef SUB0PUB_REENTRANT_SAFE
+#define SUB0PUB_REENTRANT_SAFE true ///< Snapshot subscribers before dispatch to prevent deadlock on re-entrant publish.
+                                     ///< Set false for ~1.5ns faster publish if you guarantee no re-entrant calls.
+#endif
+
 /** Helper macro for stringifying value using compiler preprocessor
- * e.g. SUB0_STRINGIFY_HELPER(123) == "123", SUB0_STRINGIFY_HELPER(FooBar) == "FooBar"
+ * e.g. SUB0PUB_STRINGIFY_HELPER(123) == "123", SUB0PUB_STRINGIFY_HELPER(FooBar) == "FooBar"
  * @param  x  A value whos value will be converted to string e.g. FooBar == "FooBar", 123 = "123"
  */
-#define SUB0_STRINGIFY_HELPER(x) #x
+#define SUB0PUB_STRINGIFY_HELPER(x) #x
 
 /** Helper macro for stringifying define using compiler preprocessor
- * e.g. SUB0_STRINGIFY_HELPER(__LINE__) == "123??"
+ * e.g. SUB0PUB_STRINGIFY_HELPER(__LINE__) == "123??"
  * @param  x  A macro definition whos value will be converted to string  e.g. __LINE__ == "123??"
  */
-#define SUB0_STRINGIFY(x) SUB0_STRINGIFY_HELPER(x)
+#define SUB0PUB_STRINGIFY(x) SUB0PUB_STRINGIFY_HELPER(x)
 
 #if SUB0PUB_STD
 #include <ostream> //< std::ostream
@@ -444,7 +449,15 @@ namespace sub0
          */
         void publish(const Data& data) const noexcept
         {
-            // Snapshot subscribers under lock (if thread-safe), then dispatch unlocked
+            // Save/restore thread-local publish context for re-entrant calls
+            const Broker* previousPublisher = threadCurrent_;
+            const bool previousCanceled = threadCanceled_;
+            threadCurrent_ = this;
+            threadCanceled_ = false;
+
+#if SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE
+            // Snapshot subscribers under lock, dispatch unlocked — prevents
+            // deadlock on re-entrant publish and mutex contention
             Subscribe<Data>* snapshot[cMaxSubscriptions];
             uint32_t count = 0;
             {
@@ -452,23 +465,24 @@ namespace sub0
                 std::lock_guard<std::mutex> lk{state_.mtx};
 #endif
                 count = state_.subscriptionCount;
-                for (uint32_t i = 0; i < count; ++i)
-                    snapshot[i] = state_.subscriptions[i];
+                std::copy_n(state_.subscriptions, count, snapshot);
             }
-
-            // Save/restore thread-local publish context for re-entrant calls
-            const Broker* previousPublisher = threadCurrent_;
-            const bool previousCanceled = threadCanceled_;
-            threadCurrent_ = this;
-            threadCanceled_ = false;
 
             for (uint32_t i = 0U; !threadCanceled_ && i < count; ++i)
             {
                 Check::onReceive(snapshot[i], data);
-
                 if (snapshot[i]->filter(data))
                     snapshot[i]->receive(data);
             }
+#else
+            // Direct iteration — fastest path, but caller must not re-enter publish
+            for (uint32_t i = 0U; !threadCanceled_ && i < state_.subscriptionCount; ++i)
+            {
+                Check::onReceive(state_.subscriptions[i], data);
+                if (state_.subscriptions[i]->filter(data))
+                    state_.subscriptions[i]->receive(data);
+            }
+#endif
 
             threadCurrent_ = previousPublisher;
             threadCanceled_ = previousCanceled;
@@ -637,7 +651,7 @@ namespace sub0
             static constexpr std::size_t MaxArity = 32;
 
             template<typename T>
-            struct detect : detect_impl<T, 0, (sizeof(T) < MaxArity ? sizeof(T) : MaxArity)> {};
+            struct detect : detect_impl<T, 0, MaxArity> {};
         } // namespace arity
 
         /** Compile-time count of aggregate members in T
@@ -691,7 +705,7 @@ namespace sub0
          *         structs are always detected through any depth of array nesting.
          */
         template<typename T>
-        constexpr TypeFingerprint makeFingerprint()
+        [[nodiscard]] constexpr TypeFingerprint makeFingerprint()
         {
             if constexpr (std::is_array_v<T>)
             {
@@ -842,7 +856,7 @@ namespace sub0
          * @tparam T  Aggregate type to fingerprint
          */
         template<typename T>
-        TypeLayout makeLayout()
+        [[nodiscard]] TypeLayout makeLayout()
         {
             constexpr auto N = memberCount<T>;
             auto fp = makeFingerprint<T>();
@@ -1070,7 +1084,7 @@ namespace sub0
         IPublish* publisher; ///< Type specific publish of buffer
         char* buffer; ///< Data buffer @note a nullptr buffer may be set for unsupported payloads where paddingSize != 0 is required
         uint_least16_t bufferSize; ///< size of buffer
-        int_least16_t paddingSize; /**< size of buffer padding data to ignore after buffer
+        int32_t paddingSize; /**< size of buffer padding data to ignore after buffer
                                   * @note Negative pad leaves unopulated bytes in buffer which are zeroed
                                   * @note For protocol version compatibility when payloads grow
                                   */
@@ -1100,7 +1114,7 @@ namespace sub0
          *                         for alignment or protocol-version compatibility
          */
         template < typename Data >
-        void set(Data& buffer, IPublish& publisher, const int_least16_t paddingSize = 0U )
+        void set(Data& buffer, IPublish& publisher, const int32_t paddingSize = 0U )
         {
             set( Header_t(buffer)
                , Buffer{

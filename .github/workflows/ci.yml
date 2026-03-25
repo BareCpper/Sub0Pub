@@ -52,3 +52,17 @@ jobs:
         run: cmake --build --preset ci-unix
       - name: Test
         run: ctest --preset ci-unix
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (ASan + UBSan)
+        run: cmake --preset ci-asan
+        env:
+          CC: gcc
+          CXX: g++
+      - name: Build
+        run: cmake --build --preset ci-asan
+      - name: Test
+        run: ctest --preset ci-asan

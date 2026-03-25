@@ -30,7 +30,7 @@ public:
     /** Receive data published of type 'Data_t' and adds it to the 'total' 
     * @param[in] value  The published value which is added to total as 'total += value'
     */
-	virtual void receive( const Data_t& value ) final
+	void receive( const Data_t& value ) noexcept override
 	{
 		total += value;
 	}
