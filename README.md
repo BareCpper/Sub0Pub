@@ -1,5 +1,7 @@
 # Sub0Pub
 
+> **v2 is in development on the [`v2` branch](https://github.com/BareCpper/Sub0Pub/tree/v2)** -- featuring a full test suite, GitHub Actions CI, performance benchmarks, atomic cancellation, and API cleanup. See [MIGRATION.md](https://github.com/BareCpper/Sub0Pub/blob/v2/MIGRATION.md) for what's changing.
+
 **Zero-overhead, type-safe, auto-wiring publish-subscribe for C++**
 
 A header-only messaging library that uses C++ template specialization to route signals at compile time. No `connect()` calls, no signal objects, no MOC toolchain, no allocations. Just inherit, publish, and receive.
