@@ -157,3 +157,37 @@ TEST_CASE("SUB0_MEMBER_LAYOUT: single member struct") {
     CHECK(layout.fingerprint.size == sizeof(int));
     CHECK(layout.layoutHash != 0);
 }
+
+// 32-member struct — well beyond the old 16-member macro limit
+struct Ridiculous {
+    uint8_t  m00; uint8_t  m01; uint8_t  m02; uint8_t  m03;
+    uint16_t m04; uint16_t m05; uint16_t m06; uint16_t m07;
+    uint32_t m08; uint32_t m09; uint32_t m10; uint32_t m11;
+    float    m12; float    m13; float    m14; float    m15;
+    double   m16; double   m17; double   m18; double   m19;
+    int8_t   m20; int8_t   m21; int8_t   m22; int8_t   m23;
+    int16_t  m24; int16_t  m25; int16_t  m26; int16_t  m27;
+    int32_t  m28; int32_t  m29; int64_t  m30; int64_t  m31;
+};
+
+TEST_CASE("SUB0_MEMBER_LAYOUT: 32 members (beyond old limit)") {
+    constexpr auto layout = SUB0_MEMBER_LAYOUT(Ridiculous,
+        m00, m01, m02, m03, m04, m05, m06, m07,
+        m08, m09, m10, m11, m12, m13, m14, m15,
+        m16, m17, m18, m19, m20, m21, m22, m23,
+        m24, m25, m26, m27, m28, m29, m30, m31);
+
+    CHECK(layout.fingerprint.size == sizeof(Ridiculous));
+    CHECK(layout.fingerprint.alignment == alignof(Ridiculous));
+    CHECK(layout.fingerprint.arity == 32);
+    CHECK(layout.layoutHash != 0);
+
+    // Same struct, same layout — must match
+    constexpr auto layout2 = SUB0_MEMBER_LAYOUT(Ridiculous,
+        m00, m01, m02, m03, m04, m05, m06, m07,
+        m08, m09, m10, m11, m12, m13, m14, m15,
+        m16, m17, m18, m19, m20, m21, m22, m23,
+        m24, m25, m26, m27, m28, m29, m30, m31);
+
+    CHECK(layout == layout2);
+}
