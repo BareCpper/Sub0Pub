@@ -1,5 +1,7 @@
 # Sub0Pub
 
+> Sub0Pub was originally written by hand in 2018 as a spare-time project exploring type-safe messaging in C++. In the current age of AI, we are leveraging it to accelerate development -- driving the concept to a more mature, production-ready level far faster than solo effort allows. This v2 branch is **not yet field-tested**, but it now has a full test suite, CI pipeline, and performance benchmarks, and will be integrated into future products.
+
 **Zero-overhead, type-safe, auto-wiring publish-subscribe for C++**
 
 A header-only messaging library that uses C++ template specialization to route signals at compile time. No `connect()` calls, no signal objects, no MOC toolchain, no allocations. Just inherit, publish, and receive.
