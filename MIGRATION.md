@@ -121,6 +121,18 @@ Define `SUB0PUB_THREAD_SAFE true` to enable mutex-guarded subscribe/unsubscribe/
 
 Sub0Pub does **not** perform per-message byte-swapping. All peers on a given IPC channel must share the same byte order. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase, with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
-### Type Layout
+### Type Layout Verification
 
-The serialization protocol transmits raw bytes (`reinterpret_cast` of the data struct). Both peers must have identical struct layout (size, alignment, member order). There is currently no verification of this at connection time. Future Sub0Reflect integration will enable declaring and checking type layouts across the wire.
+The serialization protocol transmits raw bytes (`reinterpret_cast` of the data struct). Both peers must have identical struct layout. v2 provides `makeLayout<T>()` for connection-time verification:
+
+```cpp
+// Automatic -- no macros, no member lists
+auto layout = sub0::utility::makeLayout<MyStruct>();
+// layout.fingerprint: sizeof + alignof + arity + array info
+// layout.layoutHash: per-member offset+size hash (GCC/Clang; 0 on MSVC)
+
+// Compare layouts between peers at connection time
+if (localLayout != remoteLayout) { /* reject connection */ }
+```
+
+On GCC/Clang, the layout hash captures per-member offset and size via structured bindings (Boost.PFR-style), recursively fingerprinting nested structs and arrays. On MSVC, only the fingerprint (sizeof+alignof+arity) is available due to a compiler bug with structured bindings in template specializations. Full MSVC support is planned for C++26 reflection.

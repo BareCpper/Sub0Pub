@@ -72,10 +72,13 @@ int main() {
 | Subscription order preservation | Done -- `std::move` replaces swap-remove |
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
+| Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
 
 ### Design Decisions
 
-**Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle. For cross-architecture deployments, a future optional handshake protocol will allow peers to signal and verify layout compatibility. Full type-layout introspection is planned via integration with [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect), which will enable checking member layout, size, and alignment across the wire at connection time rather than per-message.
+**Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle.
+
+**Automatic layout verification.** `makeLayout<T>()` produces a `TypeLayout` containing sizeof, alignof, arity, array extent info, and a per-member layout hash -- all automatically via C++17 structured bindings (Boost.PFR-style). No macros, no member lists. On MSVC, per-member decomposition is deferred to C++26 reflection; the fingerprint (sizeof+alignof+arity) still catches most layout mismatches. Full type-member introspection is planned via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
 ### Known Remaining Limitations
 
@@ -84,7 +87,7 @@ int main() {
 | **Cross-module isolation** -- MonoState `static` state is per-DLL | Medium | Document and provide explicit instantiation pattern |
 | **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
 | **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
-| **No type-layout verification** -- IPC trusts that both peers have identical struct layout | Medium | Future [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration |
+| **MSVC layout hash limited** -- structured binding bug prevents per-member decomposition | Low | Awaiting C++26 `std::meta::reflect` |
 
 ### Roadmap
 
@@ -92,9 +95,9 @@ int main() {
 
 **Phase 2 -- Safety:** ~~Type-ID fix, configurable limits, ordered removal, thread-safe option.~~ Done.
 
-**Phase 3 -- Polish:** ~~Serialization round-trip tests, cross-platform examples.~~ Done.
+**Phase 3 -- Polish:** ~~Serialization round-trip tests, cross-platform examples, layout fingerprinting.~~ Done.
 
-**Phase 4 -- IPC Hardening:** Optional CRC/checksum protocol layer, connection-time layout verification handshake, [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration for type introspection across the wire.
+**Phase 4 -- IPC Hardening:** Optional CRC/checksum protocol layer, connection-time layout verification handshake, [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration for deeper type introspection.
 
 ---
 
