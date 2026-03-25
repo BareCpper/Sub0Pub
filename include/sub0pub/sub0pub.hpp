@@ -269,8 +269,9 @@ namespace sub0
  */
 #define SUB0_MEMBER_LAYOUT(Type, ...)                                              \
     []{                                                                            \
+        using SUB0_DETAIL_LAYOUT_TYPE_ = Type;                                     \
         constexpr sub0::utility::MemberEntry entries[] = {                         \
-            SUB0_DETAIL_MEMBER_ENTRIES(Type, __VA_ARGS__)                           \
+            SUB0_MAP(SUB0_DETAIL_MEMBER_ENTRY_OF, __VA_ARGS__)                     \
         };                                                                         \
         constexpr std::size_t count = sizeof(entries) / sizeof(entries[0]);         \
         return sub0::utility::TypeLayout{                                           \
@@ -279,35 +280,41 @@ namespace sub0
         };                                                                         \
     }()
 
-// Internal: expand each member name to a MemberEntry using offsetof
-#define SUB0_DETAIL_MEMBER_ENTRY(Type, Member) \
-    sub0::utility::MemberEntry{ static_cast<uint32_t>(offsetof(Type, Member)), static_cast<uint32_t>(sizeof(std::declval<Type>().Member)) }
+/** Recursive MAP macro for variadic for-each expansion
+ * @remark Adapted from Sub0Reflect preprocessor.hpp
+ *         Applies f(x) to each variadic argument without N-ary overloads.
+ * @see https://github.com/CraigHutchinson/Sub0Reflect
+ */
+#define SUB0_EVAL0(...) __VA_ARGS__
+#define SUB0_EVAL1(...) SUB0_EVAL0(SUB0_EVAL0(SUB0_EVAL0(__VA_ARGS__)))
+#define SUB0_EVAL2(...) SUB0_EVAL1(SUB0_EVAL1(SUB0_EVAL1(__VA_ARGS__)))
+#define SUB0_EVAL3(...) SUB0_EVAL2(SUB0_EVAL2(SUB0_EVAL2(__VA_ARGS__)))
+#define SUB0_EVAL4(...) SUB0_EVAL3(SUB0_EVAL3(SUB0_EVAL3(__VA_ARGS__)))
+#define SUB0_EVAL(...)  SUB0_EVAL4(SUB0_EVAL4(SUB0_EVAL4(__VA_ARGS__)))
 
-// Internal: variadic expansion helpers (up to 16 members)
-#define SUB0_DETAIL_EXPAND(x) x
-#define SUB0_DETAIL_GET_17TH(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) N
-#define SUB0_DETAIL_COUNT(...) SUB0_DETAIL_EXPAND(SUB0_DETAIL_GET_17TH(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+#define SUB0_MAP_END(...)
+#define SUB0_MAP_OUT
+#define SUB0_MAP_EMPTY()
+#define SUB0_MAP_DEFER(id) id SUB0_MAP_EMPTY()
 
-#define SUB0_DETAIL_ENTRIES_1(T,m1) SUB0_DETAIL_MEMBER_ENTRY(T,m1)
-#define SUB0_DETAIL_ENTRIES_2(T,m1,m2) SUB0_DETAIL_ENTRIES_1(T,m1), SUB0_DETAIL_MEMBER_ENTRY(T,m2)
-#define SUB0_DETAIL_ENTRIES_3(T,m1,m2,m3) SUB0_DETAIL_ENTRIES_2(T,m1,m2), SUB0_DETAIL_MEMBER_ENTRY(T,m3)
-#define SUB0_DETAIL_ENTRIES_4(T,m1,m2,m3,m4) SUB0_DETAIL_ENTRIES_3(T,m1,m2,m3), SUB0_DETAIL_MEMBER_ENTRY(T,m4)
-#define SUB0_DETAIL_ENTRIES_5(T,m1,m2,m3,m4,m5) SUB0_DETAIL_ENTRIES_4(T,m1,m2,m3,m4), SUB0_DETAIL_MEMBER_ENTRY(T,m5)
-#define SUB0_DETAIL_ENTRIES_6(T,m1,m2,m3,m4,m5,m6) SUB0_DETAIL_ENTRIES_5(T,m1,m2,m3,m4,m5), SUB0_DETAIL_MEMBER_ENTRY(T,m6)
-#define SUB0_DETAIL_ENTRIES_7(T,m1,m2,m3,m4,m5,m6,m7) SUB0_DETAIL_ENTRIES_6(T,m1,m2,m3,m4,m5,m6), SUB0_DETAIL_MEMBER_ENTRY(T,m7)
-#define SUB0_DETAIL_ENTRIES_8(T,m1,m2,m3,m4,m5,m6,m7,m8) SUB0_DETAIL_ENTRIES_7(T,m1,m2,m3,m4,m5,m6,m7), SUB0_DETAIL_MEMBER_ENTRY(T,m8)
-#define SUB0_DETAIL_ENTRIES_9(T,m1,m2,m3,m4,m5,m6,m7,m8,m9) SUB0_DETAIL_ENTRIES_8(T,m1,m2,m3,m4,m5,m6,m7,m8), SUB0_DETAIL_MEMBER_ENTRY(T,m9)
-#define SUB0_DETAIL_ENTRIES_10(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10) SUB0_DETAIL_ENTRIES_9(T,m1,m2,m3,m4,m5,m6,m7,m8,m9), SUB0_DETAIL_MEMBER_ENTRY(T,m10)
-#define SUB0_DETAIL_ENTRIES_11(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11) SUB0_DETAIL_ENTRIES_10(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10), SUB0_DETAIL_MEMBER_ENTRY(T,m11)
-#define SUB0_DETAIL_ENTRIES_12(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12) SUB0_DETAIL_ENTRIES_11(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11), SUB0_DETAIL_MEMBER_ENTRY(T,m12)
-#define SUB0_DETAIL_ENTRIES_13(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13) SUB0_DETAIL_ENTRIES_12(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12), SUB0_DETAIL_MEMBER_ENTRY(T,m13)
-#define SUB0_DETAIL_ENTRIES_14(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14) SUB0_DETAIL_ENTRIES_13(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13), SUB0_DETAIL_MEMBER_ENTRY(T,m14)
-#define SUB0_DETAIL_ENTRIES_15(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15) SUB0_DETAIL_ENTRIES_14(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14), SUB0_DETAIL_MEMBER_ENTRY(T,m15)
-#define SUB0_DETAIL_ENTRIES_16(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16) SUB0_DETAIL_ENTRIES_15(T,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15), SUB0_DETAIL_MEMBER_ENTRY(T,m16)
+#define SUB0_MAP_END2() 0, SUB0_MAP_END
+#define SUB0_MAP_END1(...) SUB0_MAP_END2
+#define SUB0_MAP_GET_END(...) SUB0_MAP_END1
+#define SUB0_MAP_NEXT0(test, next, ...) next SUB0_MAP_OUT
+#define SUB0_MAP_NEXT1(test, next) SUB0_MAP_DEFER(SUB0_MAP_NEXT0)(test, next, 0)
+#define SUB0_MAP_NEXT(test, next)  SUB0_MAP_NEXT1(SUB0_MAP_GET_END test, next)
 
-#define SUB0_DETAIL_PASTE2(a, b) a ## b
-#define SUB0_DETAIL_PASTE(a, b) SUB0_DETAIL_PASTE2(a, b)
-#define SUB0_DETAIL_MEMBER_ENTRIES(Type, ...) SUB0_DETAIL_EXPAND(SUB0_DETAIL_PASTE(SUB0_DETAIL_ENTRIES_, SUB0_DETAIL_COUNT(__VA_ARGS__))(Type, __VA_ARGS__))
+#define SUB0_MAP0(f, x, peek, ...) f(x) SUB0_MAP_DEFER(SUB0_MAP_NEXT(peek, SUB0_MAP1))(f, peek, __VA_ARGS__)
+#define SUB0_MAP1(f, x, peek, ...) f(x) SUB0_MAP_DEFER(SUB0_MAP_NEXT(peek, SUB0_MAP0))(f, peek, __VA_ARGS__)
+
+/** Apply macro f to each variadic argument
+ * @code SUB0_MAP(MY_MACRO, a, b, c) @endcode expands to MY_MACRO(a) MY_MACRO(b) MY_MACRO(c)
+ */
+#define SUB0_MAP(f, ...) SUB0_EVAL(SUB0_MAP1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+
+// Internal: per-member MemberEntry using the SUB0_DETAIL_LAYOUT_TYPE_ alias set by SUB0_MEMBER_LAYOUT
+#define SUB0_DETAIL_MEMBER_ENTRY_OF(Member) \
+    sub0::utility::MemberEntry{ static_cast<uint32_t>(offsetof(SUB0_DETAIL_LAYOUT_TYPE_, Member)), static_cast<uint32_t>(sizeof(SUB0_DETAIL_LAYOUT_TYPE_::Member)) },
 
         /**
         * @note char* to unify interface against std::ostream
