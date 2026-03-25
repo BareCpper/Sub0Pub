@@ -90,9 +90,79 @@
 #endif
 
 /** Sub0Pub top-level namespace
+ *
+ * Header layout:
+ *   1. Core API   — Subscribe, Publish, SubscribeAll, publish(), cancel()
+ *   2. Internal   — Broker, Check (required by Core API, implementation detail)
+ *   3. Utility    — Streams, hashing, arity detection, layout fingerprinting
+ *   4. IPC API    — StreamSerializer, StreamDeserializer, ForwardSubscribe/Publish
 */
 namespace sub0
 {
+
+// ============================================================================
+// Forward declarations
+// ============================================================================
+
+    template< typename Data > class Publish;
+    template< typename Data > class Subscribe;
+
+    namespace detail
+    {
+        template< typename Data > class Broker;
+        struct Empty {};
+    }
+
+// ============================================================================
+// Section 1: Core API — Subscribe, Publish, SubscribeAll, publish(), cancel()
+// ============================================================================
+
+    namespace detail
+    {
+        /** Provides debug assertion/exception checks for Broker<>
+         * @see SUB0PUB_TRACE   Enable logging for broker events
+         * @see SUB0PUB_ASSERT  Enable assertion tests for invalid parameters
+         */
+        struct Check
+        {
+            template<typename Data>
+            inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
+            {
+#if SUB0PUB_ASSERT
+                assert( subscriber );
+                assert( subscriptionCount < subscriptionCapacity );
+#endif
+                (void)broker; (void)subscriber; (void)subscriptionCount; (void)subscriptionCapacity;
+            }
+
+            template<typename Data>
+            inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
+            {
+#if SUB0PUB_ASSERT
+                assert( publisher );
+                assert( publisherCount < publisherCapacity );
+#endif
+                (void)publisher; (void)broker; (void)publisherCount; (void)publisherCapacity;
+            }
+
+            template<typename Data>
+            inline static void onPublish( const Publish<Data>& publisher, const Data& data )
+            {
+                (void)publisher; (void)data;
+            }
+
+            template<typename Data>
+            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
+            {
+#if SUB0PUB_ASSERT
+                assert(subscriber);
+#endif
+                (void)subscriber; (void)data;
+            }
+        };
+
+    } // END: detail (Check)
+
     /** Internal utility functions
     */
     namespace utility
@@ -547,106 +617,6 @@ namespace sub0
 
     } // END: utility
 
-#if SUB0PUB_STD
-    typedef std::ostream OStream;
-    typedef std::istream IStream;
-#else
-    typedef utility::OStream OStream;
-    typedef utility::IStream IStream;
-#endif
-
-    template< typename Data > class Publish;
-    template< typename Data > class Subscribe;
-
-    namespace detail
-    {
-        /** Empty type for optional specialisations e.g. config()
-        */
-        struct Empty {};
-
-        /** Broker manages publisher-subscriber connection for a data-type
-         * @tparam Data  Data type which this instance manages connections for
-         */
-        template< typename Data >
-        class Broker;
-
-        /** Provides debug assertion/exception checks for Broker<>
-         * @see SUB0PUB_TRACE   Enable logging for broker events
-         * @see SUB0PUB_ASSERT   Enable assertion tests for invalid parameters
-         */
-        struct Check
-        {
-            /** Diagnose creation of new subscriber
-             * @param broker  Broker instance that manages the connection
-             * @param subscriber  Subscriber to be registered into the broker
-             * @param subscriptionCount  Count of existing registered subscriptions on the broker
-             * @param subscriptionCapacity  Count specifying subscriptionCount limit for the broker
-             */
-            template<typename Data>
-            inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
-            {
-#if SUB0PUB_ASSERT
-                assert( subscriber );
-                assert( subscriptionCount < subscriptionCapacity );
-#endif
-#if SUB0PUB_TRACE /// @todo iostream removal:
-                std::cout << "[Sub0Pub] New Subscription " << *subscriber << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
-#endif
-            }
-
-            /** Diagnose creation of new publisher
-             * @param publisher  Publisher to be registered into the broker
-             * @param broker  Broker instance that manages the connection
-             * @param publisherCount  Count of existing registered publishers on the broker
-             * @param publisherCapacity  Count specifying publisherCount limit for the broker
-             */
-            template<typename Data>
-            inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
-            {
-#if SUB0PUB_ASSERT
-                assert( publisher );
-                assert( publisherCount < publisherCapacity );
-#endif
-#if SUB0PUB_TRACE /// @todo iostream removal:
-                std::cout << "[Sub0Pub] New Publication " << *publisher << " for Broker<" << broker.typeName() << ">{" << broker << '}' << std::endl;
-#endif
-            }
-
-            /** Diagnose data publish event
-             * @param publisher  Publisher that is sending the data
-             * @param data  The data to be published
-             */
-            template<typename Data>
-            inline static void onPublish( const Publish<Data>& publisher, const Data& data )
-            {
-#if SUB0PUB_TRACE /// @todo iostream removal: 
-                    (void)data; ///< @todo Data serialize
-                    std::cout << "[Sub0Pub] Published " << publisher
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
-#endif
-            }
-
-            /** Diagnose data receive event
-             * @param subscriber  Subscriber that is receiving the data
-             * @param data  The data that is received
-             */
-             /// @todo GCC 7.2(TBC) publish(const Data & data) bug on inlining this function and calling detail::Check::onReceive()? needs __attribute__((noinline))?
-            template<typename Data>
-            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
-            {
-#if SUB0PUB_ASSERT
-                    assert(subscriber );
-#endif
-#if SUB0PUB_TRACE /// @todo iostream removal: 
-                    (void)data; ///< @todo Data serialize
-                    std::cout << "[Sub0Pub] Received " << *subscriber
-                        << " {_data_todo_}"/** @todo Data serialize: << data*/ << '[' << Broker<Data>::typeName() << ']' << std::endl;
-#endif
-            }
-        };
-
-    } // END: detail
-
     /** Base type for an object that subscribes to some strong-typed Data
      * @tparam  Data  Type that will be received from publishers of corresponding type
      */
@@ -798,6 +768,10 @@ namespace sub0
     private:
         detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
     };
+
+// ============================================================================
+// Section 2: Internal — Broker implementation (detail)
+// ============================================================================
 
     namespace detail
     {
@@ -1011,6 +985,23 @@ namespace sub0
 #endif
         publish(*from, data);
     }
+
+// ============================================================================
+// Section 3: Utility — Streams, hashing, arity detection, layout fingerprinting
+// ============================================================================
+
+    // OStream/IStream type aliases (needed by IPC section below)
+#if SUB0PUB_STD
+    typedef std::ostream OStream;
+    typedef std::istream IStream;
+#else
+    typedef utility::OStream OStream;
+    typedef utility::IStream IStream;
+#endif
+
+// ============================================================================
+// Section 4: IPC API — Serialization, forwarding, stream protocol
+// ============================================================================
 
     /** Interface for data provider to indicate destination buffer status
      * @see ForwardPublish
