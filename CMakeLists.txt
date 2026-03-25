@@ -28,7 +28,7 @@ add_library(Sub0Pub::Sub0Pub ALIAS Sub0Pub)
 
 # Compiler warnings for consumers building with Sub0Pub
 target_compile_options(Sub0Pub INTERFACE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /Zc:preprocessor>
     $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
 )
 

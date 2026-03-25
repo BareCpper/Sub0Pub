@@ -171,8 +171,13 @@ namespace sub0
                         : detect_impl<T, Lo, Mid - 1>::value;
             };
 
+            /// Upper bound capped at 32 to prevent MSVC template depth/heap exhaustion
+            /// on large types (arrays, nested structs). 32 direct members covers
+            /// virtually all IPC message types.
+            static constexpr std::size_t MaxArity = 32;
+
             template<typename T>
-            struct detect : detect_impl<T, 0, (sizeof(T) < 64 ? sizeof(T) : 64)> {};
+            struct detect : detect_impl<T, 0, (sizeof(T) < MaxArity ? sizeof(T) : MaxArity)> {};
         } // namespace arity
 
         /** Compile-time count of aggregate members in T
@@ -273,30 +278,8 @@ namespace sub0
             return h;
         }
 
-        /** Create a MemberEntry with recursive element fingerprinting
-         * @tparam MemberType  The type of the struct member
-         */
-        template<typename MemberType>
-        constexpr MemberEntry makeMemberEntry(uint32_t offset, uint32_t size)
-        {
-            if constexpr (std::is_array_v<MemberType>)
-            {
-                return { offset, size, hashFingerprint(makeFingerprint<MemberType>()) };
-            }
-            else if constexpr (std::is_class_v<MemberType> && memberCount<MemberType> > 0)
-            {
-                return { offset, size, hashFingerprint(makeFingerprint<MemberType>()) };
-            }
-            else
-            {
-                return { offset, size, 0U };
-            }
-        }
 
         /** Extended layout fingerprint with per-member offset, size, and recursive element verification
-         * @remark Built via the SUB0_MEMBER_LAYOUT macro which uses offsetof to
-         *         capture the exact byte position of each member. Array and struct
-         *         members are recursively fingerprinted.
          */
         struct TypeLayout
         {
@@ -310,68 +293,105 @@ namespace sub0
             { return !(*this == rhs); }
         };
 
-/** Declare a detailed member layout fingerprint for IPC type verification
- * @remark Captures the exact byte offset and size of each named member.
- *         Use this at connection time to verify struct compatibility across peers.
- *
- * Example:
- * @code
- *   struct SensorData { float temperature; uint32_t timestamp; uint8_t flags; };
- *   constexpr auto layout = SUB0_MEMBER_LAYOUT(SensorData, temperature, timestamp, flags);
- *   // layout.fingerprint contains sizeof/alignof/arity
- *   // layout.layoutHash captures per-member offset+size
- * @endcode
- */
-#define SUB0_MEMBER_LAYOUT(Type, ...)                                              \
-    []{                                                                            \
-        using SUB0_DETAIL_LAYOUT_TYPE_ = Type;                                     \
-        constexpr sub0::utility::MemberEntry entries[] = {                         \
-            SUB0_MAP(SUB0_DETAIL_MEMBER_ENTRY_OF, __VA_ARGS__)                     \
-        };                                                                         \
-        constexpr std::size_t count = sizeof(entries) / sizeof(entries[0]);         \
-        return sub0::utility::TypeLayout{                                           \
-            sub0::utility::makeFingerprint<Type>(),                                 \
-            sub0::utility::hashMemberLayout(entries, count)                         \
-        };                                                                         \
-    }()
+        /** Create a MemberEntry from a structured binding reference
+         * @remark Computes offset via pointer arithmetic from the struct base.
+         *         Recursively fingerprints array and aggregate member types.
+         */
+        template<typename MemberT, typename BaseT>
+        MemberEntry entryFrom(const BaseT& base, const MemberT& member)
+        {
+            using Raw = std::remove_cv_t<std::remove_reference_t<MemberT>>;
+            const auto offset = static_cast<uint32_t>(
+                reinterpret_cast<const char*>(&member) - reinterpret_cast<const char*>(&base));
+            const auto size = static_cast<uint32_t>(sizeof(MemberT));
+            uint32_t elemHash = 0;
+            if constexpr (std::is_array_v<Raw> || (std::is_class_v<Raw> && memberCount<Raw> > 0))
+                elemHash = hashFingerprint(makeFingerprint<Raw>());
+            return { offset, size, elemHash };
+        }
 
-/** Recursive MAP macro for variadic for-each expansion
- * @remark Adapted from Sub0Reflect preprocessor.hpp
- *         Applies f(x) to each variadic argument without N-ary overloads.
- * @see https://github.com/CraigHutchinson/Sub0Reflect
- */
-#define SUB0_EVAL0(...) __VA_ARGS__
-#define SUB0_EVAL1(...) SUB0_EVAL0(SUB0_EVAL0(SUB0_EVAL0(__VA_ARGS__)))
-#define SUB0_EVAL2(...) SUB0_EVAL1(SUB0_EVAL1(SUB0_EVAL1(__VA_ARGS__)))
-#define SUB0_EVAL3(...) SUB0_EVAL2(SUB0_EVAL2(SUB0_EVAL2(__VA_ARGS__)))
-#define SUB0_EVAL4(...) SUB0_EVAL3(SUB0_EVAL3(SUB0_EVAL3(__VA_ARGS__)))
-#define SUB0_EVAL(...)  SUB0_EVAL4(SUB0_EVAL4(SUB0_EVAL4(__VA_ARGS__)))
+        // Shorthand for structured-binding decomposition cases
+        #define SUB0_E(base, m) sub0::utility::entryFrom(base, m)
 
-#define SUB0_MAP_END(...)
-#define SUB0_MAP_OUT
-#define SUB0_MAP_EMPTY()
-#define SUB0_MAP_DEFER(id) id SUB0_MAP_EMPTY()
+        /** Automatic layout decomposition via structured bindings (Boost.PFR-style)
+         * @remark On GCC/Clang: uses class template partial specialization with
+         *         structured bindings to decompose aggregates into per-member
+         *         offset + size + recursive element hash.
+         * @remark On MSVC: structured bindings in template specializations trigger
+         *         eager parsing bugs (C3448). Falls back to TypeFingerprint only
+         *         (sizeof+alignof+arity) without per-member offset detail.
+         *         Full per-member support on MSVC awaits C++26 reflection.
+         * @note   Supports up to 32 direct members (arity::MaxArity).
+         */
+        namespace layout {
+            template<typename T, std::size_t N>
+            struct Decompose { static uint32_t hash(T&) { return 0; } };
 
-#define SUB0_MAP_END2() 0, SUB0_MAP_END
-#define SUB0_MAP_END1(...) SUB0_MAP_END2
-#define SUB0_MAP_GET_END(...) SUB0_MAP_END1
-#define SUB0_MAP_NEXT0(test, next, ...) next SUB0_MAP_OUT
-#define SUB0_MAP_NEXT1(test, next) SUB0_MAP_DEFER(SUB0_MAP_NEXT0)(test, next, 0)
-#define SUB0_MAP_NEXT(test, next)  SUB0_MAP_NEXT1(SUB0_MAP_GET_END test, next)
+#if !defined(_MSC_VER)
+            #define SUB0_E_(v, m) entryFrom(v, m)
 
-#define SUB0_MAP0(f, x, peek, ...) f(x) SUB0_MAP_DEFER(SUB0_MAP_NEXT(peek, SUB0_MAP1))(f, peek, __VA_ARGS__)
-#define SUB0_MAP1(f, x, peek, ...) f(x) SUB0_MAP_DEFER(SUB0_MAP_NEXT(peek, SUB0_MAP0))(f, peek, __VA_ARGS__)
+            #define SUB0_LAYOUT_CASE(N, ...) \
+                template<typename T> struct Decompose<T, N> { static uint32_t hash(T& v) { \
+                    auto& [__VA_ARGS__] = v; \
+                    MemberEntry e[] = {
 
-/** Apply macro f to each variadic argument
- * @code SUB0_MAP(MY_MACRO, a, b, c) @endcode expands to MY_MACRO(a) MY_MACRO(b) MY_MACRO(c)
- */
-#define SUB0_MAP(f, ...) SUB0_EVAL(SUB0_MAP1(f, __VA_ARGS__, ()()(), ()()(), ()()(), 0))
+            #define SUB0_LAYOUT_END(N) \
+                    }; return hashMemberLayout(e, N); } };
 
-// Internal: per-member MemberEntry with recursive element fingerprinting
-#define SUB0_DETAIL_MEMBER_ENTRY_OF(Member) \
-    sub0::utility::makeMemberEntry<decltype(SUB0_DETAIL_LAYOUT_TYPE_::Member)>( \
-        static_cast<uint32_t>(offsetof(SUB0_DETAIL_LAYOUT_TYPE_, Member)), \
-        static_cast<uint32_t>(sizeof(SUB0_DETAIL_LAYOUT_TYPE_::Member))),
+            SUB0_LAYOUT_CASE(1,  m0) SUB0_E_(v,m0) SUB0_LAYOUT_END(1)
+            SUB0_LAYOUT_CASE(2,  m0,m1) SUB0_E_(v,m0),SUB0_E_(v,m1) SUB0_LAYOUT_END(2)
+            SUB0_LAYOUT_CASE(3,  m0,m1,m2) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2) SUB0_LAYOUT_END(3)
+            SUB0_LAYOUT_CASE(4,  m0,m1,m2,m3) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3) SUB0_LAYOUT_END(4)
+            SUB0_LAYOUT_CASE(5,  m0,m1,m2,m3,m4) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4) SUB0_LAYOUT_END(5)
+            SUB0_LAYOUT_CASE(6,  m0,m1,m2,m3,m4,m5) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5) SUB0_LAYOUT_END(6)
+            SUB0_LAYOUT_CASE(7,  m0,m1,m2,m3,m4,m5,m6) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6) SUB0_LAYOUT_END(7)
+            SUB0_LAYOUT_CASE(8,  m0,m1,m2,m3,m4,m5,m6,m7) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7) SUB0_LAYOUT_END(8)
+            SUB0_LAYOUT_CASE(9,  m0,m1,m2,m3,m4,m5,m6,m7,m8) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8) SUB0_LAYOUT_END(9)
+            SUB0_LAYOUT_CASE(10, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9) SUB0_LAYOUT_END(10)
+            SUB0_LAYOUT_CASE(11, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10) SUB0_LAYOUT_END(11)
+            SUB0_LAYOUT_CASE(12, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11) SUB0_LAYOUT_END(12)
+            SUB0_LAYOUT_CASE(13, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12) SUB0_LAYOUT_END(13)
+            SUB0_LAYOUT_CASE(14, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13) SUB0_LAYOUT_END(14)
+            SUB0_LAYOUT_CASE(15, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14) SUB0_LAYOUT_END(15)
+            SUB0_LAYOUT_CASE(16, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15) SUB0_LAYOUT_END(16)
+            SUB0_LAYOUT_CASE(17, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16) SUB0_LAYOUT_END(17)
+            SUB0_LAYOUT_CASE(18, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17) SUB0_LAYOUT_END(18)
+            SUB0_LAYOUT_CASE(19, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18) SUB0_LAYOUT_END(19)
+            SUB0_LAYOUT_CASE(20, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19) SUB0_LAYOUT_END(20)
+            SUB0_LAYOUT_CASE(21, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20) SUB0_LAYOUT_END(21)
+            SUB0_LAYOUT_CASE(22, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21) SUB0_LAYOUT_END(22)
+            SUB0_LAYOUT_CASE(23, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22) SUB0_LAYOUT_END(23)
+            SUB0_LAYOUT_CASE(24, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23) SUB0_LAYOUT_END(24)
+            SUB0_LAYOUT_CASE(25, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24) SUB0_LAYOUT_END(25)
+            SUB0_LAYOUT_CASE(26, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25) SUB0_LAYOUT_END(26)
+            SUB0_LAYOUT_CASE(27, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26) SUB0_LAYOUT_END(27)
+            SUB0_LAYOUT_CASE(28, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27) SUB0_LAYOUT_END(28)
+            SUB0_LAYOUT_CASE(29, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28) SUB0_LAYOUT_END(29)
+            SUB0_LAYOUT_CASE(30, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29) SUB0_LAYOUT_END(30)
+            SUB0_LAYOUT_CASE(31, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29,m30) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29),SUB0_E_(v,m30) SUB0_LAYOUT_END(31)
+            SUB0_LAYOUT_CASE(32, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29,m30,m31) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29),SUB0_E_(v,m30),SUB0_E_(v,m31) SUB0_LAYOUT_END(32)
+
+            #undef SUB0_LAYOUT_CASE
+            #undef SUB0_LAYOUT_END
+            #undef SUB0_E_
+#endif // !_MSC_VER
+        } // namespace layout
+
+        /** Create a TypeLayout automatically for any aggregate type
+         * @remark Fully automatic — no macro or member list needed.
+         *         Uses structured bindings (Boost.PFR-style) to decompose the
+         *         struct and compute per-member offset + size + recursive element hash.
+         * @note   Supports up to 32 direct members (arity::MaxArity).
+         * @tparam T  Aggregate type to fingerprint
+         */
+        template<typename T>
+        TypeLayout makeLayout()
+        {
+            constexpr auto N = memberCount<T>;
+            auto fp = makeFingerprint<T>();
+            T val{};
+            return { fp, layout::Decompose<T, N>::hash(val) };
+        }
 
         /**
         * @note char* to unify interface against std::ostream
