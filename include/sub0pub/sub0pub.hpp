@@ -273,22 +273,31 @@ namespace sub0
         virtual ~Publish()
         { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
 
-        /** Publish data to subscribers
-         * @param[in]  data  Data value to publish to subscribers
-         * @remark Data will be received by Subscribe<Data>::receive
+        /** Cancel the active publish cycle, stopping delivery to remaining subscribers
+         * @note Must only be called from within a receive() callback
          */
-        void publish( const Data& data ) const
-        {
-            detail::Check::onPublish( *this, data );
-            broker_.publish(data); //< @todo Add 'this' as traceability to data source for broker specialisation etc
-        }
-        
-        /** TODO: Doc
-         */
-        void cancel() const
+        void cancel() const noexcept
         {
             broker_.cancel();
         }
+
+    protected:
+        /** Publish data to subscribers
+         * @param[in]  data  Data value to publish to subscribers
+         * @remark Data will be received by Subscribe<Data>::receive
+         * @note Protected — use the free function sub0::publish(this, data) from derived classes
+         */
+        void publish( const Data& data ) const noexcept
+        {
+            detail::Check::onPublish( *this, data );
+            broker_.publish(data);
+        }
+
+        // Allow the free function sub0::publish() to access protected publish()
+        template<typename From, typename D>
+        friend void publish(From& from, const D& data) noexcept;
+        template<typename From, typename D>
+        friend void publish(From* from, const D& data) noexcept;
 
 #if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
@@ -418,41 +427,51 @@ namespace sub0
         const Broker* active() const
         { return threadCurrent_; }
 
-        /** Cancel the broker publish on the current thread preventing further receive of data 
-        */
-        void cancel() const
+        /** Cancel the broker publish on the current thread preventing further receive of data
+         * @note Must only be called from within a receive() callback
+         */
+        void cancel() const noexcept
         {
-            assert( active() != nullptr ); //< Cannot be called from outside a publish callback
-            active()->publishCanceled_.store(true, std::memory_order_relaxed);
+            assert( active() != nullptr );
+            threadCanceled_ = true;
         }
 
         /** Send data to registered subscribers
          * @param data  Data sent to subscribers via their 'receive()' function
+         * @remark Thread-safe when SUB0PUB_THREAD_SAFE is enabled: the subscription
+         *         list is snapshot-copied under lock, then the lock is released before
+         *         dispatching. This prevents deadlock on re-entrant publish.
          */
         void publish(const Data& data) const noexcept
         {
-            assert(!publishCanceled_.load(std::memory_order_relaxed));
-
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            const Broker* previousPublisher = this;
-            std::swap(threadCurrent_, previousPublisher);
-
-            for (uint32_t iSubscription = 0U;
-                 !publishCanceled_.load(std::memory_order_relaxed) && iSubscription < state_.subscriptionCount;
-                 ++iSubscription)
+            // Snapshot subscribers under lock (if thread-safe), then dispatch unlocked
+            Subscribe<Data>* snapshot[cMaxSubscriptions];
+            uint32_t count = 0;
             {
-                Subscribe<Data>* subscription = state_.subscriptions[iSubscription];
-                Check::onReceive( subscription, data );
-
-                if (subscription->filter(data))
-                    subscription->receive(data);
+#if SUB0PUB_THREAD_SAFE
+                std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+                count = state_.subscriptionCount;
+                for (uint32_t i = 0; i < count; ++i)
+                    snapshot[i] = state_.subscriptions[i];
             }
 
-            publishCanceled_.store(false, std::memory_order_relaxed);
-            std::swap(threadCurrent_, previousPublisher);
-            assert(previousPublisher == this);
+            // Save/restore thread-local publish context for re-entrant calls
+            const Broker* previousPublisher = threadCurrent_;
+            const bool previousCanceled = threadCanceled_;
+            threadCurrent_ = this;
+            threadCanceled_ = false;
+
+            for (uint32_t i = 0U; !threadCanceled_ && i < count; ++i)
+            {
+                Check::onReceive(snapshot[i], data);
+
+                if (snapshot[i]->filter(data))
+                    snapshot[i]->receive(data);
+            }
+
+            threadCurrent_ = previousPublisher;
+            threadCanceled_ = previousCanceled;
         }
 
 #if SUB0PUB_TYPEIDNAME
@@ -489,8 +508,7 @@ namespace sub0
 
         inline static State state_ = {};
         inline static thread_local const Broker* threadCurrent_ = nullptr;
-
-        mutable std::atomic<bool> publishCanceled_{false};
+        inline static thread_local bool threadCanceled_ = false;
     };
 
     } // END: detail
@@ -752,9 +770,6 @@ namespace sub0
             return { offset, size, elemHash };
         }
 
-        // Shorthand for structured-binding decomposition cases
-        #define SUB0_E(base, m) sub0::utility::entryFrom(base, m)
-
         /** Automatic layout decomposition via structured bindings (Boost.PFR-style)
          * @remark On GCC/Clang: uses class template partial specialization with
          *         structured bindings to decompose aggregates into per-member
@@ -941,10 +956,10 @@ namespace sub0
 
 
         template< typename Type_t >
-        constexpr bool sizeOf() { return sizeof(Type_t); }
+        constexpr size_t sizeOf() { return sizeof(Type_t); }
 
         template<>
-        constexpr bool sizeOf<void>() { return 0; }
+        constexpr size_t sizeOf<void>() { return 0; }
 
         template< typename Type_t >
         constexpr void copyTo(char* buffer)
@@ -1197,14 +1212,39 @@ namespace sub0
         */
         bool update(IStream& stream)
         {
-            /// Read data until an incomplete message
+            // Handle SyncLost: scan for next valid prefix
+            if (state_ == State::SyncLost)
+            {
+                if (!tryResync(stream))
+                    return false;
+            }
+
+            // Handle skip of unknown payload
+            if (skipRemaining_ > 0)
+            {
+                char skipBuf[256];
+                const auto toSkip = std::min(static_cast<uint32_t>(sizeof(skipBuf)), skipRemaining_);
+#if SUB0PUB_STD
+                const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip).gcount());
+#else
+                const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip));
+#endif
+                skipRemaining_ -= skipped;
+                if (skipRemaining_ > 0)
+                    return false;
+                // Skip complete — advance to postfix (or next prefix if no postfix)
+                state_ = stateAfter(State::Data);
+                currentBuffer_ = findStateBuffer(state_);
+            }
+
+            // Normal read loop
             while (readBuffer(stream))
             {
                 if (state_ == State::Header)
-                    return true; ///< @return True = Completed reading a payload so allow processing by caller
+                    return true;
             }
 
-            return false; ///< @return False = Need more data
+            return false;
         }
 
         template < typename Data >
@@ -1288,11 +1328,15 @@ namespace sub0
         {
             switch (state)
             {
-            default: //< @todo SyncLost
-            case State::Prefix:  return true; ///< @todo Handle non-void Prefix_t: (prefix_ == Prefix_t())
+            default:
+            case State::Prefix:
+                if constexpr (!std::is_void_v<Prefix_t>)
+                    return std::memcmp(&prefix_, &Prefix_t{}, sizeof(Prefix_t)) == 0;
+                else
+                    return true;
             case State::Header:  return dataBufferRegistry_.validate(header_);
             case State::Data:    return true;
-            case State::Postfix: return postfix_ == Postfix_t();///< @todo Handle void Postfix_t
+            case State::Postfix: return postfix_ == Postfix_t();
             }
         }
 
@@ -1344,42 +1388,28 @@ namespace sub0
         {
             if( !checkStatusOfState(state_) )
             {
+                // Prefix or postfix mismatch — enter SyncLost to scan for next valid frame
                 state_ = State::SyncLost;
                 return false;
             }
 
             if ( isPublishReady(state_) )
             {
-#if SUB0PUB_ASSERT
-                assert(currentBuffer_.publisher);
-#endif
                 if (currentBuffer_.publisher)
-                    currentBuffer_.publisher->publish(); // Signal completion of buffer content to publish data signal
+                    currentBuffer_.publisher->publish();
             }
 
             state_ = stateAfter( state_ );
             currentBuffer_ = findStateBuffer(state_);
 
-            // Check if header maps to a recognised Data
-            if ( currentBuffer_.buffer == nullptr)/// @todo Does not handle and discard unrecognised typeId [Critical]
+            // Unknown typeId: skip the payload bytes and continue to next frame
+            if (currentBuffer_.buffer == nullptr && state_ == State::Data)
             {
-                const char* failureMessage = nullptr;
-                if ( state_ == State::Data )
-                    failureMessage = "Sub0Pub - Data buffer is null, potential payload size mismatch or unrecognised Id"; /// @todo Does not handle changed data structure size [Critical]
-                else
-                    failureMessage = "Sub0Pub - some logic is wrong!";
-               
-                if(failureMessage != nullptr)
-                {
-#if __cpp_exceptions
-                    throw std::runtime_error(failureMessage);
-#elif SUB0PUB_ASSERT
-                    assert((void*)0 == failureMessage);
-#endif
-                }
+                // Set up a skip buffer: discard header_.dataBytes bytes
+                skipRemaining_ = header_.dataBytes;
+                return true; // Continue reading to consume the skip bytes
             }
-            
-            //Normalise buffer in respect of negative padding bytes indicate unpopulated buffer space
+
             if (currentBuffer_.paddingSize < 0)
             {
                 currentBuffer_.bufferSize += currentBuffer_.paddingSize;
@@ -1389,16 +1419,55 @@ namespace sub0
             return currentBuffer_.buffer != nullptr;
         }
 
+        /** Attempt to recover from SyncLost by scanning for the next valid prefix magic
+         * @return True if magic found and state reset to Header, false if more data needed
+         */
+        bool tryResync(IStream& stream)
+        {
+            if constexpr (std::is_void_v<Prefix_t>)
+            {
+                // No prefix defined — cannot resync
+                return false;
+            }
+            else
+            {
+                // Scan one byte at a time looking for the prefix magic
+                char byte;
+                auto* prefixBytes = reinterpret_cast<char*>(&prefix_);
+                const auto prefixSize = sizeof(Prefix_t);
+                const Prefix_t expected{};
+
+#if SUB0PUB_STD
+                const auto readCount = static_cast<uint_fast16_t>(stream.read(&byte, 1).gcount());
+#else
+                const auto readCount = stream.read(&byte, 1);
+#endif
+                if (readCount == 0)
+                    return false;
+
+                // Shift prefix buffer left and append new byte
+                std::memmove(prefixBytes, prefixBytes + 1, prefixSize - 1);
+                prefixBytes[prefixSize - 1] = byte;
+
+                // Check if we've found the magic
+                if (std::memcmp(&prefix_, &expected, prefixSize) == 0)
+                {
+                    state_ = State::Header;
+                    currentBuffer_ = findStateBuffer(state_);
+                    return true;
+                }
+                return false;
+            }
+        }
+
     private:
         BufferRegister dataBufferRegistry_;
         Buffer currentBuffer_; ///< Current prefix/header/payload/postfix buffer
         State state_; ///< Which buffer is being read
+        uint32_t skipRemaining_ = 0; ///< Bytes remaining to skip for unknown typeId payloads
 
-        /// @{ Pre/Post-fix_t can be void which must be mapped to a useable member type
-        /// @todo Can we ommit the void members all together instead?
-        typedef typename std::conditional<std::is_void<Prefix_t>::value, char, Prefix_t>::type MemberPrefix_t;
-        typedef typename std::conditional<std::is_void<Postfix_t>::value,char,Postfix_t>::type MemberPostfix_t;
-        /// @}
+        using MemberPrefix_t = std::conditional_t<std::is_void_v<Prefix_t>, char, Prefix_t>;
+        using MemberPostfix_t = std::conditional_t<std::is_void_v<Postfix_t>, char, Postfix_t>;
 
         MemberPrefix_t prefix_;
         Header_t header_; ///< Packet head buffer
