@@ -76,7 +76,35 @@ This project is under active development. The following are known issues with pl
 
 **Phase 2 -- Safety:** Add Broker synchronization, fix IPC type-ID fallback, make subscriber limit configurable, preserve subscription ordering on removal.
 
-**Phase 3 -- Polish:** API documentation, endianness handling for cross-architecture IPC, CRC/checksum option, consolidate publish conventions, move `Broker` to `sub0::detail`.
+**Phase 3 -- Polish:** API documentation, endianness handling for cross-architecture IPC, CRC/checksum option, consolidate publish conventions.
+
+---
+
+## Performance
+
+Benchmarks are built alongside tests and capture system info automatically. Run with:
+
+```bash
+./build/tests/Release/Sub0Pub_Bench   # Windows
+./build/tests/Sub0Pub_Bench           # Linux/macOS
+```
+
+**Reference results:**
+
+> Intel Core Ultra 9 275HX, 24 threads, 31 GB RAM, MSVC 1950, Release build
+
+| Benchmark | ns/op | ops/s |
+|-----------|------:|------:|
+| Publish (1 subscriber) | 2.6 | 384M |
+| Publish (4 subscribers) | 7.2 | 140M |
+| Publish (8 subscribers) | 12.6 | 79M |
+| Filtered publish (pass) | 3.0 | 337M |
+| Filtered publish (reject) | 2.2 | 462M |
+| Multi-type dispatch | 2.3 | 427M |
+| Subscribe/unsubscribe churn | 3.2 | 310M |
+| Empty publish (0 subscribers) | 1.9 | 515M |
+
+Publish cost scales linearly with subscriber count at ~1.4ns per additional subscriber. Filter rejection is faster than delivery since `receive()` is skipped. Multi-type dispatch has zero overhead compared to single-type.
 
 ---
 
@@ -85,22 +113,20 @@ This project is under active development. The following are known issues with pl
 ### Requirements
 
 - C++17 compiler (GCC 7+, Clang 5+, MSVC 2017+)
-- CMake 3.7.1+
+- CMake 3.21+
 
-### Build
+### Build & Test
 
 ```bash
-# All platforms
-./configure && cmake --build ./build
-
-# Windows (MinGW / Git Bash)
-./configure -G "Unix Makefiles" && make -C ./build -j && make -C ./build test
+cmake --preset default            # Configure
+cmake --build --preset default    # Build
+ctest --preset default            # Run tests
 ```
 
 ### Install (system-wide)
 
 ```bash
-cmake --install ./build
+cmake --build --preset default --target install
 ```
 
 ### Use in Your Project

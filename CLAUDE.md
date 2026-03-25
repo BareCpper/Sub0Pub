@@ -35,6 +35,7 @@ Follow `STYLE_GUIDE.md` for all C++ code. Key points:
 - All new features must have corresponding tests in `tests/`
 - Performance-sensitive changes should be validated with `Sub0Pub_Bench`
 - Tests must pass locally before committing: `ctest --preset default`
+- A git pre-push hook runs tests automatically — set up with: `git config core.hooksPath .githooks`
 
 ## Branch Strategy
 - `develop` — stable v1 baseline
