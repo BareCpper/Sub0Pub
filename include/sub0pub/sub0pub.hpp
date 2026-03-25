@@ -30,6 +30,10 @@
 #include <tuple> //< std::tuple
 #include <type_traits> //< std::is_same
 
+#if SUB0PUB_THREAD_SAFE
+#include <mutex> //< std::mutex, std::lock_guard (optional thread safety)
+#endif
+
  /// @todo 0 vs nullptr C++11 only
 #if 1 /// @todo cstdint not always available ... C++11/C99 only 
     #include <cstdint> //< uint32_t
@@ -62,6 +66,14 @@
 
 #ifndef SUB0_EXPERIMENTAL
 #define SUB0_EXPERIMENTAL false ///< Experimental functionality that may be later removed/dropped
+#endif
+
+#ifndef SUB0PUB_THREAD_SAFE
+#define SUB0PUB_THREAD_SAFE false ///< Optional mutex guard for multi-threaded pub/sub (e.g. FreeRTOS dual-core)
+#endif
+
+#ifndef SUB0PUB_MAX_SUBSCRIPTIONS
+#define SUB0PUB_MAX_SUBSCRIPTIONS 8 ///< Fixed subscription table size per Broker<T>. Override globally or per-TU.
 #endif
 
 /** Helper macro for stringifying value using compiler preprocessor
@@ -411,9 +423,9 @@ namespace sub0
         /** Receive published Data
          * @remark Data is published from Publish<Data>::publish
          */
-        virtual void receive( const Data& data ) = 0;
+        virtual void receive( const Data& data ) noexcept = 0;
 
-        virtual bool filter(const Data& data)
+        virtual bool filter(const Data& data) noexcept
         {  return true; }
 
         inline void cancel()
@@ -543,7 +555,7 @@ namespace sub0
     class Broker
     {
     public:
-        static const uint32_t cMaxSubscriptions = 8U; ///< Subscription limit in fixed table per broker
+        static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
 
     public:
         /** Registers subscriber in brokers subscription table
@@ -556,6 +568,9 @@ namespace sub0
 #endif
         )
         {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
             detail::Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
 #if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
@@ -583,10 +598,13 @@ namespace sub0
 
         void unsubscribe(Subscribe<Data>* subscriber)
         {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
             Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
 #if SUB0PUB_ASSERT
             assert(iRemove != state_.subscriptions + state_.subscriptionCount);
-#endif           
+#endif
             --state_.subscriptionCount;
             *iRemove = state_.subscriptions[state_.subscriptionCount]; //< Insert last into removed slot @todo This changes the 'Order' of subscriptions, may have unexpected behaviour?
 
@@ -642,10 +660,13 @@ namespace sub0
         /** Send data to registered subscribers
          * @param data  Data sent to subscribers via their 'receive()' function
          */
-        void publish(const Data& data) const
+        void publish(const Data& data) const noexcept
         {
             assert(publishCanceled_ == false);
 
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
             const Broker* previousPublisher = this;
             std::swap(threadCurrent_, previousPublisher);
 
@@ -696,7 +717,9 @@ namespace sub0
          */
         struct State
         {
-
+#if SUB0PUB_THREAD_SAFE
+            mutable std::mutex mtx; ///< Protects subscriptions[] for multi-threaded pub/sub
+#endif
             uint32_t subscriptionCount = 0; ///< Count of subscriptions_
             Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
 #if SUB0PUB_TYPEIDNAME
@@ -744,7 +767,7 @@ namespace sub0
      * @param[in] data  Data that will be published using the base Publish<Data> object of From
      */
     template<typename From, typename Data>
-    inline void publish(From& from, const Data& data)
+    inline void publish(From& from, const Data& data) noexcept
     {
         const Publish<Data>& publisher = from;
         publisher.publish(data);
@@ -763,7 +786,7 @@ namespace sub0
     /** @see publish(const From&,const Data&)
     */
     template<typename From, typename Data>
-    inline void publish(From* const from, const Data& data)
+    inline void publish(From* const from, const Data& data) noexcept
     {
 #if SUB0PUB_ASSERT
         assert(from != nullptr);
