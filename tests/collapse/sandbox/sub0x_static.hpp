@@ -20,6 +20,12 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(__has_include)
+#if __has_include(<expected>)
+#include <expected> // only used by the optional C++23 Alt 1c below (__cpp_lib_expected); inert under C++17
+#endif
+#endif
+
 namespace sub0x
 {
     namespace detail
@@ -96,6 +102,145 @@ namespace sub0x
     template<class... Bound>
     constexpr Wiring<Bound...> wire(Bound&... bound) noexcept { return Wiring<Bound...>(bound...); }
 
+    /** Static-path cancellation (issue #9 spike, docs/design/spikes/static_cancellation.md): a receiver-
+     * controlled early stop of the *current* publication, so later bound receivers (in bound order) are not
+     * delivered to. Four alternatives, all additive: none of them changes the existing `deliver`/`publish`
+     * used by the non-cancelling cases (zero_receivers, one_receiver, multi_receivers, filters, ...), so those
+     * keep byte-identical codegen. Each alternative below is opt-in per publish call, not per wiring. */
+    class Delivery; // forward declaration: used by Alt 2's SFINAE detection below, defined after it
+
+    namespace detail
+    {
+        /// Alt 1 (bool return): a receiver may return bool from receive() instead of void; false stops the
+        /// rest of this publication. Detected at compile time; a void receiver is unaffected.
+        template<class R, class T>
+        using receive_result_t = decltype(std::declval<R&>().receive(std::declval<const T&>()));
+
+        template<class R, class T, class = void> struct receive_returns_bool : std::false_type {};
+        template<class R, class T>
+        struct receive_returns_bool<R, T, std::enable_if_t<std::is_same_v<receive_result_t<R, T>, bool>>> : std::true_type {};
+
+        /// Deliver to one receiver; returns whether the publication should continue (true) or stop (false).
+        /// A receiver that does not handle T, or is filtered out, or returns void, always continues.
+        template<class R, class T>
+        inline bool deliverContinue(R& r, const T& msg) noexcept
+        {
+            if constexpr (accepts<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return true;
+                if constexpr (receive_returns_bool<R, T>::value)
+                    return r.receive(msg);
+                else
+                {
+                    r.receive(msg);
+                    return true;
+                }
+            }
+            else
+                return true;
+        }
+
+        /// Alt 2 (cancellation token): a receiver may optionally accept a second `sub0x::Delivery&` parameter
+        /// and call `delivery.stop()`. Receivers that take only `receive(const T&)` are unaffected.
+        template<class R, class T, class = void> struct accepts_token : std::false_type {};
+        template<class R, class T>
+        struct accepts_token<R, T, std::void_t<decltype(std::declval<R&>().receive(std::declval<const T&>(), std::declval<Delivery&>()))>> : std::true_type {};
+    }
+
+    /// Alt 2: passed by reference to every receiver bound to a `publishWithToken` call. A receiver that never
+    /// asks for it never sees it; one is constructed per publication (stack-local, not shared state).
+    class Delivery
+    {
+    public:
+        void stop() noexcept { stop_ = true; }
+        bool stopped() const noexcept { return stop_; }
+    private:
+        bool stop_ = false;
+    };
+
+    namespace detail
+    {
+        template<class R, class T>
+        inline bool deliverToken(R& r, const T& msg, Delivery& delivery) noexcept
+        {
+            if constexpr (accepts_token<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return true;
+                r.receive(msg, delivery);
+                return !delivery.stopped();
+            }
+            else if constexpr (accepts<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return true;
+                r.receive(msg);
+                return true;
+            }
+            else
+                return true;
+        }
+
+        /// Alt 3 (thread-local publish context): mirrors the runtime path's Broker::cancel() (sub0pub.hpp).
+        /// A receiver calls the free function sub0x::cancel() from inside receive(); every bound receiver
+        /// checks it after being delivered to. Save/restore around each publication makes nested publications
+        /// (including of the same message type, e.g. two independent wirings) independent, exactly like the
+        /// runtime path — but, like the runtime path, it costs a TLS access even for receivers that never cancel.
+        inline thread_local bool g_canceled = false;
+
+        template<class R, class T>
+        inline bool deliverTLS(R& r, const T& msg) noexcept
+        {
+            deliver(r, msg);
+            return !g_canceled;
+        }
+    }
+
+    /// Alt 3: call from inside a receive() bound to a `publishCancelableTLS` call to stop the rest of that
+    /// publication. Undefined outside of such a call, exactly like sub0::Publish<Data>::cancel().
+    inline void cancel() noexcept { detail::g_canceled = true; }
+
+#if defined(__cpp_lib_expected)
+    /** C++23 variant of Alt 1 (docs/design/spikes/static_cancellation.md): receive() may return
+     * std::expected<void, Stop> instead of a bare bool — a documented reason for stopping, still returned
+     * by value (no out-parameter), still detected at compile time and short-circuited by a fold, same as
+     * Alt 1. Entirely inert unless the toolchain has <expected> (i.e. -std=c++23); it changes nothing for
+     * C++17 builds, which never see this block. Not wired into the collapse ctest harness (that harness is
+     * built at C++17 project-wide); see the spike doc for how it was measured. */
+    enum class Stop { Canceled };
+
+    namespace detail
+    {
+        template<class R, class T, class = void> struct receive_returns_expected : std::false_type {};
+        template<class R, class T>
+        struct receive_returns_expected<R, T, std::enable_if_t<std::is_same_v<receive_result_t<R, T>, std::expected<void, Stop>>>> : std::true_type {};
+
+        template<class R, class T>
+        inline bool deliverExpected(R& r, const T& msg) noexcept
+        {
+            if constexpr (accepts<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return true;
+                if constexpr (receive_returns_expected<R, T>::value)
+                    return r.receive(msg).has_value();
+                else
+                {
+                    r.receive(msg);
+                    return true;
+                }
+            }
+            else
+                return true;
+        }
+    }
+#endif
+
     /** B2: static topology for objects with static storage duration: the targets are template arguments */
     template<auto*... Bound>
     struct StaticWiring
@@ -111,6 +256,43 @@ namespace sub0x
         {
             (detail::deliverExcept(detail::receiver(*Bound), msg, origin), ...);
         }
+
+        /// Alt 1 (bool return): stops delivering to later bound receivers (bound order) as soon as one
+        /// receive() returns false. A receiver with a void receive() always continues.
+        template<class T>
+        static void publishCancelable(const T& msg) noexcept
+        {
+            (detail::deliverContinue(detail::receiver(*Bound), msg) && ...);
+        }
+
+        /// Alt 2 (cancellation token): a fresh sub0x::Delivery per publication; stops delivering to later
+        /// bound receivers once any receiver that opted into `receive(const T&, sub0x::Delivery&)` calls stop().
+        template<class T>
+        static void publishWithToken(const T& msg) noexcept
+        {
+            Delivery delivery;
+            (detail::deliverToken(detail::receiver(*Bound), msg, delivery) && ...);
+        }
+
+        /// Alt 3 (thread-local publish context): a receiver calls sub0x::cancel() from inside receive();
+        /// every later bound receiver is skipped. Save/restore makes nested publications independent.
+        template<class T>
+        static void publishCancelableTLS(const T& msg) noexcept
+        {
+            const bool previous = detail::g_canceled;
+            detail::g_canceled = false;
+            (detail::deliverTLS(detail::receiver(*Bound), msg) && ...);
+            detail::g_canceled = previous;
+        }
+
+#if defined(__cpp_lib_expected)
+        /// C++23 Alt 1c: as publishCancelable, but a receiver returns std::expected<void, Stop> instead of bool.
+        template<class T>
+        static void publishCancelableExpected(const T& msg) noexcept
+        {
+            (detail::deliverExpected(detail::receiver(*Bound), msg) && ...);
+        }
+#endif
     };
 
     /** B3: a type-erased publication port for one message type, for publishers that are not templates.
