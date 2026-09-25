@@ -1,18 +1,19 @@
 /** Case: receiver-controlled early stop of the current publication (issue #9 static-cancellation spike).
  *  Receivers in bound order: Gate (does its own work first, then cancels the rest of the publication when
  *  value % 3 == 0), Controller (gain 3), Logger. Reference: direct calls with an early return after Gate's
- *  decision — Controller and Logger are simply not called for cancelled publications. */
+ *  decision — Controller and Logger are simply not called for cancelled publications. The decision is returned
+ *  by value, as a careful engineer would write it (an earlier revision stored it in a Gate member, which set
+ *  the bar 3 instructions and 8 B of RAM too low). */
 #include "collapse_case.hpp"
 
 namespace {
 struct Sample { uint32_t value; };
 struct Gate {
-    void receive(const Sample& s) noexcept
+    bool receive(const Sample& s) noexcept // true: stop this publication here
     {
         COLLAPSE_WORK(s.value);
-        canceled = ((s.value % 3U) == 0U);
+        return (s.value % 3U) == 0U;
     }
-    bool canceled = false;
 };
 struct Controller {
     explicit Controller(uint32_t g) noexcept : gain(g) {}
@@ -32,8 +33,7 @@ COLLAPSE_ENTRY void collapse_setup() { gate.emplace(); controller.emplace(3U); l
 COLLAPSE_ENTRY void collapse_publish(uint32_t v)
 {
     const Sample s{collapse::arg(v)};
-    gate->receive(s);
-    if (gate->canceled)
+    if (gate->receive(s))
         return;
     controller->receive(s);
     logger->receive(s);

@@ -12,7 +12,10 @@ to confirm the header changes cost the non-cancelling cases nothing.
 
 **Case.** Receivers in bound order: `Gate` (does its own work, then decides to cancel when
 `value % 3 == 0`), `Controller` (gain 3), `Logger`. Reference: direct calls with an early return after
-Gate's decision, so Controller and Logger are simply never called for a cancelled publication.
+Gate's decision, so Controller and Logger are simply never called for a cancelled publication. Gate returns
+its decision by value (`bool receive()`), the tightest hand-written form. (The spike first used a reference
+that stored the decision in a Gate member; that set the bar 3 instructions and 8 B RAM too low and made
+Alt 1/2 appear to *beat* handwritten. The numbers below are against the tightened reference.)
 
 ## Alternatives faced off
 
@@ -41,28 +44,26 @@ Deltas against handwritten (same build and form). Full report: `tests/collapse/c
 
 | Build | Alt1 bool | Alt2 token | Alt3 TLS | Alt4 filter (control) |
 |---|---|---|---|---|
-| gcc-O2 publish instr | **-3.0** | **-3.0** | +0.0 | +6.3 |
-| gcc-O2 text / data+bss | +0 / -8 B | +0 / -8 B | +16 B / -7 B | +64 B / +32 B |
+| gcc-O2 publish instr | **=** | **=** | +3.0 | +9.3 |
+| gcc-O2 text / data+bss | +0 / +0 | +0 / +0 | +16 B / +1 B | +64 B / +40 B |
 | clang-O2 publish instr | **=** | **=** | **=** | +4.3 |
 | clang-O2 text / data+bss | +0 / +0 | +0 / +0 | +0 / +0 | +32 B / +16 B |
-| cm33-gcc-Os path instr | **-7** | **-7** | +7 | +8 |
-| cm33-gcc-Os text / RAM | -24 B / -4 B | -24 B / -4 B | **+12 B / +253 B** | +28 B / +12 B |
+| cm33-gcc-Os path instr | **=** | **=** | +14 | +15 |
+| cm33-gcc-Os text / RAM | +0 / +0 | +0 / +0 | **+36 B / +257 B** | +52 B / +16 B |
 | cm33-gcc-Os added deps | none | none | **TLS** | none |
 
-(Removable-work form tells the same story; Alt 1/2/3 are within -3..+0 instr of handwritten on every build,
-Alt 4 is +1..+2. Negative deltas mean the alternative's fold-based structure lets the compiler collapse it
-*below* the hand-written baseline — still behaviourally identical, checksums match exactly on every
-variant/build/form.)
+(Removable-work form: Alt 1/2/3 are `=` on every build, because the work that would keep the TLS flag alive
+is removed too; Alt 4 is +1.0 to +4.0 instr. Checksums match exactly on every variant/build/form.)
 
-**Alt 1 (bool) and Alt 2 (token) are indistinguishable from each other on every build**, and both come out
-at or below handwritten on every criterion, including Cortex-M33 where they're smaller than the reference.
-**Alt 3 (TLS) is free on gcc-O2 and clang-O2** — with everything in one TU the optimiser proves the flag
-access away, exactly as `sub0pub.hpp`'s own thread_local does for pattern A's best case — **but on
+**Alt 1 (bool) and Alt 2 (token) are indistinguishable from each other on every build**, and both are
+**identical to handwritten on every criterion and every build** (PASS). **Alt 3 (TLS) is free only on
+clang-O2** (the optimiser proves the flag access away with everything in one TU); gcc-O2 keeps the flag
+check (+3.0 instr, +16 B text), **and on
 Cortex-M33 it reintroduces the TLS runtime dependency** (`__aeabi_read_tp`, a 256 B `tlsBlock`) that
 [COLLAPSE_EVIDENCE.md](../COLLAPSE_EVIDENCE.md) Phase 0 finding 3 flagged as a per-image bare-metal cost of
 pattern A. That is the single most important number in this spike: a design that is free on the host and
 expensive on the target the static path exists for. **Alt 4 (filter control) costs the most everywhere**
-(+1 to +8.3 instr, +28 to +64 B text) because every downstream receiver must carry a reference to the shared
+(+1.0 to +9.3 instr, +32 to +64 B text) because every downstream receiver must carry a reference to the shared
 flag and pay its own `filter()` check, whether or not it would ever be the last receiver reached.
 
 ## `multi_receivers` — no regression
@@ -116,23 +117,16 @@ already works at zero cost; nothing about them makes `accepts`/`accepts_token` s
 still returned by value (no out-parameter, no shared state), detected and short-circuited the same way.
 
 Added as **Alt 1c**, guarded entirely behind `#if defined(__cpp_lib_expected)` in `sub0x_static.hpp` (inert
-under C++17 — this project stays on `cxx_std_17`; nothing here changes that). It is deliberately **not**
-wired into the ctest collapse harness, which builds every case at the project's C++17 standard; wiring in a
-C++23-only source file there would break that build. Instead it's a standalone demo,
-`docs/design/spikes/cpp23_demo/sub0x_alt1c_expected.cpp`, built and measured by hand:
+under C++17 — the project stays on `cxx_std_17`). It is the case variant
+`tests/collapse/cases/cancellation/sub0x_alt1c_expected_cpp23.cpp`: the `_cpp23` suffix builds that variant
+alone at C++23 (CMake and `collapse_evidence.py`), and CMake probes for `std::expected` and skips the variant
+on toolchains without it.
 
-```
-g++ -std=c++23 -O2 -I tests/collapse -I include tests/collapse/driver.cpp \
-    docs/design/spikes/cpp23_demo/sub0x_alt1c_expected.cpp
-```
-
-Measured against `handwritten` (also rebuilt at `-std=c++23` for a fair baseline) on **gcc-O2**: checksum
-identical; `.text` identical (2439 B both); `.bss` **8 B smaller** than handwritten (Gate carries no
-`canceled` member — the expected's reason value replaces it); per-phase callgrind instructions setup 20
-(-1), publish 27.0 (**-3.0**), teardown 16 (+0) — the same numbers, to the instruction, as Alt 1's bool
-return in the automated harness. **Caveat:** on this toolchain, clang 18 built against libstdc++ 13 does
+Measured by `collapse_evidence.py` like every other variant: **PASS on gcc-O2 and cm33-gcc-Os, both forms,
+identical to Alt 1's bool return to the instruction and byte** (and so to handwritten). **Caveat:** on this toolchain, clang 18 built against libstdc++ 13 does
 not expose `__cpp_lib_expected` (the feature-test macro is never defined for clang even though `<expected>`
-parses), so Alt 1c only builds/measures with GCC here; a clang+libc++ toolchain was not available to test.
+parses), so Alt 1c only builds/measures with GCC here (the evidence report shows a build error for clang-O2, and
+CMake skips the variant); a clang+libc++ toolchain was not available to test.
 If the project moves to C++23, `std::expected` is a strict expressiveness upgrade over Alt 1's bare `bool`
 at identical (GCC-measured) cost, not a new alternative with new trade-offs — everything in the "vs runtime
 `cancel()`" table above for Alt 1 applies to Alt 1c unchanged.
@@ -151,8 +145,8 @@ at identical (GCC-measured) cost, not a new alternative with new trade-offs — 
   return nothing to fit some other constrained signature) or wants the token available for future extension
   (e.g. carrying a reason without changing the return type) without the C++23 dependency Alt 1c would need
   for that same expressiveness.
-- **Alt 3 (TLS)** is not recommended as the default: it is free today only because these host builds see
-  the whole call graph in one TU; it reintroduces exactly the bare-metal TLS cost that motivated pattern B
+- **Alt 3 (TLS)** is not recommended as the default: it costs +3.0 instr on gcc-O2 and is free only on clang-O2,
+  where the whole call graph is in one TU; it reintroduces exactly the bare-metal TLS cost that motivated pattern B
   in the first place (COLLAPSE_EVIDENCE.md Phase 0 finding 3), and it needs explicit save/restore discipline
   that Alt 1/2 get for free from the call stack. It stays useful only as a deliberate bridge if/when the
   static and runtime paths need to share one cancellation vocabulary (Phase 1's "next" item).

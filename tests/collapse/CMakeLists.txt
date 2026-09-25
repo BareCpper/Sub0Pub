@@ -4,6 +4,13 @@
 
 set(SUB0PUB_COLLAPSE_PROTOTYPE "${CMAKE_CURRENT_SOURCE_DIR}/../design/broker_config") # #8 runtime-registry prototype
 
+# *_expected_cpp23 variants need std::expected at C++23 (absent e.g. with clang + libstdc++ 13); probe once
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/probe_expected.cpp"
+     "#include <expected>\n#if !defined(__cpp_lib_expected)\n#error no std::expected\n#endif\nint main() { return 0; }\n")
+try_compile(SUB0PUB_COLLAPSE_HAS_EXPECTED "${CMAKE_CURRENT_BINARY_DIR}/probe_expected"
+            SOURCES "${CMAKE_CURRENT_BINARY_DIR}/probe_expected.cpp"
+            CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
+
 file(GLOB SUB0PUB_COLLAPSE_CASES LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/cases/*")
 foreach(case_dir ${SUB0PUB_COLLAPSE_CASES})
     if(NOT IS_DIRECTORY "${case_dir}")
@@ -26,6 +33,9 @@ foreach(case_dir ${SUB0PUB_COLLAPSE_CASES})
             set(form removable)
         endif()
         foreach(variant ${variants})
+            if(variant MATCHES "_expected_cpp23$" AND NOT SUB0PUB_COLLAPSE_HAS_EXPECTED)
+                continue()
+            endif()
             if(IS_DIRECTORY "${case_dir}/${variant}")
                 file(GLOB sources "${case_dir}/${variant}/*.cpp")
             else()

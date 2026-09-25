@@ -1,9 +1,8 @@
-/** Cancellation Alt 1c (C++23 spike, not wired into the ctest harness which builds at C++17 project-wide):
- *  receive() returns std::expected<void, sub0x::Stop> instead of a bare bool -- a documented reason for
- *  stopping, still by value, still detected at compile time and short-circuited by a fold (Alt 1's
- *  mechanism, tests/collapse/sandbox/sub0x_static.hpp). Controller and Logger are unaffected (void receive()).
- *  Bound order: Gate, Controller, Logger (StaticWiring, pattern B2).
- *  Build manually, e.g.: g++ -std=c++23 -O2 -I tests/collapse -I include tests/collapse/driver.cpp <this file>
+/** Cancellation Alt 1c (C++23): receive() returns std::expected<void, sub0x::Stop> instead of a bare bool --
+ *  a documented reason for stopping, still by value, still detected at compile time and short-circuited by a
+ *  fold (Alt 1's mechanism, tests/collapse/sandbox/sub0x_static.hpp). Controller and Logger are unaffected
+ *  (void receive()). Bound order: Gate, Controller, Logger (StaticWiring, pattern B2).
+ *  The _cpp23 suffix builds this variant alone at C++23; CMake skips it where std::expected is unavailable.
  */
 #include "collapse_case.hpp"
 #include "sandbox/sub0x_static.hpp"
