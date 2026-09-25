@@ -5,6 +5,12 @@
 [BROKER_CUSTOMISATION.md](../BROKER_CUSTOMISATION.md), known issues K3, K4, K5, K10). Does not touch
 `tests/design/broker_config/` or `sub0pub.hpp`. Code: `tests/design/quiescence/`.
 
+> **Review verdict (section 9): the recommendation below is reversed.** Mechanisms 2 (hazard pointer) and 3
+> (epoch) fail three lifetime probes that mechanism 1 (handshake, the #8 prototype's design) passes:
+> self-disconnect inside `receive()` deadlocks, and a nested same-type publication or a 9th publishing thread
+> lets `disconnect()` return while `receive()` is still running. **Mechanism 1 remains the design** until a
+> fixed mechanism 2/3 passes the probes and is re-measured with the fixes' cost included.
+
 This spike implements four teardown mechanisms side by side (plus a C++20 outlook variant), measures
 each one, and tries to break each one with a deliberate mutation under ASan. It also found and fixed two
 real, previously-undocumented lifetime bugs while building the harness — recorded below because they
@@ -216,7 +222,7 @@ required by the C++17 targets.
   `BROKER_CUSTOMISATION.md` section 7's proposed answers, but that is a readability improvement, not a
   correctness or performance one.
 
-## 8. Recommendation
+## 8. Recommendation (as submitted; superseded by section 9)
 
 **Primary: mechanism 2 (hazard pointer, per-thread fixed slots, no active-dispatch list).** It publishes
 cheaper than mechanism 1 at 1 and especially 8 subscribers (165 vs 256 instr/op, both well under the
@@ -252,3 +258,41 @@ already implies are easy to get wrong even for a stateless subscriber, strengthe
 debug-mode check rather than documentation alone. K10 -- this spike's version of the cross-thread
 mutation test was deterministic (5/5) across every run performed; recommend porting its widened race
 window back to `test_endpoints.cpp`.
+
+## 9. Review: lifetime probes (added on integration)
+
+The cross-thread teardown test (section 5) only covers one shape of race: a single non-nested publisher
+thread and subscribers that never disconnect from inside a callback. Three shapes the existing #8 prototype
+already handles were not exercised. `tests/design/quiescence/probe_lifetime.cpp` (ctest `Sub0Pub_QxProbes`,
+POSIX only) runs each in a forked child with a timeout:
+
+| Probe | 1 handshake | 2 hazard pointer | 3 epoch |
+|---|---|---|---|
+| P1 receiver calls `disconnect()` on itself inside `receive()` | safe | **DEADLOCK** | **DEADLOCK** |
+| P2 `receive()` publishes the same type (nested), another thread disconnects the outer receiver | safe | **UNSAFE** | **UNSAFE** |
+| P3 a 9th publishing thread (more than `kMaxReaders`) | safe | **UNSAFE** | **UNSAFE** |
+
+UNSAFE: `disconnect()` returned while a thread was still executing that subscriber's `receive()`, the
+use-after-free the whole guarantee exists to prevent. Mechanism 1 is required to pass every probe (the test
+fails otherwise); 2 and 3 are reported. The results are the same under ASan and TSan.
+
+Root causes, all in the per-thread slot model shared by 2 and 3:
+- **P1:** `disconnect()` waits for every hazard/reader slot, including the calling thread's own slot, which
+  names the subscriber whose `receive()` is making the call. Mechanism 1 recognises the calling thread's own
+  dispatch frame and does not wait on it.
+- **P2:** one slot per thread holds one hazard (or one epoch). A nested publication overwrites it and
+  clears it on exit, so the outer publication is unprotected for the rest of its `receive()`. Nesting needs
+  a slot per dispatch frame (a per-thread stack), which is what mechanism 1's frame list already is.
+- **P3:** `myThreadSlot()` assigns slots `% kMaxReaders`, so thread 9 silently shares thread 1's slot and
+  each clears the other's hazard. A bounded registry has to fail loudly (refuse or assert) when full, or
+  fall back to a mechanism that does not need a slot.
+
+**Consequence for section 5's numbers:** the cheaper publish of 2 and 3 is partly the cost of what they
+skip: per-frame nesting, own-thread detection, and a checked slot claim. Their instr/op cannot be compared
+with mechanism 1's until those fixes are in. **Mechanism 1 (handshake) remains the design**; K3's cost
+(seq_cst per subscriber, second lock to unlink) stays a known issue. Mechanism 4 (`disconnectLater`, for
+K4) and mechanism 5 (CRTP factory, for K5) are orthogonal to the choice and layer on mechanism 1 unchanged.
+A follow-up round fixes 2 and 3, re-runs the probes and re-measures.
+
+Also fixed on integration: `Sub0Pub_QxTests_Cxx20` was `EXCLUDE_FROM_ALL` yet registered with ctest, so a
+default build reported it "Not Run" (a ctest failure). It is now built by default.

@@ -37,7 +37,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     check_cxx_compiler_flag("-std=c++20" QX_HAS_CXX20_FLAG)
 endif()
 if (QX_HAS_CXX20_FLAG OR MSVC)
-    add_executable(Sub0Pub_QxTests_Cxx20 EXCLUDE_FROM_ALL
+    add_executable(Sub0Pub_QxTests_Cxx20
         ../../test_main.cpp
         test_quiescence_cxx20.cpp
     )
@@ -45,4 +45,15 @@ if (QX_HAS_CXX20_FLAG OR MSVC)
     target_include_directories(Sub0Pub_QxTests_Cxx20 PRIVATE "${QX_DIR}" "${QX_VENDOR}")
     target_compile_features(Sub0Pub_QxTests_Cxx20 PRIVATE cxx_std_20)
     add_test(NAME Sub0Pub_QxTests_Cxx20 COMMAND Sub0Pub_QxTests_Cxx20)
+endif()
+
+# Lifetime probes added in review (quiescence.md section 9): self-disconnect, nested publish, more threads than
+# kMaxReaders. POSIX only (fork + alarm isolate a deadlock or crash per probe).
+if (UNIX)
+    add_executable(Sub0Pub_QxProbes probe_lifetime.cpp)
+    target_include_directories(Sub0Pub_QxProbes PRIVATE "${QX_DIR}")
+    target_compile_features(Sub0Pub_QxProbes PRIVATE cxx_std_17)
+    find_package(Threads REQUIRED)
+    target_link_libraries(Sub0Pub_QxProbes PRIVATE Threads::Threads)
+    add_test(NAME Sub0Pub_QxProbes COMMAND Sub0Pub_QxProbes)
 endif()
