@@ -12,7 +12,10 @@ Benchmarks are built alongside tests but not run by ctest:
 ```bash
 ./build/tests/Release/Sub0Pub_Bench   # Windows
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
+python3 tests/bench/run_baseline.py   # all policies + IPC, with callgrind instr/op (Linux)
+python3 tests/footprint/measure_footprint.py  # code size / RAM, host + Cortex-M33
 ```
+Compare against `docs/PERFORMANCE_BASELINE.md`: instr/op is the regression bar; ns/op is noisy.
 
 ## Commit Rules
 
@@ -33,7 +36,7 @@ Follow `STYLE_GUIDE.md` for all C++ code. Key points:
 
 ### Tests
 - All new features must have corresponding tests in `tests/`
-- Performance-sensitive changes should be validated with `Sub0Pub_Bench`
+- Performance-sensitive changes should be validated with `Sub0Pub_Bench` / `run_baseline.py` against `docs/PERFORMANCE_BASELINE.md`
 - Tests must pass locally before committing: `ctest --preset default`
 - A git pre-push hook runs tests automatically — set up with: `git config core.hooksPath .githooks`
 

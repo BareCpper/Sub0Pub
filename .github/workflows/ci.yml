@@ -58,8 +58,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # ci-asan: Debug with assertions; ci-asan-release: -O2 -DNDEBUG (release-mode capacity contract, issue #4)
-        preset: [ci-asan, ci-asan-release]
+        # ci-asan: Debug with assertions; ci-asan-release: -O2 -DNDEBUG (release-mode capacity contract, issue #4);
+        # ci-tsan: data races, incl. the cross-thread teardown test (tests/design/broker_config/test_endpoints.cpp)
+        preset: [ci-asan, ci-asan-release, ci-tsan]
     steps:
       - uses: actions/checkout@v4
       - name: Configure (ASan + UBSan)

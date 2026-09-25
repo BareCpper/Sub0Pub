@@ -111,6 +111,8 @@ Benchmarks are built alongside tests and capture system info automatically. Run 
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
 ```
 
+`Sub0Pub_Bench_Unchecked`, `_Checked` and `_ThreadSafe` run the same scenarios under the other dispatch policies, and `Sub0Pub_Bench_Ipc` measures serialize/deserialize end to end. `python3 tests/bench/run_baseline.py` runs them all and adds deterministic instruction counts (valgrind). `python3 tests/footprint/measure_footprint.py` reports code size and RAM for the host and Cortex-M33. The measured baseline and its findings are in [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
+
 **Reference results:**
 
 > Intel Core Ultra 9 275HX, 24 threads, 31 GB RAM, MSVC 1950, Release build
