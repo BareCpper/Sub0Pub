@@ -296,3 +296,130 @@ A follow-up round fixes 2 and 3, re-runs the probes and re-measures.
 
 Also fixed on integration: `Sub0Pub_QxTests_Cxx20` was `EXCLUDE_FROM_ALL` yet registered with ctest, so a
 default build reported it "Not Run" (a ctest failure). It is now built by default.
+
+## 10. Round 2: fixing mechanisms 2 and 3 against the lifetime probes
+
+### 10.1 The fix
+
+Both mechanisms' per-thread slot moved from "assigned by an ever-incrementing counter, one hazard/epoch
+value, never released" to a design with three changes, applied identically to both:
+
+1. **Claimed, not assigned (P3).** A slot is taken by `compare_exchange` on a `claimed` flag
+   (`qx::ClaimableSlot`, `qx_common.hpp`), not handed out by `nextSlot.fetch_add(1) % N`. It is released
+   -- so a later thread can reuse it -- when the owning thread exits (a `thread_local` RAII lease) or
+   switches to a different table. **Exceeding `kMaxReaders` *simultaneously live* publishing threads on
+   one table now fails loudly**: `publish()` refuses to deliver, increments a `refusedFull` counter on the
+   table, and (behind `QX_LOUD_FAILURE`, on by default) asserts. It never silently aliases another
+   thread's slot.
+2. **A per-thread nesting stack, not one cell (P2).** Each claimed slot gained a fixed
+   `frame[kMaxNesting]` array (hazard pointer) or a `depth` counter over a single `epoch` value that is
+   only set on the outermost entry (epoch), instead of one hazard/one epoch per thread. A same-thread
+   nested `publish()` of the same `Data` type (a receiver publishing its own type) now gets its own frame
+   (hazard pointer) or is protected by the still-valid outer epoch (epoch) instead of clobbering the
+   thread's only slot. Exceeding `kMaxNesting` (4) fails loudly the same way as a full registry
+   (`refusedNesting`).
+3. **Own-thread skip in `disconnect()` (P1).** Both mechanisms' wait loop now skips any slot whose
+   `ownerId` is the calling thread's own id, mirroring what mechanism 1's `a->thread != me` check already
+   did for the active-dispatch list. A subscriber disconnecting itself from inside its own `receive()` no
+   longer waits on the very frame that can only be cleared by that same call returning.
+
+`ownerId` is written by the CAS-claiming thread before the `compare_exchange`'s release makes `claimed`
+visible, and read by other threads only after they observe `claimed == true` (acquire) -- an ordinary
+publish/subscribe pattern, so no extra synchronization was needed for it. The core hazard-pointer and
+epoch correctness arguments from section 2 are otherwise unchanged: each frame/epoch cell is still
+external to the subscriber object, and the seq_cst store-then-reload (hazard) or lock-serialized
+snapshot-then-epoch-bump (epoch) argument still applies per frame.
+
+`qx_refcount_wait.hpp` (mechanism 2b, the C++20 outlook variant) received the same three fixes for
+consistency, though the probes only exercise mechanisms 1-3.
+
+### 10.2 Probes: before / after
+
+| Probe | 1 handshake | 2 hazard (before → after) | 3 epoch (before → after) |
+|---|---|---|---|
+| P1 self-disconnect | safe | DEADLOCK → **safe** | DEADLOCK → **safe** |
+| P2 nested publish | safe | UNSAFE → **safe** | UNSAFE → **safe** |
+| P3 >`kMaxReaders` threads | safe | UNSAFE → **safe** | UNSAFE → **safe** |
+
+`Sub0Pub_QxProbes` now runs all rows with `mustBeSafe=true` (`probe_lifetime.cpp`), stable across 5 runs
+of the release binary and 5 runs each under `ci-asan` and `ci-tsan` (`ctest --preset ci-asan`/`ci-tsan -R
+"Sub0Pub_QxTests$|Sub0Pub_QxProbes|Sub0Pub_QxTests_Cxx20"`), all clean. `Sub0Pub_QxTests_Mutated`
+(`QX_MUTATE_SKIP_WAIT=1`) still fails 5/5 under `ci-asan` with the same heap-use-after-free/SEGV in
+`receive()` as round 1 -- the fix did not touch the `#if !QX_MUTATE_SKIP_WAIT` wait itself, only what it
+waits on. `ctest --preset default` passes all 112 registered tests.
+
+### 10.3 Cost of the fix: instr/op (GCC 13, callgrind, same method as section 5)
+
+| Scenario | 1 Handshake | 2 Hazard (before → after) | 3 Epoch (before → after) |
+|---|---:|---:|---:|
+| publish, 0 subscribers | 67 | 77 → 100 (+23) | 45 → 57 (+12) |
+| publish, 1 subscriber | 95 | 88 → 111 (+23) | 72 → 84 (+12) |
+| publish, 8 subscribers | 256 | 165 → 188 (+23) | 118 → 130 (+12) |
+| create + destroy | 108 | 177 → 198 (+21) | 145 → 163 (+18) |
+
+The extra cost is the claimed-slot lookup (a cached `thread_local` load in the common case, since a slot
+is claimed once per thread and reused) plus the nesting-depth increment/decrement (`fetch_add`/`fetch_sub`,
+relaxed) on every `publish()` call. After the fix, mechanism 1 is cheapest at 0, 1 subscribers and at
+create+destroy; mechanisms 2 and 3 are cheaper only at 8 subscribers (188 and 130 vs 256), and by a smaller
+margin than round 1's unfixed numbers showed.
+
+### 10.4 Cost of the fix: RAM (GCC 13, `sizeof`, one type, fixed per-table)
+
+| | Before | After | Why |
+|---|---:|---:|---|
+| Hazard (mechanism 2) Table | 136 B | 528 B | `kMaxReaders(8) x (claimed + ownerId + kMaxNesting(4) hazard pointers + depth)` replaces 8 plain hazard pointers |
+| Epoch (mechanism 3) Table | 208 B | 344 B | `kMaxReaders(8) x (claimed + ownerId + depth + epoch)` replaces 8 `(active, epoch)` pairs |
+| Handshake (mechanism 1) Table | 80 B | 80 B (unchanged) | not affected by this round |
+
+Both fixed mechanisms' per-table RAM roughly doubled to more than triple mechanism 1's. Both are still
+fixed and allocation-free (no change to that property), and per-`Subscribe` overhead is unchanged (16 B,
+all three).
+
+### 10.5 Starvation, re-measured (5 runs, 500 rounds, 4 continuously-publishing threads, same method as
+section 5)
+
+| Run | 1 Handshake | 2 Hazard | 3 Epoch |
+|---|---:|---:|---:|
+| 1 | 0 | 2 | 56 |
+| 2 | 0 | 1 | 232 |
+| 3 | 1 | 2 | 230 |
+| 4 | 0 | 1 | 91 |
+| 5 | 0 | 2 | 86 |
+
+Handshake and the hazard pointer are essentially unchanged from round 1 (still single/low-double-digit
+spins: the own-thread skip and the extra per-frame scan did not meaningfully change the wait, since this
+test has no self-disconnect or nesting to exercise the new code paths' cost). Epoch's tail is, if
+anything, still the outlier (56-232 here; round 1 saw one run at 17,145) -- the fix did not change its
+conservative-by-construction wait argument (section 2), only fixed the three correctness gaps.
+
+### 10.6 Recommendation, revised
+
+**Mechanism 1 (handshake) is now the clear recommendation, not a fallback.** Before this round, mechanism
+2 looked like a plausible win (cheaper at 8 subscribers, fixed RAM) at the cost of three then-undiscovered
+correctness gaps. Fixed, mechanism 2 is:
+- **more expensive than mechanism 1 at 0 and 1 subscribers** (100 vs 67, 111 vs 95),
+- **still cheaper at 8 subscribers** (188 vs 256) but by a smaller margin than round 1 (was 165 vs 256),
+- **still more expensive to create+destroy** (198 vs 108, now further behind: was 177 vs 108),
+- and now needs **3.3x** mechanism 1's RAM per table for a fixed `kMaxReaders`/`kMaxNesting` bound that
+  mechanism 1's linked list does not need at all (section 5's RAM table already noted mechanism 1 has no
+  such cap).
+
+Mechanism 3 (epoch) keeps the cheapest publish path at every subscriber count even after the fix (130 at 8
+subscribers vs mechanism 1's 256), which is a real number, but its tail latency remains one to three orders
+of magnitude worse than the other two, and it costs the most RAM of the three per table (344 B). It is
+defensible only for a workload that is publish-heavy, essentially never calls `disconnect()` on the hot
+path, and can tolerate an occasional long wait when it does -- a narrower recommendation than round 1's
+"cheapest publish path" framing suggested, now that its correctness fix is priced in and its RAM and tail
+costs are compared fairly against mechanism 1.
+
+**Mechanisms 4 (`disconnectLater`) and 5 (CRTP factory)** are unaffected in their own right (K4, K5
+remain addressed as in section 8) but mechanism 4 is built on mechanism 2's hazard table (`qx_deferred.hpp`
+now scans every claimed slot's every frame in `quiescent()`), so it inherits mechanism 2's round-2 RAM and
+publish-path cost if adopted together.
+
+**Known issue, recorded:** the round-2 fix trades correctness for a `kMaxReaders x kMaxNesting`-shaped
+fixed cost (RAM and per-publish instructions) in both mechanisms 2 and 3, on top of what round 1 already
+measured. This is the "loud failure over silent sharing" design explicitly asked for, and it is now
+visibly priced rather than a free lunch: any recommendation of mechanism 2 or 3 over mechanism 1 has to be
+justified by 8-subscriber (or higher) fan-out being the dominant case for the type in question, not by the
+now-outdated round-1 numbers.

@@ -33,26 +33,70 @@ struct LockGuard
 
 constexpr uint32_t kCapacity = 8;
 
-/// Fixed bound on concurrently-publishing threads a table can track without allocation (embedded-friendly
-/// trade-off: a dynamic system would need a free list of hazard/reader slots instead).
+/// Fixed bound on *concurrently claimed* reader/hazard slots a table can track without allocation
+/// (embedded-friendly: a dynamic system would need a free list instead). Round 2 fix (quiescence.md
+/// section 9, P3): a slot is CLAIMED by CAS and released when the owning thread is done with the table
+/// (thread exit, or the thread moves on to a different table), never assigned by an ever-growing counter
+/// modulo N -- that let thread 9 silently alias thread 1's slot. Exceeding this many *simultaneously
+/// alive* publishing threads on one table now fails loudly (see ClaimedSlot::claim below), not silently.
 constexpr uint32_t kMaxReaders = 8;
 
-/// One fixed slot per (array, thread), assigned on first use and never released. Shared by mechanisms 2
-/// (hazard pointer) and 3 (epoch): both need a bounded, allocation-free "which threads might be reading
-/// right now" registry.
-template<class Slot, std::size_t N>
-inline Slot& myThreadSlot(std::array<Slot, N>& slots) noexcept
+/// Fixed bound on same-thread NESTED publish depth for the same Data type (round 2 fix, P2: a receiver
+/// that publishes its own type from inside receive()). Exceeding it fails loudly, the same as a full
+/// registry.
+constexpr uint32_t kMaxNesting = 4;
+
+/// Base for a hazard/reader slot that mechanisms 2 and 3 claim per (table, thread) instead of being
+/// handed one by an ever-incrementing counter. `ownerId` is valid exactly while `claimed` is true: it is
+/// written before the claiming `compare_exchange` publishes `claimed = true` (release), and read by other
+/// threads only after they observe `claimed == true` (acquire) -- a standard publish/subscribe pattern, so
+/// no separate synchronization on `ownerId` itself is needed.
+struct ClaimableSlot
 {
-    static std::atomic<uint32_t> nextSlot{0};
-    thread_local Slot* slot = nullptr;
-    thread_local const void* forArray = nullptr;
-    if (slot == nullptr || forArray != static_cast<const void*>(&slots))
+    std::atomic<bool> claimed{false};
+    std::thread::id ownerId{};
+};
+
+/// RAII lease: releases the claimed slot when the owning thread is done with this array, either because
+/// the thread exits (thread_local destructor) or because it starts using a different table (a different
+/// Data type has its own array, so this is rare in practice but handled for correctness).
+template<class Slot, std::size_t N>
+struct SlotLease
+{
+    Slot* slot = nullptr;
+    const void* forArray = nullptr;
+    ~SlotLease()
     {
-        const uint32_t idx = nextSlot.fetch_add(1, std::memory_order_relaxed) % static_cast<uint32_t>(N);
-        slot = &slots[idx];
-        forArray = &slots;
+        if (slot)
+            slot->claimed.store(false, std::memory_order_release);
     }
-    return *slot;
+};
+
+/// Claim a free slot in `slots` for the calling thread, caching the claim in thread-local storage so
+/// repeated calls are just a load. Returns nullptr when every slot is already claimed by a *different*,
+/// still-live thread -- callers MUST treat that as a loud failure (refuse the operation and report it),
+/// never fall back to sharing another thread's slot. Allocation-free: claim is a bounded CAS scan.
+template<class Slot, std::size_t N>
+inline Slot* myClaimedSlot(std::array<Slot, N>& slots) noexcept
+{
+    thread_local SlotLease<Slot, N> lease;
+    if (lease.slot != nullptr && lease.forArray == static_cast<const void*>(&slots))
+        return lease.slot;
+    if (lease.slot != nullptr) // this thread is switching to a different table's array: release the old one
+        lease.slot->claimed.store(false, std::memory_order_release);
+    lease.slot = nullptr;
+    lease.forArray = &slots;
+    for (auto& s : slots)
+    {
+        bool expected = false;
+        if (s.claimed.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        {
+            s.ownerId = std::this_thread::get_id(); // published by the compare_exchange's release above
+            lease.slot = &s;
+            break;
+        }
+    }
+    return lease.slot; // nullptr: registry full
 }
 
 /// Global counter of iterations spent spin-waiting in a disconnect() call, for the starvation experiment.

@@ -37,8 +37,13 @@ inline bool quiescent(const Subscribe<Data>* s) noexcept
 {
     Table<Data>& t = Broker<Data>::table();
     for (auto& h : t.hazard)
-        if (h.load(std::memory_order_seq_cst) == s)
-            return false;
+    {
+        if (!h.claimed.load(std::memory_order_acquire))
+            continue;
+        for (auto& f : h.frame)
+            if (f.load(std::memory_order_seq_cst) == s)
+                return false;
+    }
     return true;
 }
 

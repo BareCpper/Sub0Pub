@@ -1,23 +1,34 @@
-// Mechanism 3: epoch / grace-period reclamation (QSBR-style), fixed reader-slot table (no allocation,
-// bounded to kMaxReaders concurrent publishing threads -- an embedded-friendly bound, cf. hazard-pointer
-// lists that grow per thread). A dispatcher publishes the epoch it started in before iterating the table;
-// disconnect() removes the entry, bumps the global epoch, and waits until every reader slot that had
-// started strictly before the bump has either gone idle or moved on to (or past) the bump epoch. See
-// docs/design/spikes/quiescence.md for the starvation analysis.
+// Mechanism 3: epoch / grace-period reclamation (QSBR-style), fixed reader-slot table, CLAIMED (not
+// assigned by a growing counter) one per concurrently-publishing thread -- no allocation, bounded to
+// kMaxReaders concurrently-live publishing threads on one table (an embedded-friendly bound; exceeding
+// it fails loudly, see myClaimedSlot in qx_common.hpp). A dispatcher publishes the epoch it started in
+// before iterating the table; disconnect() removes the entry, bumps the global epoch, and waits until
+// every OTHER thread's reader slot that had started strictly before the bump has either gone idle or
+// moved on to (or past) the bump epoch. See docs/design/spikes/quiescence.md for the starvation analysis,
+// and sections 9-10 for the three lifetime probes this design fixes (self-disconnect, nested publish,
+// more publishing threads than kMaxReaders).
 #pragma once
 #include "qx_common.hpp"
-#include <array>
+#include <cassert>
+
+#ifndef QX_LOUD_FAILURE
+#define QX_LOUD_FAILURE 1
+#endif
 
 namespace qx::ep {
 
-constexpr uint32_t kMaxReaders = 8;
-
 template<class Data> class Subscribe;
 
-struct ReaderSlot
+/// One per (table, concurrently-publishing thread). `depth` counts same-thread NESTING (P2: a receiver
+/// that publishes its own type again from inside receive()) instead of a plain bool: only the OUTERMOST
+/// (depth 0->1) transition records `epoch`, so a nested call keeps protecting the table at the outer
+/// call's (older, more conservative) epoch rather than overwriting it with a newer one that would not
+/// cover the outer frame's still-in-flight snapshot.
+template<class Data>
+struct ReaderSlot : ClaimableSlot
 {
-    std::atomic<bool> active{false};
-    std::atomic<uint64_t> epoch{0};
+    std::atomic<uint32_t> depth{0};  // only the owning thread mutates this; 0 = not reading
+    std::atomic<uint64_t> epoch{0};  // valid while depth > 0
 };
 
 template<class Data>
@@ -26,24 +37,10 @@ struct Table : SpinLock
     uint32_t count = 0;
     Subscribe<Data>* entries[kCapacity] = {};
     std::atomic<uint64_t> epoch{1};
-    std::array<ReaderSlot, kMaxReaders> readers{};
+    std::array<ReaderSlot<Data>, kMaxReaders> readers{};
+    std::atomic<uint32_t> refusedFull{0};    // report: publish() calls refused, registry had no free slot
+    std::atomic<uint32_t> refusedNesting{0}; // report: publish() calls refused, kMaxNesting exceeded
 };
-
-/// One fixed slot per thread, assigned on first use and never released (bounded thread count is the
-/// embedded-friendly trade-off this mechanism makes; a dynamic system would need a free list).
-inline ReaderSlot* mySlot(std::array<ReaderSlot, kMaxReaders>& readers) noexcept
-{
-    static std::atomic<uint32_t> nextSlot{0};
-    thread_local ReaderSlot* slot = nullptr;
-    thread_local std::array<ReaderSlot, kMaxReaders>* forTable = nullptr;
-    if (slot == nullptr || forTable != &readers)
-    {
-        uint32_t idx = nextSlot.fetch_add(1, std::memory_order_relaxed) % kMaxReaders;
-        slot = &readers[idx];
-        forTable = &readers;
-    }
-    return slot;
-}
 
 template<class Data>
 class Broker
@@ -74,12 +71,17 @@ public:
                 }
         }
 #if !QX_MUTATE_SKIP_WAIT
-        // Grace period: any reader whose slot shows an epoch strictly older than `target` might still be
-        // iterating the pre-removal table (mutation M2: skip this wait -> stale pointer used past removal).
+        // Grace period: any OTHER thread's slot showing an epoch strictly older than `target` might still
+        // be iterating the pre-removal table (mutation M2 analog: skip this wait -> stale pointer used
+        // past removal). P1 fix: skip this thread's OWN slot -- a self-disconnect from inside receive()
+        // would otherwise wait for its own depth to reach 0, which only the same call could do, deadlock.
         const uint64_t target = t.epoch.fetch_add(1, std::memory_order_acq_rel) + 1;
+        const std::thread::id me = std::this_thread::get_id();
         for (auto& r : t.readers)
         {
-            while (r.active.load(std::memory_order_acquire) && r.epoch.load(std::memory_order_acquire) < target)
+            if (!r.claimed.load(std::memory_order_acquire) || r.ownerId == me)
+                continue;
+            while (r.depth.load(std::memory_order_acquire) != 0 && r.epoch.load(std::memory_order_acquire) < target)
             {
                 waitIterCounter().fetch_add(1, std::memory_order_relaxed);
                 std::this_thread::yield();
@@ -91,9 +93,28 @@ public:
     static void publish(const Data& data) noexcept
     {
         Table<Data>& t = table();
-        ReaderSlot* my = mySlot(t.readers);
-        my->epoch.store(t.epoch.load(std::memory_order_acquire), std::memory_order_relaxed);
-        my->active.store(true, std::memory_order_release); // publish "I'm reading at this epoch" (mutation M1: skip -> no grace period wait ever sees us)
+        ReaderSlot<Data>* const my = myClaimedSlot(t.readers);
+        if (my == nullptr)
+        {
+            // P3 fix: kMaxReaders concurrently-live publishing threads already claimed every slot.
+            t.refusedFull.fetch_add(1, std::memory_order_relaxed);
+#if QX_LOUD_FAILURE
+            assert(false && "qx::ep: reader slot registry full (kMaxReaders concurrently-publishing threads)");
+#endif
+            return;
+        }
+        const uint32_t myDepth = my->depth.fetch_add(1, std::memory_order_acq_rel);
+        if (myDepth >= kMaxNesting)
+        {
+            t.refusedNesting.fetch_add(1, std::memory_order_relaxed);
+#if QX_LOUD_FAILURE
+            assert(false && "qx::ep: nested publish() depth exceeded kMaxNesting for this Data type");
+#endif
+            my->depth.fetch_sub(1, std::memory_order_relaxed);
+            return;
+        }
+        if (myDepth == 0) // only the outermost call (re)publishes the epoch floor -- see ReaderSlot doc
+            my->epoch.store(t.epoch.load(std::memory_order_acquire), std::memory_order_release);
         Subscribe<Data>* snapshot[kCapacity];
         uint32_t n;
         {
@@ -103,7 +124,7 @@ public:
         }
         for (uint32_t i = 0; i < n; ++i)
             snapshot[i]->receive(data);
-        my->active.store(false, std::memory_order_release);
+        my->depth.fetch_sub(1, std::memory_order_acq_rel);
     }
 };
 

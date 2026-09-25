@@ -1,10 +1,16 @@
-// Mechanism 2b: same hazard-pointer scheme as mechanism 2 (qx_refcount.hpp), but disconnect() blocks on
-// its hazard slot with C++20 std::atomic<T>::wait()/notify_all() instead of yield-spinning, and publish()
-// notifies after clearing its slot. Requires C++20 (__cpp_lib_atomic_wait); excluded otherwise. See
+// Mechanism 2b: same hazard-pointer scheme as mechanism 2 (qx_refcount.hpp, including the round-2 fixes
+// for self-disconnect, nested publish and >kMaxReaders threads), but disconnect() blocks on each hazard
+// frame with C++20 std::atomic<T>::wait()/notify_all() instead of yield-spinning, and publish() notifies
+// after clearing its frame. Requires C++20 (__cpp_lib_atomic_wait); excluded otherwise. See
 // docs/design/spikes/quiescence.md, "C++23 outlook".
 #pragma once
 #include "qx_common.hpp"
 #include <algorithm>
+#include <cassert>
+
+#ifndef QX_LOUD_FAILURE
+#define QX_LOUD_FAILURE 1
+#endif
 
 #if defined(__cpp_lib_atomic_wait)
 
@@ -13,11 +19,20 @@ namespace qx::rcw {
 template<class Data> class Subscribe;
 
 template<class Data>
+struct HazardSlot : ClaimableSlot
+{
+    std::array<std::atomic<Subscribe<Data>*>, kMaxNesting> frame{};
+    std::atomic<uint32_t> depth{0};
+};
+
+template<class Data>
 struct Table : SpinLock
 {
     uint32_t count = 0;
     std::atomic<Subscribe<Data>*> entries[kCapacity] = {};
-    std::array<std::atomic<Subscribe<Data>*>, kMaxReaders> hazard{};
+    std::array<HazardSlot<Data>, kMaxReaders> hazard{};
+    std::atomic<uint32_t> refusedFull{0};
+    std::atomic<uint32_t> refusedNesting{0};
 };
 
 template<class Data>
@@ -70,14 +85,19 @@ public:
                 }
         }
 #if !QX_MUTATE_SKIP_WAIT
-        // C++20: block (no spin, no allocation) on each hazard slot until it stops naming s.
+        // C++20: block (no spin, no allocation) on each OTHER thread's hazard frames until none names s.
+        // P1 fix: skip this thread's own claimed slot (see qx_refcount.hpp).
+        const std::thread::id me = std::this_thread::get_id();
         for (auto& h : t.hazard)
         {
-            for (Subscribe<Data>* v; (v = h.load(std::memory_order_seq_cst)) == s;)
-            {
-                waitIterCounter().fetch_add(1, std::memory_order_relaxed); // counts wake-ups, not spins
-                h.wait(v, std::memory_order_seq_cst);
-            }
+            if (!h.claimed.load(std::memory_order_acquire) || h.ownerId == me)
+                continue;
+            for (auto& f : h.frame)
+                for (Subscribe<Data>* v; (v = f.load(std::memory_order_seq_cst)) == s;)
+                {
+                    waitIterCounter().fetch_add(1, std::memory_order_relaxed); // counts wake-ups, not spins
+                    f.wait(v, std::memory_order_seq_cst);
+                }
         }
 #endif
     }
@@ -85,17 +105,37 @@ public:
     static void publish(const Data& data) noexcept
     {
         Table<Data>& t = table();
-        std::atomic<Subscribe<Data>*>& myHazard = myThreadSlot(t.hazard);
+        HazardSlot<Data>* const mySlot = myClaimedSlot(t.hazard);
+        if (mySlot == nullptr)
+        {
+            t.refusedFull.fetch_add(1, std::memory_order_relaxed);
+#if QX_LOUD_FAILURE
+            assert(false && "qx::rcw: hazard slot registry full");
+#endif
+            return;
+        }
+        const uint32_t myDepth = mySlot->depth.fetch_add(1, std::memory_order_relaxed);
+        if (myDepth >= kMaxNesting)
+        {
+            t.refusedNesting.fetch_add(1, std::memory_order_relaxed);
+#if QX_LOUD_FAILURE
+            assert(false && "qx::rcw: nested publish() depth exceeded kMaxNesting");
+#endif
+            mySlot->depth.fetch_sub(1, std::memory_order_relaxed);
+            return;
+        }
+        std::atomic<Subscribe<Data>*>& myFrame = mySlot->frame[myDepth];
         for (auto& e : t.entries)
         {
             Subscribe<Data>* const s = e.load(std::memory_order_seq_cst);
             if (s == nullptr) continue;
-            myHazard.store(s, std::memory_order_seq_cst); // mutation M1: skip -> races disconnect's wait
+            myFrame.store(s, std::memory_order_seq_cst); // mutation M1: skip -> races disconnect's wait
             if (e.load(std::memory_order_seq_cst) == s)
                 s->receive(data);
-            myHazard.store(nullptr, std::memory_order_seq_cst); // mutation M2: skip -> disconnect blocks forever
-            myHazard.notify_all();
+            myFrame.store(nullptr, std::memory_order_seq_cst); // mutation M2: skip -> disconnect blocks forever
+            myFrame.notify_all();
         }
+        mySlot->depth.fetch_sub(1, std::memory_order_relaxed);
     }
 };
 

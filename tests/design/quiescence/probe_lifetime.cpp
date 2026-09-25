@@ -5,8 +5,9 @@
  *        then keeps running while another thread disconnects it       blocks until receive() returns)
  *    P3  more publishing threads than kMaxReaders                 (safe = as P2)
  *  UNSAFE means disconnect() returned while a thread was still executing receive(): a use-after-free
- *  window. Exit status is non-zero if a mechanism in kMustBeSafe is not safe in every probe; the other
- *  mechanisms' results are reported (their known failures are recorded in quiescence.md). POSIX only.
+ *  window. Exit status is non-zero if a mechanism marked mustBeSafe is not safe in every probe. Round 2
+ *  (quiescence.md section 10) fixed mechanisms 2 and 3 against all three probes; all rows are now
+ *  mustBeSafe=true. POSIX only.
  */
 #include "qx_handshake.hpp"
 #include "qx_refcount.hpp"
@@ -112,7 +113,8 @@ static void row(const char* name, bool mustBeSafe, const char* r1, const char* r
         runForked([]{ return p3<qx::NS::Subscribe, M<base+3>, P<M<base+3>>>(); }));
 int main() {
     ROW("handshake", hs, HsP, 10, true)
-    ROW("hazard", rc, RcP, 20, false) // known: DEADLOCK / UNSAFE / UNSAFE (quiescence.md section 9)
-    ROW("epoch", ep, EpP, 30, false)  // known: DEADLOCK / UNSAFE / UNSAFE
+    ROW("hazard", rc, RcP, 20, true) // round 2 fix (quiescence.md section 10): claimed slots + per-thread
+                                      // nesting stack + own-thread skip -- all three probes now safe
+    ROW("epoch", ep, EpP, 30, true)  // round 2 fix: same three fixes applied to the epoch/reader-slot model
     return failures;
 }
