@@ -116,7 +116,9 @@ def multi_tu(case, variants):
 def build(build_cfg, case, variant, observable, out_dir):
     exe = os.path.join(out_dir, f"{case}-{variant}-{observable}.elf")
     mapfile = exe[:-4] + ".map"
-    cmd = [build_cfg["cxx"], *COMMON, *build_cfg["flags"], f"-DCOLLAPSE_OBSERVABLE={observable}",
+    # A variant named *_cpp23 opts into C++23 for itself only (matches tests/collapse/CMakeLists.txt)
+    std = ["-std=c++23"] if variant.endswith("_cpp23") else []
+    cmd = [build_cfg["cxx"], *COMMON, *std, *build_cfg["flags"], f"-DCOLLAPSE_OBSERVABLE={observable}",
            os.path.join(HERE, "driver.cpp"), *variant_sources(case, variant),
            *(os.path.join(HERE, f) for f in build_cfg.get("support", [])),
            "-o", exe, *build_cfg["ldflags"], f"-Wl,-Map={mapfile}"]
