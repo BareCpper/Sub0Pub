@@ -161,15 +161,25 @@ namespace sub0x
 
     namespace detail
     {
-        void sub0_config() = delete; ///< poison pill: makes sub0_config an ADL-only customisation point
+        /// Poison pill: ordinary lookup only ever finds this deleted template, so sub0_config is an ADL-only
+        /// customisation point. A user's non-template sub0_config(T*) wins overload resolution against it.
+        template<class T> void sub0_config(T*) = delete;
+
+        /// Overload-based detection (portable to MSVC, which mishandles ADL inside void_t partial specialisations)
+        template<class T> auto adl_probe(int) -> decltype(sub0_config(static_cast<T*>(nullptr)))*;
+        template<class T> void adl_probe(...);
 
         template<class T, class = void> struct member_config { static constexpr bool found = false; };
         template<class T> struct member_config<T, std::void_t<typename T::sub0_config>>
         { static constexpr bool found = true; using type = typename T::sub0_config; };
 
-        template<class T, class = void> struct adl_config { static constexpr bool found = false; };
-        template<class T> struct adl_config<T, std::void_t<decltype(sub0_config(static_cast<T*>(nullptr)))>>
-        { static constexpr bool found = true; using type = decltype(sub0_config(static_cast<T*>(nullptr))); };
+        template<class T>
+        struct adl_config
+        {
+            using probed = decltype(adl_probe<T>(0));
+            static constexpr bool found = !std::is_void_v<probed>;
+            using type = std::remove_pointer_t<probed>;
+        };
 
         template<class T, class = void> struct traits_config { static constexpr bool found = false; };
         template<class T> struct traits_config<T, std::void_t<typename configure<T>::type>>

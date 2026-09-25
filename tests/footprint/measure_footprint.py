@@ -39,6 +39,14 @@ POLICIES = OrderedDict([
     ("ThreadSafe", ["-DNDEBUG", "-DSUB0PUB_THREAD_SAFE=true"]),
 ])
 
+PROTO_DIR = os.path.normpath(os.path.join(HERE, "..", "design", "broker_config"))
+PROTO_SCENARIOS = OrderedDict([
+    ("fp_sub0x_default", "Default (Snapshot, ThreadLocal, filter)"),
+    ("fp_sub0x_direct", "Direct"),
+    ("fp_sub0x_static", "Direct + StaticContext (no TLS)"),
+    ("fp_sub0x_lean", "Lean (Direct, NoContext, NoFilter)"),
+])
+
 COMMON = ["-std=c++17", "-Os", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections", "-I" + INCLUDE]
 
 TARGETS = OrderedDict()
@@ -49,9 +57,9 @@ if shutil.which("arm-none-eabi-g++"):
                        "flags": ["-mcpu=cortex-m33", "-mthumb", "-mfloat-abi=hard", "-mfpu=fpv5-sp-d16"]}
 
 
-def compile_obj(target, scenario, policy_flags, out_dir):
+def compile_obj(target, scenario, policy_flags, out_dir, src_dir=HERE, extra=()):
     obj = os.path.join(out_dir, scenario + ".o")
-    cmd = [target["cxx"], *COMMON, *target["flags"], *policy_flags, "-c", os.path.join(HERE, scenario + ".cpp"), "-o", obj]
+    cmd = [target["cxx"], *COMMON, *target["flags"], *policy_flags, *extra, "-c", os.path.join(src_dir, scenario + ".cpp"), "-o", obj]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         first_error = next((l for l in r.stderr.splitlines() if "error" in l), r.stderr.strip()[:120])
@@ -168,6 +176,30 @@ def main():
             else:
                 print(f"- **{pname}**: " + ", ".join(f"`{u}`" for u in r["undef"]))
         print()
+
+
+    # Prototype (docs/design/BROKER_CUSTOMISATION.md): the policy is bound per Data type, not per build
+    if os.path.isdir(os.path.join(PROTO_DIR, "footprint")):
+        print("## Prototype: sub0x per-type configurations\n")
+        print("Same usage as `fp_1type` (1 type, 1 publisher, 1 subscriber, 1 publish site); compare with "
+              "the Snapshot (default) column above.\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            for tname, target in TARGETS.items():
+                print(f"### Target: {tname}\n")
+                print("| Configuration | text / data / bss | `Broker::publish()` | sizeof Subscribe / Publish | Link-time dependencies |")
+                print("|---|---:|---:|---:|---|")
+                for scen, desc in PROTO_SCENARIOS.items():
+                    obj, err = compile_obj(target, scen, ["-DNDEBUG"], tmp, os.path.join(PROTO_DIR, "footprint"), ["-I" + PROTO_DIR])
+                    if obj is None:
+                        print(f"| {desc} | n/a: `{err}` | | | |")
+                        continue
+                    syms = symbols(target, obj)
+                    pub = sum(sz for sz, k, n in syms if "Broker<" in n and "::publish(" in n)
+                    sizes = {n[len("fp_sizeof_"):]: sz for sz, k, n in syms if n.startswith("fp_sizeof_")}
+                    undef = ", ".join(f"`{u}`" for u in undefined(target, obj))
+                    print(f"| {desc} | {' / '.join(map(str, section_sizes(target, obj)))} | {pub or 'inlined'} | "
+                          f"{sizes.get('Subscribe', '?')} / {sizes.get('Publish', '?')} | {undef} |")
+                print()
 
 
 if __name__ == "__main__":

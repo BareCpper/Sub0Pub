@@ -27,7 +27,7 @@ python3 tests/footprint/measure_footprint.py         # host + Cortex-M33 (arm-no
 are out of line, and subscribers are defined out of line with more than one implementation. The optimiser
 therefore cannot inline or devirtualise dispatch at the benchmark site, and each row measures the same
 generic `Broker<Data>::publish()` code. The "collapse target" floor shows what fully devirtualised dispatch
-would cost. That gap is the headroom for the follow-up on compile-time collapse.
+would cost. That gap is the headroom for compile-time collapse, tracked in #9.
 
 Environment: GCC 13.3 `-O3 -DNDEBUG` (CMake Release), Intel Xeon @ 2.8 GHz VM. Cortex-M33 footprint uses
 arm-none-eabi-g++ 13.2.1, `-mcpu=cortex-m33 -mthumb -Os`.

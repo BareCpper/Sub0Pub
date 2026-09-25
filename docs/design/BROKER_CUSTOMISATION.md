@@ -133,27 +133,62 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
 | `test_multi_tu_a.cpp`, `test_multi_tu_b.cpp` | a subscriber in one TU receives a publish from another; both TUs see the same table and configuration; no mismatch reported |
 | `mismatch_a.cpp`, `mismatch_b.cpp` | a deliberately forgotten traits specialisation in one TU is **detected** at runtime (debug registry) |
 | `compile_fail/*.cpp` | six misuse cases rejected at compile time with the intended diagnostic |
+| `bench_sub0x.cpp` | each configuration bound to its own type in one binary, measured under the baseline's control conditions |
+| `footprint/fp_sub0x_*.cpp` | footprint per configuration (host, Cortex-M33) via `tests/footprint/measure_footprint.py` |
+
+### Measured against the baseline
+
+Full results: [../perf/prototype-sub0x-2026-09.md](../perf/prototype-sub0x-2026-09.md). Built with no project header,
+so `Default` is the Builtin configuration, the same policy as `sub0pub.hpp` today.
+
+| instr/op (GCC 13) | 0 subscribers | 1 subscriber | 8 subscribers | create + destroy |
+|---|---:|---:|---:|---:|
+| **Baseline** Snapshot (default) | 38 | 72 | 247 | 61 |
+| **Baseline** Direct unchecked | 39 | 60 | 207 | 61 |
+| sub0x Default (Snapshot, ThreadLocal, filter) | 37 | 68 | 194 | 59 |
+| sub0x Direct | 38 | 52 | 150 | 59 |
+| sub0x Direct + NoFilter | 35 | 46 | 123 | 59 |
+| sub0x Lean (Direct, NoContext, NoFilter) | **9** | **33** | **96** | 59 |
+| Floor: virtual `receive()` loop | | 11 | 89 | |
+
+| Cortex-M33 `-Os`, 1 type (publisher, subscriber, publish site) | text | `sizeof(Publish)` | needs TLS | needs memcpy |
+|---|---:|---:|---|---|
+| **Baseline** Snapshot (default) | 566 | 8 | yes | yes |
+| sub0x Default | 534 | 1 | yes | yes |
+| sub0x Direct | 482 | 1 | yes | no |
+| sub0x Direct + StaticContext | 458 | 1 | **no** | no |
+| sub0x Lean | **382** | 1 | **no** | no |
+
+- **Zero-cost requirement (R1): met.** The default configuration is at or below the baseline everywhere.
+  Most of the difference is `Publish<T>` losing its vtable, plus codegen.
+- Pay-for-what-you-use works: each option removes its own cost. The lean configuration is 4× cheaper to
+  publish with no subscribers, about 2.5× cheaper with 8, and 32% smaller on Cortex-M33.
+- `StaticContext` costs the same as TLS on x86 (segment-relative access) but removes `__aeabi_read_tp` on
+  Cortex-M. Only target measurements show that difference.
+- **Portability finding:** MSVC did not detect the ADL hook with a zero-argument deleted poison pill plus
+  `void_t` partial-specialisation detection. The prototype now uses a deleted *template* poison pill
+  `template<class T> void sub0_config(T*) = delete;` with overload-based detection, which works on GCC,
+  Clang and MSVC.
+- `operator delete` is still required through `Subscribe<T>`'s virtual destructor. A protected
+  non-virtual destructor would remove it (subscribers are rarely deleted through a base pointer), but
+  that is an API decision for review.
 
 ### Not yet proven (next steps, in order)
 
-1. **Zero-cost check:** benchmark `sub0x` with the default configuration against the baseline. The
-   instructions per operation must match (`Snapshot`: 72 for 1 subscriber, 247 for 8), and a lean
-   configuration (`Direct` + `NoContext` + `NoFilter`) should approach the virtual `receive()` floor
-   (11 and 89).
-2. **Footprint:** measure lean and default configurations on Cortex-M33. Expected: the lean build needs
-   no `__aeabi_read_tp`, `memcpy` or `operator delete`, and has a smaller `publish()`.
-3. **Zephyr lock type:** compile a `k_spinlock` adapter against Zephyr headers (or a stub).
-4. **MSVC:** confirm the ADL poison-pill customisation point, `[[no_unique_address]]`-free empty bases
-   and the global-namespace `SUB0X_CONFIGURE` specialisation all compile. CI covers this on the next push.
-5. **Integration plan:** move `sub0x` into `sub0pub.hpp` as `sub0::`. Macros stay as the builtin source,
-   and `detail::Broker<Data>` becomes the facade. Update `MIGRATION.md`: `Publish<T>` is no longer
-   polymorphic, and a `filter()` override can fail to compile when the type is configured with `NoFilter`.
-6. **Design questions for review:**
+1. **Zephyr lock type:** compile a `k_spinlock` adapter against Zephyr headers (or a stub).
+2. **Integration plan:** move `sub0x` into `sub0pub.hpp` as `sub0::`. Macros stay as the builtin source,
+   and `detail::Broker<Data>` becomes the facade. Update `MIGRATION.md`:
+   - `Publish<T>` is no longer polymorphic;
+   - a `filter()` override can fail to compile when the type is configured with `NoFilter`;
+   - IPC classes (`ForwardSubscribe` and friends) must be ported onto the facade.
+3. **Collapse (#9):** static subscriber sets as a configuration axis.
+4. **Design questions for review:**
    - Should `config<>` layer on the project default (current) or on Builtin? Current reasoning: per-type overrides should respect project choices.
    - Should a mismatch in release builds be link-time detectable? One idea is a per-configuration symbol and a weak/strong pairing trick. This needs research: no portable mechanism is known.
    - Naming: `sub0_config` for the member and ADL hook; `configure<T>` for traits; option names.
    - Should `Storage::Scoped` with a default domain also be allowed (a global instance plus opt-in scopes)?
    - IPC: should routes live in the per-type configuration (static) or be attached by endpoints at runtime (current `ForwardSubscribe` model)? Likely both: the static route list enables zero-cost dispatch tables.
+   - Should `Subscribe<T>` keep a virtual destructor? See the last bullet above.
 
 ## 6. How to continue (for the review session)
 
@@ -164,4 +199,4 @@ python3 tests/footprint/measure_footprint.py             # host + Cortex-M33 foo
 ```
 
 Open work items are listed in section 5 ("Not yet proven"). The collapse/devirtualisation follow-up (R6)
-is tracked separately as a GitHub issue.
+is tracked in issue #9.

@@ -40,3 +40,9 @@ sub0x_compile_fail(cf_cancel_no_context   "cancel\\(\\) needs a publish context"
 sub0x_compile_fail(cf_lock_direct         "a Lock requires Snapshot dispatch")
 sub0x_compile_fail(cf_domain_global       "requires a Data type configured with sub0x::Scoped")
 sub0x_compile_fail(cf_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
+
+# Prototype benchmark: sub0x configurations vs docs/PERFORMANCE_BASELINE.md (run via tests/bench/run_baseline.py).
+# No project config header, so the Default configuration is Builtin and must match the baseline.
+add_executable(Sub0Pub_Sub0xBench bench_sub0x.cpp)
+target_link_libraries(Sub0Pub_Sub0xBench PRIVATE Sub0Pub::Sub0Pub)
+target_include_directories(Sub0Pub_Sub0xBench PRIVATE "${SUB0X_DIR}" "${SUB0X_VENDOR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../bench")
