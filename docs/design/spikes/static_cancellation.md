@@ -118,9 +118,9 @@ still returned by value (no out-parameter, no shared state), detected and short-
 
 Added as **Alt 1c**, guarded entirely behind `#if defined(__cpp_lib_expected)` in `sub0x_static.hpp` (inert
 under C++17 — the project stays on `cxx_std_17`). It is the case variant
-`tests/collapse/cases/cancellation/sub0x_alt1c_expected_cpp23.cpp`: the `_cpp23` suffix builds that variant
-alone at C++23 (CMake and `collapse_evidence.py`), and CMake probes for `std::expected` and skips the variant
-on toolchains without it.
+`tests/collapse/cases/cancellation/sub0x_alt1c_expected_cpp23.cpp`: its `// SUB0X_STD: c++23` and
+`// SUB0X_REQUIRES: expected` markers build it alone at C++23 (CMake and `collapse_evidence.py`), and CMake
+probes for `std::expected` and skips the variant on toolchains without it.
 
 Measured by `collapse_evidence.py` like every other variant: **PASS on gcc-O2 and cm33-gcc-Os, both forms,
 identical to Alt 1's bool return to the instruction and byte** (and so to handwritten). **Caveat:** on this toolchain, clang 18 built against libstdc++ 13 does

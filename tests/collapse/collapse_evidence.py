@@ -109,6 +109,24 @@ def variant_sources(case, variant):
     return [path + ".cpp"]
 
 
+STD_MARKER = re.compile(r"^//\s*SUB0X_STD:\s*(c\+\+\d+)\s*$")
+
+
+def variant_std(sources):
+    """A variant opts into a non-default -std= by making its first line `// SUB0X_STD: c++23`.
+    All C++17 variants are untouched; this only affects variants that ask for it explicitly."""
+    for src in sources:
+        try:
+            with open(src) as fh:
+                first = fh.readline()
+        except OSError:
+            continue
+        m = STD_MARKER.match(first.strip())
+        if m:
+            return m.group(1)
+    return None
+
+
 def multi_tu(case, variants):
     return any(os.path.isdir(os.path.join(CASES_DIR, case, v)) for v in variants)
 
@@ -116,10 +134,11 @@ def multi_tu(case, variants):
 def build(build_cfg, case, variant, observable, out_dir):
     exe = os.path.join(out_dir, f"{case}-{variant}-{observable}.elf")
     mapfile = exe[:-4] + ".map"
-    # A variant named *_cpp23 opts into C++23 for itself only (matches tests/collapse/CMakeLists.txt)
-    std = ["-std=c++23"] if variant.endswith("_cpp23") else []
-    cmd = [build_cfg["cxx"], *COMMON, *std, *build_cfg["flags"], f"-DCOLLAPSE_OBSERVABLE={observable}",
-           os.path.join(HERE, "driver.cpp"), *variant_sources(case, variant),
+    sources = variant_sources(case, variant)
+    std = variant_std(sources)
+    common = COMMON if std is None else [f"-std={std}" if f.startswith("-std=") else f for f in COMMON]
+    cmd = [build_cfg["cxx"], *common, *build_cfg["flags"], f"-DCOLLAPSE_OBSERVABLE={observable}",
+           os.path.join(HERE, "driver.cpp"), *sources,
            *(os.path.join(HERE, f) for f in build_cfg.get("support", [])),
            "-o", exe, *build_cfg["ldflags"], f"-Wl,-Map={mapfile}"]
     r = run(cmd)

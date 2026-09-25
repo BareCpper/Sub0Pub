@@ -1,3 +1,4 @@
+// SUB0X_STD: c++23
 /** Static/dynamic bridge, C++23 variant of alternative B: same DynamicPort as sub0x_bridge_slots.cpp, but the
  *  bind-time call reports capacity failure through std::expected instead of silently dropping it, where the
  *  toolchain provides it (feature-tested; GCC 13's libstdc++ has it, Clang 18 + that same libstdc++ does not --

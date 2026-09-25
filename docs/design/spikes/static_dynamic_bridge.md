@@ -17,8 +17,8 @@ python3 tests/collapse/collapse_evidence.py --case static_dynamic_bridge
 python3 tests/collapse/collapse_evidence.py --case static_dynamic_bridge_empty
 ```
 
-(`tests/collapse/CMakeLists.txt` gained one rule: a variant file named `*_cpp23` builds at `-std=c++23`
-instead of the project's C++17 baseline; every other variant is unaffected.)
+(The C++23 variant opts in with a first-line `// SUB0X_STD: c++23` marker, read by both CMake and
+`collapse_evidence.py` — see [cxx23_upgrade.md](cxx23_upgrade.md); every other variant stays on C++17.)
 
 ## Scenario
 

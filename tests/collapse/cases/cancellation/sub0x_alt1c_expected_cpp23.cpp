@@ -1,3 +1,5 @@
+// SUB0X_STD: c++23
+// SUB0X_REQUIRES: expected
 /** Cancellation Alt 1c (C++23): receive() returns std::expected<void, sub0x::Stop> instead of a bare bool --
  *  a documented reason for stopping, still by value, still detected at compile time and short-circuited by a
  *  fold (Alt 1's mechanism, tests/collapse/sandbox/sub0x_static.hpp). Controller and Logger are unaffected

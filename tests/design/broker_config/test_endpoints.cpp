@@ -321,6 +321,11 @@ TEST_CASE("endpoints: teardown during delivery from another thread") {
         }
     });
 
+    // Teardown must overlap publishing: without this wait a starved publisher thread (loaded CI runner) might
+    // not publish at all before stop, leaving the race untested and the final CHECK failing
+    while (published.load(std::memory_order_relaxed) == 0)
+        std::this_thread::yield();
+
     for (int i = 0; i < 2000; ++i)
     {
         Guarded a(domain);
