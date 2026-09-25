@@ -643,7 +643,7 @@ namespace sub0
         template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
         struct FourCC
         {
-            static const uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
+            static constexpr uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
         };
 
         /** Hash a string using djb2 hash
@@ -693,8 +693,21 @@ namespace sub0
                 std::void_t<decltype(T{ (void(Is), ubiq{})... })>>
                 : std::true_type {};
 
+            // Class-type variant: each ubiq is wrapped in its own braces so it initializes exactly one
+            // direct member. A bare ubiq is brace-elided into array members (float[4] counting as 4),
+            // over-counting the arity that structured bindings (layout::Decompose) see.
+            template<typename T, typename Seq, typename = void>
+            struct is_aggregate_constructible_braced : std::false_type {};
+
+            template<typename T, std::size_t... Is>
+            struct is_aggregate_constructible_braced<T, std::index_sequence<Is...>,
+                std::void_t<decltype(T{ { (void(Is), ubiq{}) }... })>>
+                : std::true_type {};
+
             template<typename T, std::size_t N>
-            constexpr bool can_construct = is_aggregate_constructible<T, std::make_index_sequence<N>>::value;
+            constexpr bool can_construct = std::is_class_v<T>
+                ? is_aggregate_constructible_braced<T, std::make_index_sequence<N>>::value
+                : is_aggregate_constructible<T, std::make_index_sequence<N>>::value;
 
             // Binary search for the maximum N where T{ubiq, ubiq, ..., ubiq} compiles
             template<typename T, std::size_t Lo, std::size_t Hi, typename = void>
@@ -1412,7 +1425,10 @@ namespace sub0
             default:
             case State::Prefix:
                 if constexpr (!std::is_void_v<Prefix_t>)
-                    return std::memcmp(&prefix_, &Prefix_t{}, sizeof(Prefix_t)) == 0;
+                {
+                    const Prefix_t emptyPrefix{}; // Named: taking the address of a temporary is ill-formed (GCC hard error)
+                    return std::memcmp(&prefix_, &emptyPrefix, sizeof(Prefix_t)) == 0;
+                }
                 else
                     return true;
             case State::Header:  return dataBufferRegistry_.validate(header_);

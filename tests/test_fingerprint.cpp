@@ -229,3 +229,10 @@ TEST_CASE("makeLayout: 32 members automatic") {
     auto layout2 = sub0::utility::makeLayout<Ridiculous>();
     CHECK(layout == layout2);
 }
+
+TEST_CASE("memberCount: array members count once (no brace elision)") {
+    // Aggregate-init probing must match structured-binding arity used by makeLayout()
+    CHECK(sub0::utility::memberCount<WithArray> == 2);
+    CHECK(sub0::utility::memberCount<WithDifferentArray> == 2);
+    CHECK(sub0::utility::memberCount<ParticleSystem> == 2);
+}
