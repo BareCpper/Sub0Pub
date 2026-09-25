@@ -27,6 +27,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <iosfwd>
 #include <stdexcept>
@@ -70,6 +71,31 @@
 #ifndef SUB0PUB_REENTRANT_SAFE
 #define SUB0PUB_REENTRANT_SAFE true ///< Snapshot subscribers before dispatch to prevent deadlock on re-entrant publish.
                                      ///< Set false for ~1.5ns faster publish if you guarantee no re-entrant calls.
+#endif
+
+/** Detect re-entrancy that SUB0PUB_REENTRANT_SAFE=false does not support
+ * When the snapshot is disabled (SUB0PUB_REENTRANT_SAFE=false and SUB0PUB_THREAD_SAFE=false), publishing,
+ * subscribing or unsubscribing a Data type from within a receive() of that same Data type on the same thread
+ * is a contract violation. With this check enabled the violation calls SUB0PUB_REENTRANT_VIOLATION(what).
+ * Default: enabled in debug builds (SUB0PUB_ASSERT and no NDEBUG), disabled in release builds.
+ * Define SUB0PUB_REENTRANT_CHECK true to keep the check in release builds (one thread_local load per call).
+ * Has no effect when the snapshot is enabled: re-entrant publish is then supported.
+ */
+#ifndef SUB0PUB_REENTRANT_CHECK
+#if SUB0PUB_ASSERT && !defined(NDEBUG)
+#define SUB0PUB_REENTRANT_CHECK true
+#else
+#define SUB0PUB_REENTRANT_CHECK false
+#endif
+#endif
+
+/** Action on a detected re-entrancy violation (see SUB0PUB_REENTRANT_CHECK)
+ * @param what  Null-terminated description of the violation
+ * Default asserts (debug) then aborts, so it also stops a release build that opted in to the check.
+ * Override to log or count instead; if it returns, the operation continues unguarded.
+ */
+#ifndef SUB0PUB_REENTRANT_VIOLATION
+#define SUB0PUB_REENTRANT_VIOLATION(what) do { assert(!(what)); std::abort(); } while(false)
 #endif
 
 /** Helper macro for stringifying value using compiler preprocessor
@@ -405,6 +431,7 @@ namespace sub0
             if (subscribed_)
                 return SubscribeResult::Subscribed;
 
+            checkNotDispatching("sub0pub: subscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
             Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
 
             if (state_.subscriptionCount >= cMaxSubscriptions)
@@ -453,6 +480,7 @@ namespace sub0
             if (iRemove == state_.subscriptions + state_.subscriptionCount)
                 return; ///< Not registered (never subscribed, or already unsubscribed) — nothing to recover.
 
+            checkNotDispatching("sub0pub: unsubscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
             subscribed_ = false;
             --state_.subscriptionCount;
             std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
@@ -513,6 +541,8 @@ namespace sub0
          */
         void publish(const Data& data) const noexcept
         {
+            checkNotDispatching("sub0pub: re-entrant publish() of a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
+
             // Save/restore thread-local publish context for re-entrant calls
             const Broker* previousPublisher = threadCurrent_;
             const bool previousCanceled = threadCanceled_;
@@ -569,6 +599,19 @@ namespace sub0
 #endif
 
     private:
+        /** Report a re-entrant table access or publish while this thread is dispatching Data
+         * @remark Only active in the unguarded direct-iteration mode with SUB0PUB_REENTRANT_CHECK.
+         *         Reuses threadCurrent_, which is non-null exactly while this thread dispatches Data.
+         */
+        static void checkNotDispatching(const char* what) noexcept
+        {
+#if SUB0PUB_REENTRANT_CHECK && !(SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE)
+            if (threadCurrent_ != nullptr)
+                SUB0PUB_REENTRANT_VIOLATION(what);
+#endif
+            (void)what;
+        }
+
         /** Object state as monotonic object shared by all instances
          */
         struct State

@@ -217,6 +217,18 @@ if (sub.trySubscribe() == sub0::SubscribeResult::CapacityExceeded) { /* still fu
 
 Destroying a subscriber frees its slot. Destroying one that was never registered is a no-op. With `SubscribeAll<A, B>`, check each base: `sub.sub0::Subscribe<A>::isSubscribed()`.
 
+### Re-entrancy Policy
+
+Choose one of three levels per build:
+
+| Configuration | Cost | Same-type publish/subscribe/unsubscribe from `receive()` |
+|---|---|---|
+| `SUB0PUB_REENTRANT_SAFE true` (default) | ~1.5ns per publish (snapshot) | Supported |
+| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK true` | one `thread_local` load per call | Detected: `SUB0PUB_REENTRANT_VIOLATION` |
+| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK false` | none | Undefined (the caller guarantees it never happens) |
+
+`SUB0PUB_REENTRANT_CHECK` defaults to on in debug builds, so a `SUB0PUB_REENTRANT_SAFE false` release build is still checked during development. `SUB0PUB_THREAD_SAFE` always uses the snapshot.
+
 ### Cross-Module / IPC Serialization
 
 ```cpp
@@ -251,6 +263,8 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_TYPEIDNAME` | `false` | Enable user-defined type IDs and names for IPC |
 | `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub |
 | `SUB0PUB_REENTRANT_SAFE` | `true` | Snapshot subscribers before dispatch for re-entrant safety. Adds ~1.5ns overhead per publish. Set `false` if you guarantee no subscriber will publish the same type from within `receive()` |
+| `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | With `SUB0PUB_REENTRANT_SAFE false`, detect a `receive()` that publishes, subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)`. Set `true` to keep the check in release builds (one `thread_local` load per call) |
+| `SUB0PUB_REENTRANT_VIOLATION(what)` | `assert` then `std::abort()` | Handler for a detected re-entrancy violation. Override to log or count; if it returns, the call continues unguarded |
 | `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>`. Subscribers beyond this are rejected (see [Subscriber Capacity](#subscriber-capacity)) |
 
 ---
