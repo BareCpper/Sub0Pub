@@ -158,19 +158,30 @@ stays supported, at an explicit, measured cost.
    - **static topology (`StaticWiring`)** for objects with static storage duration, the common embedded case,
      which is proven zero-cost;
    - **`wire(...)`** when object lifetimes are dynamic, which costs one stored address per binding.
-3. Make hot-path publishers generic over their output (`template<class Out>`). Use `Sink<T>` only where a
-   non-template publisher is required (for example across a library or ABI boundary), accepting one
-   indirect call.
-4. Put genuinely dynamic subscribers behind a runtime registry at a dynamic boundary. A bridge element that
-   joins the two is next, and it will be measured.
+3. Publishers, in order of cost:
+   - name the `StaticWiring` alias directly (`=` on every build);
+   - use the CRTP mixin `sub0x::Publisher<Derived, Out>` when the topology is not known where the publisher
+     is written (the same cost as a hand-spelled `template<class Out>`);
+   - use `Sink<T>` across a library or ABI boundary, accepting one indirect call.
+4. A receiver that stops the rest of a publication returns `bool` (`false` stops), with `publishCancelable`
+   (`=` on every build).
+5. Put genuinely dynamic subscribers behind a `DynamicPort<T, N>` bound into the static wiring (gcc +1
+   publish instr, clang and Cortex-M33 `=`), or behind a `BrokerPort<T>` to the #8 registry when they need
+   policy.
+
+The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README.md).
 
 ### Compromises and open items (pattern B)
 - **Ergonomics:** hot-path publishers become templates, or accept one indirect call through `Sink<T>`. This
   is the "specific Sub0Pub-compliant manner" of coding the issue anticipated.
 - **B2 requires static storage duration** (addresses are template arguments). B1 covers dynamic
   lifetimes at the measured binding cost.
-- **Not yet in pattern B:** cancellation (a receiver-controlled early stop), a static-to-dynamic bridge,
-  B3 rows for the new cases, and MSVC evidence (`dumpbin`).
+- **Not yet in pattern B:** B3 rows for the new cases, and MSVC evidence (`dumpbin`). Cancellation and the
+  static-to-dynamic bridge are done ([spikes/README.md](spikes/README.md)).
+- **A publisher that stores its output** (CRTP mixin, `template<class Out>` with `Out&`) costs gcc +9 publish
+  instr and +40 B RAM against naming the wiring directly; clang removes it. Known issue K11.
+- **The `DynamicPort` bridge** costs gcc +1 publish instr, and when empty gcc +3, clang +11 and Cortex-M33
+  +6 path instr. Known issue K12.
 - **B1's reference is static-address hand-written code,** so its delta mixes the binding cost with any
   abstraction cost. An equal-work hand-written version with runtime addresses would separate them.
 - **The static path metric follows direct calls only.** Work behind an indirect call appears as an
@@ -187,9 +198,8 @@ stays supported, at an explicit, measured cost.
 
 ## Plan (issue #9)
 - **Phase 1: sandbox (first round done, above).** Next:
-  - the static-to-dynamic bridge;
-  - cancellation in the static path;
-  - publisher ergonomics alternatives (for example CRTP publishers, `auto&` sinks, C++20 concepts);
+  - ~~the static-to-dynamic bridge; cancellation in the static path; publisher ergonomics alternatives~~
+    (done, [spikes/README.md](spikes/README.md));
   - MSVC evidence;
   - the equal-work runtime-address reference for B1.
 - **Phase 2:** broker specialisation (#8) selects the chosen static structure per message type or domain,
