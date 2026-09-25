@@ -6,6 +6,7 @@ add_executable(Sub0Pub_Tests
     test_serialization.cpp
     test_fingerprint.cpp
     test_capacity_bounded.cpp
+    test_reentrant_check.cpp
 )
 
 target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub::Sub0Pub)

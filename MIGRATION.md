@@ -139,6 +139,12 @@ Define `SUB0PUB_THREAD_SAFE true` to enable mutex-guarded subscribe/unsubscribe/
 
 Default `true`. Controls whether `publish()` snapshot-copies the subscriber list before dispatching. Set `false` to skip the snapshot for ~1.5ns faster publish if you guarantee no subscriber will re-entrantly publish the same type from within `receive()`.
 
+### `SUB0PUB_REENTRANT_CHECK` and `SUB0PUB_REENTRANT_VIOLATION` (new in v2)
+
+With `SUB0PUB_REENTRANT_SAFE false`, a `receive()` that publishes, subscribes or unsubscribes its own `Data` type on the same thread was silently unsupported. `SUB0PUB_REENTRANT_CHECK` now detects it and calls `SUB0PUB_REENTRANT_VIOLATION(what)`, which by default asserts and then aborts. The check defaults to on in debug builds (`SUB0PUB_ASSERT` without `NDEBUG`) and off in release builds. Define `SUB0PUB_REENTRANT_CHECK true` to keep it in release. The check has no effect when the snapshot is active (`SUB0PUB_REENTRANT_SAFE` or `SUB0PUB_THREAD_SAFE`).
+
+**Action:** Only affects `SUB0PUB_REENTRANT_SAFE false` builds. A debug build that hits the new abort was already relying on unsupported behaviour. Either enable `SUB0PUB_REENTRANT_SAFE` or restructure the subscriber.
+
 ### `SUB0_STRINGIFY` renamed to `SUB0PUB_STRINGIFY`
 
 The macro was renamed for prefix consistency. The old name no longer exists.
