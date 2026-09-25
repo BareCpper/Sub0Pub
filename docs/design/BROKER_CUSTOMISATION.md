@@ -56,7 +56,7 @@ There are two separate questions, which must not be conflated:
 | D. Member alias `using sub0_config = config<...>;` | **1 line inside the type** | **part of the type definition, so identical wherever `T` is complete** | classes only | **primary mechanism** |
 | E. Central registry header listing every type | not at the Data site | consistent if force-included, but the registry must include every message header (dependency inversion, coupling) | yes | reject as primary; B inside the project config header covers the central need |
 | F. Broker chosen per use site `Subscribe<T, B>` | at every site | **sites can disagree** | yes | reject for *policy*; keep the *instance* choice (Domain) per site |
-| G. `Broker<Data>` facade over `BrokerImpl<Data, resolved Config>` | n/a (how the library consumes A–D) | config is part of the implementation's identity: a mismatch splits the table (defined behaviour) rather than corrupting memory | n/a | **adopt** (answers R4) |
+| G. `Broker<Data>` facade over `BrokerImpl<Data, resolved Config>` | n/a (how the library consumes A–D) | does **not** make a mismatch defined: `Subscribe<Data>`'s bases and members depend on the configuration, so resolving differently in two TUs is an ODR violation (review finding 2) | n/a | adopt for policy (answers R4 for policy); implementation replacement is still open (section 7) |
 
 **Global default (R2):** a project config header named by `SUB0X_CONFIG_HEADER` and set **by the build
 system** (CMake `target_compile_definitions(... INTERFACE ...)`, or Zephyr Kconfig generation). The library
@@ -84,12 +84,21 @@ Resolution order for `config_t<T>`, evaluated wherever `T` is used:
 layer on the project's choices rather than on the library's.
 
 The library keeps `Broker<Data>` as the only name call sites use. Internally it is
-`BrokerImpl<Data, config_t<Data>>`, which also answers R4. **The configuration is part of the
-implementation type's identity**, so each configuration has distinct static state. A TU that resolves
-differently therefore gets its own table: a functional split, not memory corruption. A **debug-build
-registry** (`Registry<Data>`, which doesn't depend on the configuration and is therefore shared by all
-TUs) records the first configuration fingerprint and reports any different one. That turns F6 and the
-forgotten-traits hazard into a diagnosed error.
+`BrokerImpl<Data, config_t<Data>>`, which answers R4 for *policy*. Selecting a *different broker
+implementation* or transport is not solved by this; see section 7.
+
+**Consistent configuration visibility is a mandatory build contract.** `Subscribe<Data>`'s bases and members
+depend on the configuration. A `Data` type that resolves to different configurations in two TUs is
+therefore an ODR violation, which is undefined behaviour. Carrying the configuration in the implementation
+type does not make that defined. The member-alias and ADL mechanisms satisfy the contract by construction,
+because they are part of the type's definition. Traits specialisations and the project header must be
+visible in every TU. A **debug-build registry** (`Registry<Data>`, shared by all TUs because it doesn't
+depend on the configuration) is a *best-effort diagnostic*:
+- it records a fingerprint of the configuration's effective values atomically, with an atomic
+  compare-and-exchange;
+- it reports a different fingerprint when one is observed at runtime.
+
+It cannot catch every violation, and it is not a safety guarantee.
 
 ### Policy axes (what a configuration controls)
 
@@ -117,7 +126,8 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
   and 13 for 8, against 60–72 and 207–247 today).
 - **Quiescence (#5):** unsubscribing while a snapshot dispatch is running needs a policy. The snapshot
   path currently has the use-after-free that #5 describes. Candidates are an in-flight counter per domain,
-  aware of the current thread so that a subscriber unsubscribing itself doesn't deadlock.
+  aware of the current thread so that a subscriber unsubscribing itself doesn't deadlock. `Domain<T>` also
+  has no shutdown protocol yet (review finding 4, section 7).
 - **Cross-module (DLL) storage:** a storage policy whose table lives in one exporting module.
 
 ## 5. The prototype: what is proven
@@ -133,6 +143,7 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
 | `test_multi_tu_a.cpp`, `test_multi_tu_b.cpp` | a subscriber in one TU receives a publish from another; both TUs see the same table and configuration; no mismatch reported |
 | `mismatch_a.cpp`, `mismatch_b.cpp` | a deliberately forgotten traits specialisation in one TU is **detected** at runtime (debug registry) |
 | `compile_fail/*.cpp` | six misuse cases rejected at compile time with the intended diagnostic |
+| `test_binding.cpp` (review fixes) | `cancel()` and `DirectChecked` are scoped to the dispatching table: another domain's subscriber cannot cancel this domain's dispatch, and publishing into another domain from a receiver is not re-entry. The registry fingerprint is value-based |
 | `bench_sub0x.cpp` | each configuration bound to its own type in one binary, measured under the baseline's control conditions |
 | `footprint/fp_sub0x_*.cpp` | footprint per configuration (host, Cortex-M33) via `tests/footprint/measure_footprint.py` |
 
@@ -198,5 +209,69 @@ python3 tests/bench/run_baseline.py build/tests          # baseline instr/op + n
 python3 tests/footprint/measure_footprint.py             # host + Cortex-M33 footprint
 ```
 
-Open work items are listed in section 5 ("Not yet proven"). The collapse/devirtualisation follow-up (R6)
-is tracked in issue #9.
+Open work items are listed in section 5 ("Not yet proven") and section 7 (review). The
+collapse/devirtualisation follow-up (R6) is tracked in issue #9.
+
+## 7. Review (PR #8, first API review of `1b1da32`)
+
+**Verdict: not ready to freeze the v2 API.** The policy resolution and footprint work are worth keeping,
+but the prototype customises the existing broker. It cannot yet provide a different broker implementation
+or a transport endpoint (R5).
+
+| # | Finding | Status |
+|---|---|---|
+| 1 | No implementation-selection hook, endpoint dependency or transport contract; `Routes<>` is future work | **Open.** Blocks the API freeze. Acceptance criterion below |
+| 2 | Cross-TU guarantee overstated; registry hashed the type name, not values; unsynchronised registry | **Fixed:** doc states a build contract; registry is value-based, atomic and best-effort (sections 3 and 4) |
+| 3 | Scoped domains isolated subscriptions but not `cancel()` / `DirectChecked` | **Fixed:** the context is keyed by the table being dispatched; regression tests reproduce the reported case |
+| 4 | Teardown: snapshot dispatch retains raw pointers; `Domain` has no shutdown protocol | **Open.** Must be settled with registration, disconnect, quiescence and self-disconnect together (#5) |
+| 5 | Transport results and routing: `void publish()` cannot report rejection; async payload ownership; echo loops | **Open.** Design direction below |
+
+**Separation of concerns agreed in review:**
+
+| Concern | Where it belongs |
+|---|---|
+| Message/channel identity and default policy | Type-associated declaration or central traits (sections 3 and 4) |
+| Broker implementation selection | Documented compile-time customisation hook |
+| Concrete socket, IPC channel, queue or device | Endpoint instance supplied during construction |
+| Session isolation and endpoint bindings | Explicit domain/session object |
+| Disconnect and callback lifetime | Registration/connection contract |
+| Wire identity and encoding | Explicit protocol/schema contract |
+
+**Acceptance criterion before the API freeze.** A worked example covering:
+- two isolated sessions and the same message type;
+- two transport implementations;
+- ingress and egress;
+- transport rejection;
+- teardown during delivery.
+
+The example determines the public surface; no further policy options are added before it.
+
+### Proposed answers to the review's questions (for maintainer decision)
+
+1. **Replace the broker, add forwarding, or both?** Both, as two separate hooks:
+   - an *implementation hook*: a configuration member such as `template<class D> using broker = ...`, satisfying a
+     documented broker concept (`trySubscribe`, `unsubscribe`, `publish`, `cancel`), with the library broker as the default;
+   - *forwarding*, which needs no broker replacement. Endpoints bind to a domain: egress as a subscriber-like
+     sink, ingress by publishing into the domain.
+2. **Endpoint ownership and multiple connections.**
+   - The application owns endpoint instances.
+   - A binding object (RAII) connects one endpoint to one domain for a set of types.
+   - Several connections for the same type means several bindings, either in separate domains (isolated
+     sessions) or in one domain (fan-out).
+   - Static route declarations name *roles*; runtime bindings supply the instances.
+3. **Publication guarantees.**
+   - Local publish stays `void noexcept`, the cheap path. Endpoints expose a result: accepted, rejected
+     (full or disconnected), or closed.
+   - An opt-in reporting publish returns per-route acceptance.
+   - **Acceptance is not remote delivery.**
+   - Local delivery continues when a route rejects.
+   - An asynchronous endpoint must copy or serialize the payload at acceptance and never keep a reference.
+   - Ingress deliveries carry the origin binding in the dispatch context. Egress skips the origin
+     ("split horizon"), which prevents echo loops.
+4. **Teardown (finding 4).**
+   - Unbinding or unsubscribing marks the entry inactive under the table lock, then waits for in-flight
+     dispatches of that table (a per-table counter) before returning.
+   - A subscriber unsubscribing itself from its own callback is detected through the dispatch context, and
+     completes when that dispatch unwinds instead of waiting on itself.
+   - `Domain` destruction first closes the domain to new bindings, then quiesces.
+

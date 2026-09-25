@@ -23,6 +23,13 @@ struct Session
     using sub0_config = sub0x::config<sub0x::Scoped>;
 };
 
+// Scoped + DirectChecked: the re-entrancy check must be per domain
+struct SessionChecked
+{
+    int value;
+    using sub0_config = sub0x::config<sub0x::Scoped, sub0x::DirectChecked>;
+};
+
 // (1b) ADL declaration next to a type you own but prefer not to modify; works for enums too
 namespace gps
 {

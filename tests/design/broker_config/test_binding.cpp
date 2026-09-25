@@ -113,6 +113,74 @@ TEST_CASE("sub0x: scoped domains isolate the same Data type (issue #5)") {
     CHECK(subB.received == 0);   // no cross-talk
 }
 
+// Registry fingerprints effective values, not type names (review finding 2)
+namespace {
+struct NamedA : sub0x::with<sub0x::Builtin, sub0x::Capacity<3>> {};
+struct NamedB : sub0x::with<sub0x::Builtin, sub0x::Capacity<3>> {};
+struct NamedC : sub0x::with<sub0x::Builtin, sub0x::Capacity<4>> {};
+}
+static_assert(sub0x::detail::configFingerprint<NamedA>() == sub0x::detail::configFingerprint<NamedB>(), "same values, different names");
+static_assert(sub0x::detail::configFingerprint<NamedA>() != sub0x::detail::configFingerprint<NamedC>(), "different values");
+
+extern int gViolations;
+
+TEST_CASE("sub0x: cancel() from another domain's subscriber does not cancel this domain's dispatch (review finding 3)") {
+    sub0x::Domain<Session> a, b;
+    Sink<Session> subB(b);
+
+    struct CancelOther : sub0x::Subscribe<Session> {
+        using sub0x::Subscribe<Session>::Subscribe;
+        sub0x::Subscribe<Session>* other = nullptr;
+        int received = 0;
+        void receive(const Session&) noexcept override { ++received; other->cancel(); }
+    };
+    CancelOther first(a);
+    first.other = &subB;
+    Sink<Session> second(a);
+
+    Source<Session> pubA(a);
+    pubA.send(Session{1});
+    CHECK(first.received == 1);
+    CHECK(second.received == 1); // was skipped before: "A first=1 second=0 B=0"
+    CHECK(subB.received == 0);
+}
+
+TEST_CASE("sub0x: cancel() still stops its own domain's dispatch") {
+    sub0x::Domain<Session> a;
+    struct CancelOwn : sub0x::Subscribe<Session> {
+        using sub0x::Subscribe<Session>::Subscribe;
+        void receive(const Session&) noexcept override { cancel(); }
+    };
+    CancelOwn first(a);
+    Sink<Session> second(a);
+    Source<Session> pub(a);
+    pub.send(Session{1});
+    CHECK(second.received == 0);
+}
+
+TEST_CASE("sub0x: DirectChecked reports re-entry into the same domain only") {
+    sub0x::Domain<SessionChecked> a, b;
+    Sink<SessionChecked> sinkB(b);
+    Source<SessionChecked> pubA(a), pubB(b);
+
+    struct Forward : sub0x::Subscribe<SessionChecked> {
+        using sub0x::Subscribe<SessionChecked>::Subscribe;
+        Source<SessionChecked>* target = nullptr;
+        void receive(const SessionChecked& m) noexcept override { if (m.value > 0) target->send(SessionChecked{m.value - 1}); }
+    };
+    Forward forward(a);
+
+    gViolations = 0;
+    forward.target = &pubB;          // A's dispatch publishes into B: independent table, allowed
+    pubA.send(SessionChecked{1});
+    CHECK(gViolations == 0);
+    CHECK(sinkB.received == 1);
+
+    forward.target = &pubA;          // A's dispatch publishes into A: re-entry, reported
+    pubA.send(SessionChecked{1});
+    CHECK(gViolations == 1);
+}
+
 TEST_CASE("sub0x: tagged payloads are distinct channels configured by tag") {
     Sink<CoreTempC> t;
     Source<CoreTempC> src;

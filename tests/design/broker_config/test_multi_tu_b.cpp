@@ -1,6 +1,7 @@
 #include "app_types.hpp"
 
 int gMismatches = 0; // counted by SUB0X_CONFIG_MISMATCH (see CMakeLists.txt)
+int gViolations = 0; // counted by SUB0X_REENTRANT_VIOLATION
 
 namespace {
 struct ImuSource : sub0x::Publish<Imu> {

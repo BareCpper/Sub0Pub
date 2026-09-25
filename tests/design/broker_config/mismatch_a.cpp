@@ -6,6 +6,7 @@
 SUB0X_CONFIGURE(long, sub0x::Capacity<3>);
 
 int gMismatches = 0;
+int gViolations = 0; // counted by SUB0X_REENTRANT_VIOLATION
 void subscribeLongWithoutConfiguration(); // mismatch_b.cpp
 
 namespace {

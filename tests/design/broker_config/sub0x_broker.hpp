@@ -19,6 +19,7 @@
 #include <sub0pub/sub0pub.hpp> // SUB0PUB_* defaults and utility::typeHash only
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <type_traits>
@@ -139,6 +140,10 @@ namespace sub0x
 #define SUB0X_CONFIG_MISMATCH(what) do { assert(!(what)); std::abort(); } while(false)
 #endif
 
+#ifndef SUB0X_REENTRANT_VIOLATION
+#define SUB0X_REENTRANT_VIOLATION(what) SUB0PUB_REENTRANT_VIOLATION(what)
+#endif
+
 
 namespace sub0x
 {
@@ -209,23 +214,46 @@ namespace sub0x
 
     namespace detail
     {
-        /// Debug-build cross-TU consistency check. Registry<Data> has no dependency on the configuration,
-        /// so it is the same entity in every TU; each TU's Broker registers the fingerprint it resolved.
+        /** Fingerprint of a configuration's effective values (not its type name)
+         * @remark Two differently-named configurations with the same values fingerprint equal; the same name
+         *         with different macro-derived values (e.g. Builtin under different SUB0PUB_* flags) does not.
+         */
+        template<class Config>
+        constexpr uint32_t configFingerprint() noexcept
+        {
+            uint32_t h = 5381U;
+            const uint32_t fields[] = {
+                Config::capacity,
+                static_cast<uint32_t>(Config::dispatch),
+                static_cast<uint32_t>(Config::context),
+                static_cast<uint32_t>(Config::storage),
+                Config::filter ? 1U : 0U,
+                sub0::utility::typeHash<typename Config::Lock>()
+            };
+            for (uint32_t f : fields)
+                h = ((h << 5) + h) ^ f;
+            return h | 1U; // never 0, which marks "unregistered"
+        }
+
+        /** Best-effort debug diagnostic for inconsistent configuration visibility across TUs
+         * @warning Resolving a Data type differently in two TUs is an ODR violation (Subscribe<Data>'s bases and
+         *          members depend on the configuration) and therefore undefined behaviour. Consistent visibility is
+         *          a build contract; this registry only reports violations it happens to observe at runtime.
+         * @remark Registry<Data> has no dependency on the configuration, so it is shared by all TUs.
+         */
         template<class Data>
         struct Registry
         {
-            inline static uint32_t fingerprint = 0;
+            inline static std::atomic<uint32_t> fingerprint{0};
         };
 
         template<class Data, class Config>
         void checkConfig() noexcept
         {
 #if SUB0X_CHECK_CONFIG
-            constexpr uint32_t mine = sub0::utility::typeHash<Config>() | 1U;
-            uint32_t& seen = Registry<Data>::fingerprint;
-            if (seen == 0)
-                seen = mine;
-            else if (seen != mine)
+            constexpr uint32_t mine = configFingerprint<Config>();
+            uint32_t seen = 0;
+            if (!Registry<Data>::fingerprint.compare_exchange_strong(seen, mine, std::memory_order_relaxed) && seen != mine)
                 SUB0X_CONFIG_MISMATCH("sub0x: Data type resolved to different configurations in different translation units");
 #endif
         }
@@ -246,7 +274,10 @@ namespace sub0x
             Subscribe<Data>* entries[Config::capacity] = {};
         };
 
-        /// Publish context used by cancel() and nested publish, per Context policy
+        /** Publish context used by cancel() and re-entrancy checks, per Context policy
+         * @remark `current` identifies the subscription table being dispatched (one per Data type for Global storage,
+         *         one per Domain for Scoped), so cancel() and DirectChecked only act on their own table's dispatch.
+         */
         template<class Data, Context C> struct PublishContext
         {
             static constexpr bool enabled = false;
@@ -284,9 +315,7 @@ namespace sub0x
         };
 
         /** Broker for one Data type with one resolved configuration
-         * @remark The configuration is part of this type's identity, so its static state is a distinct symbol per
-         *         configuration: a TU that resolved differently gets its own table (split, never memory-unsafe),
-         *         and the debug Registry reports it.
+         * @remark Every TU must resolve the same configuration for a Data type (build contract, see Registry).
          */
         template<class Data, class Config>
         class Broker
@@ -351,11 +380,13 @@ namespace sub0x
                 }
             }
 
+            /// Cancel the dispatch in progress on this broker's table; a no-op for any other table's dispatch
             void cancel() const noexcept
             {
                 static_assert(Ctx::enabled, "sub0x: cancel() needs a publish context (ThreadLocalContext or StaticContext)");
                 if constexpr (Ctx::enabled)
-                    Ctx::canceled = true;
+                    if (Ctx::current == &table())
+                        Ctx::canceled = true;
             }
 
         private:
@@ -366,7 +397,7 @@ namespace sub0x
                 {
                     const void* const previous = Ctx::current;
                     const bool previousCanceled = Ctx::canceled;
-                    Ctx::current = this;
+                    Ctx::current = &table();
                     Ctx::canceled = false;
                     for (uint32_t i = 0; !Ctx::canceled && i < count; ++i)
                         deliver(entries[i], data);
@@ -382,11 +413,12 @@ namespace sub0x
 
             static void deliver(Subscribe<Data>* s, const Data& data) noexcept;
 
-            static void checkNotDispatching() noexcept
+            /// DirectChecked: only a use of the table currently being iterated is a violation (other domains are fine)
+            void checkNotDispatching() const noexcept
             {
                 if constexpr (Config::dispatch == Dispatch::DirectChecked)
-                    if (Ctx::current != nullptr)
-                        SUB0PUB_REENTRANT_VIOLATION("sub0x: re-entrant use of a Data type during its own dispatch requires Snapshot");
+                    if (Ctx::current == &table())
+                        SUB0X_REENTRANT_VIOLATION("sub0x: re-entrant use of a Data type's table during its own dispatch requires Snapshot");
             }
 
             TableT& table() const noexcept
