@@ -1,0 +1,1928 @@
+/** Sub0Pub core header-only library
+ * @remark C++ Type-based Subscriber-Publisher messaging model for embedded, desktop, games, and distributed systems.
+ * 
+ *  This file is part of Sub0Pub. Original project source available at https://github.com/Crog/Sub0Pub/blob/master/sub0pub.hpp
+ * 
+ *  MIT License
+ *
+ * Copyright (c) 2018 Craig Hutchinson <craig-sub0pub@crog.uk>
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files 
+ *  (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, 
+ *  publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do 
+ *  so, subject to the following conditions:
+ * 
+ *  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ * 
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+ *  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ *  FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+#ifndef CROG_SUB0PUB_HPP
+#define CROG_SUB0PUB_HPP
+
+/** Spike-only levers (docs/design/spikes/embedded_size.md, issue #2). Not part of the public API. */
+#ifndef SPIKE_SUB_VDTOR
+#define SPIKE_SUB_VDTOR 1   ///< 1 = virtual ~Subscribe() (today), 0 = protected non-virtual
+#endif
+#ifndef SPIKE_PUB_VDTOR
+#define SPIKE_PUB_VDTOR 1   ///< 1 = virtual ~Publish() (today), 0 = protected non-virtual (no vtable at all)
+#endif
+#ifndef SPIKE_FILTER_VIRTUAL
+#define SPIKE_FILTER_VIRTUAL 1  ///< 1 = virtual filter() (today), 0 = non-virtual, always-true filter()
+#endif
+#ifndef SPIKE_TLS
+#define SPIKE_TLS 1  ///< 1 = thread_local publish context (today), 0 = plain static (single-threaded only)
+#endif
+
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <iosfwd>
+#include <stdexcept>
+#include <tuple>
+#include <type_traits>
+
+#if SUB0PUB_THREAD_SAFE
+#include <mutex>
+#endif
+
+/** Logging output for event tracing
+ * Define SUB0PUB_TRACE=true to enable message logging to std::cout for event trace, SUB0PUB_TRACE=false
+ */
+#ifndef SUB0PUB_TRACE
+#define SUB0PUB_TRACE false ///< Disable Trace logging to std::cout by default
+#endif
+
+/** Assertion based error handling 
+ * Define SUB0PUB_ASSERT=true to enable assertion checks for events, SUB0PUB_ASSERT=false to disable
+ */
+#ifndef SUB0PUB_ASSERT
+#define SUB0PUB_ASSERT true ///< Enable assertion tests by default
+#endif
+
+#ifndef SUB0PUB_STD
+#define SUB0PUB_STD false ///< Use STD ostream and IStream types (May increase binary compiled size)
+#endif
+
+#ifndef SUB0PUB_TYPEIDNAME
+#define SUB0PUB_TYPEIDNAME false ///< Types given unique/user-defined type index and string name for diagnostics and IPC
+#endif
+
+#ifndef SUB0PUB_THREAD_SAFE
+#define SUB0PUB_THREAD_SAFE false ///< Optional mutex guard for multi-threaded pub/sub (e.g. FreeRTOS dual-core)
+#endif
+
+#ifndef SUB0PUB_MAX_SUBSCRIPTIONS
+#define SUB0PUB_MAX_SUBSCRIPTIONS 8 ///< Fixed subscription table size per Broker<T>. Override globally or per-TU.
+#endif
+
+#ifndef SUB0PUB_REENTRANT_SAFE
+#define SUB0PUB_REENTRANT_SAFE true ///< Snapshot subscribers before dispatch to prevent deadlock on re-entrant publish.
+                                     ///< Set false for ~1.5ns faster publish if you guarantee no re-entrant calls.
+#endif
+
+/** Detect re-entrancy that SUB0PUB_REENTRANT_SAFE=false does not support
+ * When the snapshot is disabled (SUB0PUB_REENTRANT_SAFE=false and SUB0PUB_THREAD_SAFE=false), publishing,
+ * subscribing or unsubscribing a Data type from within a receive() of that same Data type on the same thread
+ * is a contract violation. With this check enabled the violation calls SUB0PUB_REENTRANT_VIOLATION(what).
+ * Default: enabled in debug builds (SUB0PUB_ASSERT and no NDEBUG), disabled in release builds.
+ * Define SUB0PUB_REENTRANT_CHECK true to keep the check in release builds (one thread_local load per call).
+ * Has no effect when the snapshot is enabled: re-entrant publish is then supported.
+ */
+#ifndef SUB0PUB_REENTRANT_CHECK
+#if SUB0PUB_ASSERT && !defined(NDEBUG)
+#define SUB0PUB_REENTRANT_CHECK true
+#else
+#define SUB0PUB_REENTRANT_CHECK false
+#endif
+#endif
+
+/** Action on a detected re-entrancy violation (see SUB0PUB_REENTRANT_CHECK)
+ * @param what  Null-terminated description of the violation
+ * Default asserts (debug) then aborts, so it also stops a release build that opted in to the check.
+ * Override to log or count instead; if it returns, the operation continues unguarded.
+ */
+#ifndef SUB0PUB_REENTRANT_VIOLATION
+#define SUB0PUB_REENTRANT_VIOLATION(what) do { assert(!(what)); std::abort(); } while(false)
+#endif
+
+/** Helper macro for stringifying value using compiler preprocessor
+ * e.g. SUB0PUB_STRINGIFY_HELPER(123) == "123", SUB0PUB_STRINGIFY_HELPER(FooBar) == "FooBar"
+ * @param  x  A value whos value will be converted to string e.g. FooBar == "FooBar", 123 = "123"
+ */
+#define SUB0PUB_STRINGIFY_HELPER(x) #x
+
+/** Helper macro for stringifying define using compiler preprocessor
+ * e.g. SUB0PUB_STRINGIFY_HELPER(__LINE__) == "123??"
+ * @param  x  A macro definition whos value will be converted to string  e.g. __LINE__ == "123??"
+ */
+#define SUB0PUB_STRINGIFY(x) SUB0PUB_STRINGIFY_HELPER(x)
+
+#if SUB0PUB_STD
+#include <ostream> //< std::ostream
+#include <istream> //< std::istream
+#endif
+
+/// @todo Trace interface - currently std::cout only!!
+#if SUB0PUB_TRACE
+#include <iostream>
+#endif
+
+/** Sub0Pub top-level namespace
+ *
+ * Header layout:
+ *   1. Core API   — Subscribe, Publish, SubscribeAll, publish(), cancel()
+ *   2. Internal   — Broker, Check (required by Core API, implementation detail)
+ *   3. Utility    — Streams, hashing, arity detection, layout fingerprinting
+ *   4. IPC API    — StreamSerializer, StreamDeserializer, ForwardSubscribe/Publish
+*/
+namespace sub0
+{
+
+// ============================================================================
+// Forward declarations
+// ============================================================================
+
+    template< typename Data > class Publish;
+    template< typename Data > class Subscribe;
+
+    /** Outcome of a bounded subscription registration
+     * @see Subscribe::trySubscribe, Subscribe::isSubscribed
+     */
+    enum class SubscribeResult : uint8_t
+    {
+        Subscribed,        ///< Registered; subscriber receives subsequent publish() calls
+        CapacityExceeded   ///< Table already held SUB0PUB_MAX_SUBSCRIPTIONS entries; table left unchanged
+    };
+
+    namespace detail
+    {
+        template< typename Data > class Broker;
+        struct Empty {};
+    }
+
+// ============================================================================
+// Section 1: Core API — Subscribe, Publish, SubscribeAll, publish(), cancel()
+// ============================================================================
+
+    namespace detail
+    {
+        /** Provides debug assertion/exception checks for Broker<>
+         * @see SUB0PUB_TRACE   Enable logging for broker events
+         * @see SUB0PUB_ASSERT  Enable assertion tests for invalid parameters
+         */
+        struct Check
+        {
+            template<typename Data>
+            inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
+            {
+#if SUB0PUB_ASSERT
+                assert( subscriber );
+#endif
+                // Capacity is intentionally not asserted: exceeding it is a reported runtime outcome
+                // (SubscribeResult::CapacityExceeded), identical in debug and release builds.
+                (void)broker; (void)subscriber; (void)subscriptionCount; (void)subscriptionCapacity;
+            }
+
+            template<typename Data>
+            inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
+            {
+#if SUB0PUB_ASSERT
+                assert( publisher );
+                assert( publisherCount < publisherCapacity );
+#endif
+                (void)publisher; (void)broker; (void)publisherCount; (void)publisherCapacity;
+            }
+
+            template<typename Data>
+            inline static void onPublish( const Publish<Data>& publisher, const Data& data )
+            {
+                (void)publisher; (void)data;
+            }
+
+            template<typename Data>
+            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
+            {
+#if SUB0PUB_ASSERT
+                assert(subscriber);
+#endif
+                (void)subscriber; (void)data;
+            }
+        };
+
+    } // END: detail (Check)
+
+
+    /** Base type for an object that subscribes to some strong-typed Data
+     * @tparam  Data  Type that will be received from publishers of corresponding type
+     */
+    template< typename Data >
+    class Subscribe
+    {
+    public:
+        /** Registers the subscriber within the broker framework
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
+         */
+        Subscribe( 
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName 
+#endif
+        )
+        {}
+
+#if SPIKE_SUB_VDTOR
+        virtual ~Subscribe()
+        {  broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
+#endif
+
+        /** Receive published Data
+         * @remark Data is published from Publish<Data>::publish
+         */
+        virtual void receive( const Data& data ) noexcept = 0;
+
+#if SPIKE_FILTER_VIRTUAL
+        virtual bool filter(const Data& data) noexcept
+        {  return true; }
+#else
+        bool filter(const Data&) noexcept
+        {  return true; }
+#endif
+
+        inline void cancel()
+        { broker_.cancel(); }
+
+        /** @return Whether this subscriber is registered and will receive published Data
+         * @remark False only if the fixed per-type subscription table (SUB0PUB_MAX_SUBSCRIPTIONS)
+         *         was already full when registration was attempted. Construction itself never fails,
+         *         but a subscriber that returns false here is inert: receive() is never called until
+         *         a later trySubscribe() succeeds. Behaviour is identical in debug and release builds.
+         */
+        bool isSubscribed() const noexcept
+        { return broker_.isSubscribed(); }
+
+        /** Retry registration after construction reported SubscribeResult::CapacityExceeded
+         * @return SubscribeResult::Subscribed if now (or already) registered, otherwise
+         *         SubscribeResult::CapacityExceeded with the subscription table left unchanged
+         * @remark Use after another subscriber of the same Data has been destroyed to reclaim its slot.
+         */
+        SubscribeResult trySubscribe() noexcept
+        { return broker_.trySubscribe(this); }
+
+#if SUB0PUB_TYPEIDNAME
+        /** Get name identifier of the Data from the broker
+         * @return Broker null-terminated type name
+        */
+        const char* typeName() const
+        { return broker_.typeName(); }
+
+        /** Stream operator for diagnostics reporting
+         * @param stream  Stream to report into
+         * @param subscriber  Subscriber instance to be written into stream
+         * @return Reference to 'stream'
+         */
+        friend OStream& operator<< ( OStream& stream, const Subscribe<Data>& subscriber )
+        { return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
+#endif
+
+#if !SPIKE_SUB_VDTOR
+    protected:
+        ~Subscribe()
+        {  broker_.unsubscribe(this); }
+#endif
+
+    private:
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+    };
+
+
+    /**  Subscribe to many
+    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
+    */
+    template< typename... Datas >
+    class SubscribeAll : public Subscribe<Datas>... 
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /**  Subscribe to many defined by std::tuple type list
+    */
+    template<typename... Datas>
+    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
+    */
+    template<typename... Datas, typename... OtherTuples>
+    class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
+        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
+    {};
+
+        
+    /** Base type for an object that publishes to some strong-typed Data
+     * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
+     */
+    template< typename Data >
+    class Publish
+    {
+    public:
+        /** Registers the publisher within the broker framework
+         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
+         */
+        Publish(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        : broker_( this
+#if SUB0PUB_TYPEIDNAME
+            , typeId, typeName
+#endif
+        )
+        {}
+
+#if SPIKE_PUB_VDTOR
+        virtual ~Publish()
+        { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
+#endif
+
+        /** Cancel the active publish cycle, stopping delivery to remaining subscribers
+         * @note Must only be called from within a receive() callback
+         */
+        void cancel() const noexcept
+        {
+            broker_.cancel();
+        }
+
+    protected:
+#if !SPIKE_PUB_VDTOR
+        ~Publish()
+        { broker_.unsubscribe(this); }
+#endif
+        /** Publish data to subscribers
+         * @param[in]  data  Data value to publish to subscribers
+         * @remark Data will be received by Subscribe<Data>::receive
+         * @note Protected — use the free function sub0::publish(this, data) from derived classes
+         */
+        void publish( const Data& data ) const noexcept
+        {
+            detail::Check::onPublish( *this, data );
+            broker_.publish(data);
+        }
+
+        // Allow the free function sub0::publish() to access protected publish()
+        template<typename From, typename D>
+        friend void publish(From& from, const D& data) noexcept;
+        template<typename From, typename D>
+        friend void publish(From* from, const D& data) noexcept;
+
+#if SUB0PUB_TYPEIDNAME
+        /** Get name identifier of the Data from the broker
+         * @return Broker null-terminated type name
+        */
+        const char* typeName() const
+        { return broker_.typeName(); }
+
+        /** Get unique identifier of the Data from the broker
+         * @return Broker unique type index
+        */
+        uint32_t typeId() const
+        { return broker_.typeId(); }
+
+        /** Stream operator for diagnostics reporting
+         * @param stream  Stream to report into
+         * @param publisher  Publisher instance to be written into stream
+         * @return Reference to 'stream'
+         */
+        friend OStream& operator<< ( OStream& stream, const Publish<Data>& publisher )
+        { return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
+#endif
+
+    private:
+        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
+    };
+
+// ============================================================================
+// Section 2: Internal — Broker implementation (detail)
+// ============================================================================
+
+    namespace detail
+    {
+    template< typename Data >
+    class Broker
+    {
+    public:
+        static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
+
+    public:
+        /** Registers subscriber in brokers subscription table
+         * @param[in] typeName Optional unique data name given to data for inter-process signaling.
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
+         * @note Construction can fail to register (see trySubscribe()) if the fixed table is already
+         *       full: the object is fully constructed and destructible, but will not receive published
+         *       Data. Call isSubscribed() to check.
+         */
+        Broker( Subscribe<Data>* subscriber
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        {
+#if SUB0PUB_TYPEIDNAME
+            setDataName(typeId, typeName);
+#endif
+            trySubscribe(subscriber);
+        }
+
+        /** Bounded, explicit-error registration: the fixed-capacity counterpart of an unbounded push_back.
+         * @param[in] subscriber  Subscriber to register; must be non-null.
+         * @return SubscribeResult::Subscribed on success, or if already registered. SubscribeResult::CapacityExceeded
+         *         if the table already holds cMaxSubscriptions entries — in that case the table (subscriptions[]
+         *         and subscriptionCount) is left completely unchanged, independent of NDEBUG or SUB0PUB_ASSERT.
+         * @note Thread-safe when SUB0PUB_THREAD_SAFE is enabled (registration is serialized with publish()'s
+         *       snapshot copy and with unsubscribe()).
+         */
+        SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
+        {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+            if (subscribed_)
+                return SubscribeResult::Subscribed;
+
+            checkNotDispatching("sub0pub: subscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
+            Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
+
+            if (state_.subscriptionCount >= cMaxSubscriptions)
+                return SubscribeResult::CapacityExceeded; ///< Table unchanged — bounded, no OOB write.
+
+            state_.subscriptions[state_.subscriptionCount++] = subscriber;
+            subscribed_ = true;
+            return SubscribeResult::Subscribed;
+        }
+
+        /** @return Whether this Broker's subscriber is currently registered in the subscription table
+         * @remark False when registration hit SubscribeResult::CapacityExceeded, or after unsubscribe().
+         */
+        bool isSubscribed() const noexcept
+        { return subscribed_; }
+
+        /** Validated publication
+         * @remark No record of publishers of data is currently maintained
+         * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
+         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
+         */
+        Broker ( Publish<Data>* publisher
+#if SUB0PUB_TYPEIDNAME
+            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
+#endif
+        )
+        {
+            Check::onPublication( publisher, *this, 0, 1 );
+#if SUB0PUB_TYPEIDNAME
+            setDataName(typeId, typeName);
+#endif
+            subscribed_ = true; // Publishers are not capacity-limited; isSubscribed() is n/a but kept true.
+        }
+
+        /** Remove subscriber from the subscription table, recovering its slot for a later registration
+         * @note Safe to call for a subscriber that was never actually registered (e.g. its construction
+         *       hit SubscribeResult::CapacityExceeded): this is a no-op rather than an out-of-bounds
+         *       access, independent of NDEBUG/SUB0PUB_ASSERT.
+         */
+        void unsubscribe(Subscribe<Data>* subscriber)
+        {
+#if SUB0PUB_THREAD_SAFE
+            std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+            Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
+            if (iRemove == state_.subscriptions + state_.subscriptionCount)
+                return; ///< Not registered (never subscribed, or already unsubscribed) — nothing to recover.
+
+            checkNotDispatching("sub0pub: unsubscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
+            subscribed_ = false;
+            --state_.subscriptionCount;
+            std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
+        }
+
+        void unsubscribe(Publish<Data>* publisher)
+        {
+            // Do nothing for now...
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** Set a unique identifier for the data the broker manages
+         * @remark This name is used during serialisation for inter-process communications
+         * @param[in]  typeName  Null terminated compile-time string constant
+         */
+        void setDataName(const uint32_t typeId, const char* const typeName )
+        {
+            if (typeId)
+            {
+                // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
+                assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
+                state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
+            }
+
+            if (typeName)
+            {
+                // Check if assigning a different name or Id is when already set
+#if SUB0PUB_ASSERT
+                assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
+#endif
+                state_.typeName = typeName;
+            }
+        }
+#endif
+        
+        /**
+         * @return  Get the broker instance on the current thread
+        */
+        const Broker* active() const
+        { return threadCurrent_; }
+
+        /** Cancel the broker publish on the current thread preventing further receive of data
+         * @note Must only be called from within a receive() callback
+         */
+        void cancel() const noexcept
+        {
+            assert( active() != nullptr );
+            threadCanceled_ = true;
+        }
+
+        /** Send data to registered subscribers
+         * @param data  Data sent to subscribers via their 'receive()' function
+         * @remark Thread-safe when SUB0PUB_THREAD_SAFE is enabled: the subscription
+         *         list is snapshot-copied under lock, then the lock is released before
+         *         dispatching. This prevents deadlock on re-entrant publish.
+         */
+        void publish(const Data& data) const noexcept
+        {
+            checkNotDispatching("sub0pub: re-entrant publish() of a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
+
+            // Save/restore thread-local publish context for re-entrant calls
+            const Broker* previousPublisher = threadCurrent_;
+            const bool previousCanceled = threadCanceled_;
+            threadCurrent_ = this;
+            threadCanceled_ = false;
+
+#if SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE
+            // Snapshot subscribers under lock, dispatch unlocked — prevents
+            // deadlock on re-entrant publish and mutex contention
+            Subscribe<Data>* snapshot[cMaxSubscriptions];
+            uint32_t count = 0;
+            {
+#if SUB0PUB_THREAD_SAFE
+                std::lock_guard<std::mutex> lk{state_.mtx};
+#endif
+                count = state_.subscriptionCount;
+                std::copy_n(state_.subscriptions, count, snapshot);
+            }
+
+            for (uint32_t i = 0U; !threadCanceled_ && i < count; ++i)
+            {
+                Check::onReceive(snapshot[i], data);
+                if (snapshot[i]->filter(data))
+                    snapshot[i]->receive(data);
+            }
+#else
+            // Direct iteration — fastest path, but caller must not re-enter publish
+            for (uint32_t i = 0U; !threadCanceled_ && i < state_.subscriptionCount; ++i)
+            {
+                Check::onReceive(state_.subscriptions[i], data);
+                if (state_.subscriptions[i]->filter(data))
+                    state_.subscriptions[i]->receive(data);
+            }
+#endif
+
+            threadCurrent_ = previousPublisher;
+            threadCanceled_ = previousCanceled;
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** @return Unique identifier index for inter-process binary connections
+         */
+        static uint32_t typeId()
+        {
+            return state_.typeId;
+        }
+
+        /** @return Unique identifier name for inter-process text connections
+         */
+        static const char* typeName()
+        {
+            return state_.typeName;
+        }
+#endif
+
+    private:
+        /** Report a re-entrant table access or publish while this thread is dispatching Data
+         * @remark Only active in the unguarded direct-iteration mode with SUB0PUB_REENTRANT_CHECK.
+         *         Reuses threadCurrent_, which is non-null exactly while this thread dispatches Data.
+         */
+        static void checkNotDispatching(const char* what) noexcept
+        {
+#if SUB0PUB_REENTRANT_CHECK && !(SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE)
+            if (threadCurrent_ != nullptr)
+                SUB0PUB_REENTRANT_VIOLATION(what);
+#endif
+            (void)what;
+        }
+
+        /** Object state as monotonic object shared by all instances
+         */
+        struct State
+        {
+#if SUB0PUB_THREAD_SAFE
+            mutable std::mutex mtx; ///< Protects subscriptions[] for multi-threaded pub/sub
+#endif
+            uint32_t subscriptionCount = 0; ///< Count of subscriptions_
+            Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
+#if SUB0PUB_TYPEIDNAME
+            uint32_t typeId; ///< Type identifier index or name hash
+            const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
+#endif
+        };
+
+        inline static State state_ = {};
+#if SPIKE_TLS
+        inline static thread_local const Broker* threadCurrent_ = nullptr;
+        inline static thread_local bool threadCanceled_ = false;
+#else
+        inline static const Broker* threadCurrent_ = nullptr;
+        inline static bool threadCanceled_ = false;
+#endif
+
+        bool subscribed_ = false; ///< Per-instance (not shared state_): whether this subscriber is in the table.
+                                   ///< Always true for the Publish<Data>* constructor overload (publishers
+                                   ///< are not capacity-limited).
+    };
+
+    } // END: detail
+
+    /** Publish data, used when inheriting from multiple Publish<> base types
+     * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
+        i.e. publish( 1.0F) is ambiguous in this case.
+     * @note Compiler error will occur if From does not inherit Publish<Data>
+     *
+     * @param[in] from  Producer object inheriting from one or more Publish<> objects
+     * @param[in] data  Data that will be published using the base Publish<Data> object of From
+     */
+    template<typename From, typename Data>
+    inline void publish(From& from, const Data& data) noexcept
+    {
+        const Publish<Data>& publisher = from;
+        publisher.publish(data);
+    }
+
+    /** Cancel the active publish on a publisher
+     * @param[in] from  Producer object inheriting from Publish<Data>
+     * @note Must only be called from within a receive() callback
+     */
+    template<typename Data, typename From>
+    inline void cancel(From& from)
+    {
+        const Publish<Data>& publisher = from;
+        publisher.cancel();
+    }
+
+
+    /** @see publish(const From&,const Data&)
+    */
+    template<typename From, typename Data>
+    inline void publish(From* const from, const Data& data) noexcept
+    {
+#if SUB0PUB_ASSERT
+        assert(from != nullptr);
+#endif
+        publish(*from, data);
+    }
+
+// ============================================================================
+// Section 3: Utility — Streams, hashing, arity detection, layout fingerprinting
+// ============================================================================
+
+    namespace utility
+    {
+        /** Create 4byte packed value at compile time
+         * @tparam a,b,c,d  Characters which will be packed into 4-byte uint32_t value
+         */
+        template <const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d>
+        struct FourCC
+        {
+            static constexpr uint32_t value = (((((d << 8) | c) << 8) | b) << 8) | a;
+        };
+
+        /** Hash a string using djb2 hash
+         * @param[in] str  Null-terminated string to calculate hash of
+         * @return djb2 hash value for input 'str'
+         */
+        constexpr uint32_t hash(const char* str)
+        {
+            uint32_t h = 5381U;
+            for ( ; str[0U] != '\0'; ++str)
+                h = ((h << 5) + h) + static_cast<uint32_t>(str[0U]);
+            return h;
+        }
+
+        /** Compile-time unique type identifier using __PRETTY_FUNCTION__ / __FUNCSIG__
+         * @tparam T  Type to generate a unique ID for
+         * @return Unique uint32_t hash for type T, stable within a single build
+         */
+        template<typename T>
+        constexpr uint32_t typeHash()
+        {
+#if defined(__GNUC__) || defined(__clang__)
+            return hash(__PRETTY_FUNCTION__);
+#elif defined(_MSC_VER)
+            return hash(__FUNCSIG__);
+#else
+            static_assert(false, "Sub0Pub: typeHash requires GCC, Clang, or MSVC");
+#endif
+        }
+
+        /** Aggregate arity detection via structured bindings / aggregate init
+         * @remark Detects the number of members in an aggregate type at compile time.
+         *         Used to create a cheap struct-layout fingerprint for IPC verification.
+         *         Only works for aggregate types (no user-declared constructors, no virtual functions).
+         * @note   Technique from Boost.PFR / Antony Polukhin
+         */
+        namespace arity {
+            // A type that is implicitly convertible to anything
+            struct ubiq { template<typename T> operator T() const; };
+
+            // Test whether T can be aggregate-initialized with N arguments
+            template<typename T, typename Seq, typename = void>
+            struct is_aggregate_constructible : std::false_type {};
+
+            template<typename T, std::size_t... Is>
+            struct is_aggregate_constructible<T, std::index_sequence<Is...>,
+                std::void_t<decltype(T{ (void(Is), ubiq{})... })>>
+                : std::true_type {};
+
+            // Class-type variant: each ubiq is wrapped in its own braces so it initializes exactly one
+            // direct member. A bare ubiq is brace-elided into array members (float[4] counting as 4),
+            // over-counting the arity that structured bindings (layout::Decompose) see.
+            template<typename T, typename Seq, typename = void>
+            struct is_aggregate_constructible_braced : std::false_type {};
+
+            template<typename T, std::size_t... Is>
+            struct is_aggregate_constructible_braced<T, std::index_sequence<Is...>,
+                std::void_t<decltype(T{ { (void(Is), ubiq{}) }... })>>
+                : std::true_type {};
+
+            template<typename T, std::size_t N>
+            constexpr bool can_construct = std::is_class_v<T>
+                ? is_aggregate_constructible_braced<T, std::make_index_sequence<N>>::value
+                : is_aggregate_constructible<T, std::make_index_sequence<N>>::value;
+
+            // Binary search for the maximum N where T{ubiq, ubiq, ..., ubiq} compiles
+            template<typename T, std::size_t Lo, std::size_t Hi, typename = void>
+            struct detect_impl {
+                static constexpr std::size_t value = Lo;
+            };
+
+            template<typename T, std::size_t Lo, std::size_t Hi>
+            struct detect_impl<T, Lo, Hi, std::enable_if_t<(Lo < Hi)>> {
+                static constexpr std::size_t Mid = Lo + (Hi - Lo + 1) / 2;
+                static constexpr std::size_t value =
+                    can_construct<T, Mid>
+                        ? detect_impl<T, Mid, Hi>::value
+                        : detect_impl<T, Lo, Mid - 1>::value;
+            };
+
+            /// Upper bound capped at 32 to prevent MSVC template depth/heap exhaustion
+            /// on large types (arrays, nested structs). 32 direct members covers
+            /// virtually all IPC message types.
+            static constexpr std::size_t MaxArity = 32;
+
+            template<typename T>
+            struct detect : detect_impl<T, 0, MaxArity> {};
+        } // namespace arity
+
+        /** Compile-time count of aggregate members in T
+         * @tparam T  Aggregate type to count members of
+         * @return Number of direct data members (0 for non-aggregate types)
+         * @note Only valid for aggregate types (POD structs, C-style structs)
+         */
+        template<typename T>
+        constexpr std::size_t memberCount = arity::detect<T>::value;
+
+        /** Layout fingerprint combining sizeof, alignof, member count, and element info
+         * @remark A cheap compile-time check for struct compatibility across IPC.
+         *         Recursive: arrays include the element fingerprint, so changes to
+         *         a struct used inside an array are always detected.
+         */
+        struct TypeFingerprint
+        {
+            uint32_t size;          ///< sizeof(T)
+            uint32_t alignment;     ///< alignof(T)
+            uint32_t arity;         ///< number of aggregate members (or 1 for scalars)
+            uint32_t extent;        ///< array element count (0 for non-arrays)
+            uint32_t elementHash;   ///< recursive fingerprint hash of element type (0 for non-arrays)
+
+            bool operator==(const TypeFingerprint& rhs) const
+            {
+                return size == rhs.size && alignment == rhs.alignment
+                    && arity == rhs.arity && extent == rhs.extent
+                    && elementHash == rhs.elementHash;
+            }
+
+            bool operator!=(const TypeFingerprint& rhs) const
+            { return !(*this == rhs); }
+        };
+
+        /** Hash a TypeFingerprint into a single uint32_t for embedding in parent fingerprints
+         */
+        constexpr uint32_t hashFingerprint(const TypeFingerprint& fp)
+        {
+            uint32_t h = 5381U;
+            h = ((h << 5) + h) + fp.size;
+            h = ((h << 5) + h) + fp.alignment;
+            h = ((h << 5) + h) + fp.arity;
+            h = ((h << 5) + h) + fp.extent;
+            h = ((h << 5) + h) + fp.elementHash;
+            return h;
+        }
+
+        /** Create a TypeFingerprint for any type at compile time
+         * @remark Recursive: for array types T[N], the fingerprint includes
+         *         the element type's fingerprint hash so that changes to nested
+         *         structs are always detected through any depth of array nesting.
+         */
+        template<typename T>
+        [[nodiscard]] constexpr TypeFingerprint makeFingerprint()
+        {
+            if constexpr (std::is_array_v<T>)
+            {
+                using Elem = std::remove_extent_t<T>;
+                constexpr auto elemFp = makeFingerprint<Elem>();
+                return { static_cast<uint32_t>(sizeof(T)),
+                         static_cast<uint32_t>(alignof(T)),
+                         static_cast<uint32_t>(elemFp.arity), //, Arity is from the Elem for arrays
+                         static_cast<uint32_t>(std::extent_v<T>),
+                         hashFingerprint(elemFp) };
+            }
+            else
+            {
+                return { static_cast<uint32_t>(sizeof(T)),
+                         static_cast<uint32_t>(alignof(T)),
+                         static_cast<uint32_t>(memberCount<T>),
+                         0U, 0U };
+            }
+        }
+
+        /** Per-member layout entry: offset, size, and recursive element hash
+         */
+        struct MemberEntry
+        {
+            uint32_t offset;      ///< byte offset from struct base
+            uint32_t size;        ///< sizeof this member
+            uint32_t elementHash; ///< recursive fingerprint hash (non-zero for arrays and structs with members)
+        };
+
+        /** Compute a hash over an array of MemberEntry for wire comparison
+         * @remark Uses djb2 over offset, size, and elementHash of each member
+         *         to produce a single uint32_t capturing the exact recursive
+         *         byte layout of a struct.
+         */
+        constexpr uint32_t hashMemberLayout(const MemberEntry* entries, std::size_t count)
+        {
+            uint32_t h = 5381U;
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                h = ((h << 5) + h) + entries[i].offset;
+                h = ((h << 5) + h) + entries[i].size;
+                h = ((h << 5) + h) + entries[i].elementHash;
+            }
+            return h;
+        }
+
+
+        /** Extended layout fingerprint with per-member offset, size, and recursive element verification
+         */
+        struct TypeLayout
+        {
+            TypeFingerprint fingerprint; ///< sizeof + alignof + arity + array info
+            uint32_t layoutHash;         ///< hash of per-member {offset, size, elementHash} triples
+
+            bool operator==(const TypeLayout& rhs) const
+            { return fingerprint == rhs.fingerprint && layoutHash == rhs.layoutHash; }
+
+            bool operator!=(const TypeLayout& rhs) const
+            { return !(*this == rhs); }
+        };
+
+        /** Create a MemberEntry from a structured binding reference
+         * @remark Computes offset via pointer arithmetic from the struct base.
+         *         Recursively fingerprints array and aggregate member types.
+         */
+        template<typename MemberT, typename BaseT>
+        MemberEntry entryFrom(const BaseT& base, const MemberT& member)
+        {
+            using Raw = std::remove_cv_t<std::remove_reference_t<MemberT>>;
+            const auto offset = static_cast<uint32_t>(
+                reinterpret_cast<const char*>(&member) - reinterpret_cast<const char*>(&base));
+            const auto size = static_cast<uint32_t>(sizeof(MemberT));
+            uint32_t elemHash = 0;
+            if constexpr (std::is_array_v<Raw> || (std::is_class_v<Raw> && memberCount<Raw> > 0))
+                elemHash = hashFingerprint(makeFingerprint<Raw>());
+            return { offset, size, elemHash };
+        }
+
+        /** Automatic layout decomposition via structured bindings (Boost.PFR-style)
+         * @remark On GCC/Clang: uses class template partial specialization with
+         *         structured bindings to decompose aggregates into per-member
+         *         offset + size + recursive element hash.
+         * @remark On MSVC: structured bindings in template specializations trigger
+         *         eager parsing bugs (C3448). Falls back to TypeFingerprint only
+         *         (sizeof+alignof+arity) without per-member offset detail.
+         *         Full per-member support on MSVC awaits C++26 reflection.
+         * @note   Supports up to 32 direct members (arity::MaxArity).
+         */
+        namespace layout {
+            template<typename T, std::size_t N>
+            struct Decompose { static uint32_t hash(T&) { return 0; } };
+
+#if !defined(_MSC_VER)
+            #define SUB0_E_(v, m) entryFrom(v, m)
+
+            #define SUB0_LAYOUT_CASE(N, ...) \
+                template<typename T> struct Decompose<T, N> { static uint32_t hash(T& v) { \
+                    auto& [__VA_ARGS__] = v; \
+                    MemberEntry e[] = {
+
+            #define SUB0_LAYOUT_END(N) \
+                    }; return hashMemberLayout(e, N); } };
+
+            SUB0_LAYOUT_CASE(1,  m0) SUB0_E_(v,m0) SUB0_LAYOUT_END(1)
+            SUB0_LAYOUT_CASE(2,  m0,m1) SUB0_E_(v,m0),SUB0_E_(v,m1) SUB0_LAYOUT_END(2)
+            SUB0_LAYOUT_CASE(3,  m0,m1,m2) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2) SUB0_LAYOUT_END(3)
+            SUB0_LAYOUT_CASE(4,  m0,m1,m2,m3) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3) SUB0_LAYOUT_END(4)
+            SUB0_LAYOUT_CASE(5,  m0,m1,m2,m3,m4) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4) SUB0_LAYOUT_END(5)
+            SUB0_LAYOUT_CASE(6,  m0,m1,m2,m3,m4,m5) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5) SUB0_LAYOUT_END(6)
+            SUB0_LAYOUT_CASE(7,  m0,m1,m2,m3,m4,m5,m6) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6) SUB0_LAYOUT_END(7)
+            SUB0_LAYOUT_CASE(8,  m0,m1,m2,m3,m4,m5,m6,m7) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7) SUB0_LAYOUT_END(8)
+            SUB0_LAYOUT_CASE(9,  m0,m1,m2,m3,m4,m5,m6,m7,m8) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8) SUB0_LAYOUT_END(9)
+            SUB0_LAYOUT_CASE(10, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9) SUB0_LAYOUT_END(10)
+            SUB0_LAYOUT_CASE(11, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10) SUB0_LAYOUT_END(11)
+            SUB0_LAYOUT_CASE(12, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11) SUB0_LAYOUT_END(12)
+            SUB0_LAYOUT_CASE(13, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12) SUB0_LAYOUT_END(13)
+            SUB0_LAYOUT_CASE(14, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13) SUB0_LAYOUT_END(14)
+            SUB0_LAYOUT_CASE(15, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14) SUB0_LAYOUT_END(15)
+            SUB0_LAYOUT_CASE(16, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15) SUB0_LAYOUT_END(16)
+            SUB0_LAYOUT_CASE(17, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16) SUB0_LAYOUT_END(17)
+            SUB0_LAYOUT_CASE(18, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17) SUB0_LAYOUT_END(18)
+            SUB0_LAYOUT_CASE(19, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18) SUB0_LAYOUT_END(19)
+            SUB0_LAYOUT_CASE(20, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19) SUB0_LAYOUT_END(20)
+            SUB0_LAYOUT_CASE(21, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20) SUB0_LAYOUT_END(21)
+            SUB0_LAYOUT_CASE(22, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21) SUB0_LAYOUT_END(22)
+            SUB0_LAYOUT_CASE(23, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22) SUB0_LAYOUT_END(23)
+            SUB0_LAYOUT_CASE(24, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23) SUB0_LAYOUT_END(24)
+            SUB0_LAYOUT_CASE(25, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24) SUB0_LAYOUT_END(25)
+            SUB0_LAYOUT_CASE(26, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25) SUB0_LAYOUT_END(26)
+            SUB0_LAYOUT_CASE(27, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26) SUB0_LAYOUT_END(27)
+            SUB0_LAYOUT_CASE(28, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27) SUB0_LAYOUT_END(28)
+            SUB0_LAYOUT_CASE(29, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28) SUB0_LAYOUT_END(29)
+            SUB0_LAYOUT_CASE(30, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29) SUB0_LAYOUT_END(30)
+            SUB0_LAYOUT_CASE(31, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29,m30) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29),SUB0_E_(v,m30) SUB0_LAYOUT_END(31)
+            SUB0_LAYOUT_CASE(32, m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16,m17,m18,m19,m20,m21,m22,m23,m24,m25,m26,m27,m28,m29,m30,m31) SUB0_E_(v,m0),SUB0_E_(v,m1),SUB0_E_(v,m2),SUB0_E_(v,m3),SUB0_E_(v,m4),SUB0_E_(v,m5),SUB0_E_(v,m6),SUB0_E_(v,m7),SUB0_E_(v,m8),SUB0_E_(v,m9),SUB0_E_(v,m10),SUB0_E_(v,m11),SUB0_E_(v,m12),SUB0_E_(v,m13),SUB0_E_(v,m14),SUB0_E_(v,m15),SUB0_E_(v,m16),SUB0_E_(v,m17),SUB0_E_(v,m18),SUB0_E_(v,m19),SUB0_E_(v,m20),SUB0_E_(v,m21),SUB0_E_(v,m22),SUB0_E_(v,m23),SUB0_E_(v,m24),SUB0_E_(v,m25),SUB0_E_(v,m26),SUB0_E_(v,m27),SUB0_E_(v,m28),SUB0_E_(v,m29),SUB0_E_(v,m30),SUB0_E_(v,m31) SUB0_LAYOUT_END(32)
+
+            #undef SUB0_LAYOUT_CASE
+            #undef SUB0_LAYOUT_END
+            #undef SUB0_E_
+#endif // !_MSC_VER
+        } // namespace layout
+
+        /** Create a TypeLayout automatically for any aggregate type
+         * @remark Fully automatic — no macro or member list needed.
+         *         Uses structured bindings (Boost.PFR-style) to decompose the
+         *         struct and compute per-member offset + size + recursive element hash.
+         * @note   Supports up to 32 direct members (arity::MaxArity).
+         * @tparam T  Aggregate type to fingerprint
+         */
+        template<typename T>
+        [[nodiscard]] TypeLayout makeLayout()
+        {
+            constexpr auto N = memberCount<T>;
+            auto fp = makeFingerprint<T>();
+            T val{};
+            return { fp, layout::Decompose<T, N>::hash(val) };
+        }
+
+        /**
+        * @note char* to unify interface against std::ostream
+        */
+        class OStream
+        {
+        public:
+            typedef uint_fast32_t StreamSize;
+
+            virtual StreamSize write(const char* const buffer, const StreamSize bufferCount) = 0;
+
+            /** Clear all buffers for this stream and causes any buffered data to be written to the underlying device.
+            */
+            virtual void flush() = 0;
+        };
+
+        /**
+        * @note char* to unify interface against std::istream
+        */
+        class IStream
+        {
+        public:
+            typedef uint_fast32_t StreamSize;
+
+            virtual StreamSize read(char* const buffer, const StreamSize bufferCount) = 0;
+
+            /** Read stream line-by line until '\r', '\n', or '\r\n'
+                @note Extends sub0::IStream
+            */
+            virtual StreamSize readline(char* const buffer, const StreamSize bufferCount) = 0;
+
+            /** Discards specified number of characters from inputSequence
+            * @note Setting std::numeric_limits<std::streamsize>::max() discards ONLY the currently buffered bytes
+            * @return The number of bytes ignored
+            */
+            virtual StreamSize ignore( const StreamSize bufferCount ) = 0;
+
+            /** Discards specified number of characters from inputSequence until the specified delimiter is found
+            * @note The delimiting character is extracted, and thus the next input operation will continue on the character that follows it (if any).
+            * @warning This function may (TBC) block if there isn't any data in the stream
+            * @return The number of bytes ignored including the delimiter character
+            */
+            virtual StreamSize ignore(const StreamSize bufferCount, const char delimiter ) = 0;
+
+            /** Returns whether end of stream has been reached
+             * @note For Files this is explicit but for a pipe (e.g. TCP or command pipe '|' ) this may never occur until the pipe is forcefully closed by the other end etc
+             * @return True if no more data, false otherwise
+            */
+            virtual bool isEof() = 0;
+        };
+
+// TODO: Need to refactor use of streams!?
+#if SUB0PUB_STD
+        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
+        inline size_t readline(std::istream& istream, char* const buffer, const size_t bufferCount)
+        {
+            return istream.getline(buffer, bufferCount).gcount();
+        }
+
+        template< typename Type_t >
+        inline bool write(std::ostream& stream, const Type_t& value)
+        {
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)).good();
+        }
+
+        template< typename Type_t >
+        inline bool write(std::ostream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)).good();
+        }
+
+        template<>
+        inline bool write<void>(std::ostream& stream)
+        {
+            return true;
+        }
+#else
+        /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
+        inline size_t readline(IStream& istream, char* const buffer, const size_t bufferCount)
+        {
+            return istream.readline(buffer, bufferCount);
+        }
+
+        template< typename Type_t >
+        inline bool write(OStream& stream, const Type_t& value)
+        {
+            return stream.write(reinterpret_cast<const char*>(&value), sizeof(value)) == sizeof(value);
+        }
+
+        template< typename Type_t >
+        inline bool write(OStream& stream)
+        {
+            const Type_t defaulted;
+            return stream.write(reinterpret_cast<const char*>(&defaulted), sizeof(defaulted)) == sizeof(defaulted);
+        }
+
+        template<>
+        inline bool write<void>(OStream& stream)
+        {
+            return true;
+        }
+#endif
+
+
+
+        template< typename Type_t >
+        constexpr size_t sizeOf() { return sizeof(Type_t); }
+
+        template<>
+        constexpr size_t sizeOf<void>() { return 0; }
+
+        template< typename Type_t >
+        constexpr void copyTo(char* buffer)
+        { constexpr Type_t temp; std::memcpy(buffer, (const void*)&temp, sizeof(temp) ); }
+
+        template< typename Type_t >
+        constexpr void copyTo(char* buffer, const Type_t& value)
+        { std::memcpy(buffer, (const void*)&value, sizeof(value)); }
+
+        /// std::experimental::is_detected
+        /// https://en.cppreference.com/w/cpp/experimental/is_detected
+        namespace detail {
+            template <class Default, class AlwaysVoid,
+                template<class...> class Op, class... Args>
+            struct detector {
+                using value_t = std::false_type;
+                using type = Default;
+            };
+
+            template <class Default, template<class...> class Op, class... Args>
+            struct detector<Default, std::void_t<Op<Args...>>, Op, Args...> {
+                using value_t = std::true_type;
+                using type = Op<Args...>;
+            };
+
+        } // namespace detail
+
+        struct nonesuch {
+            ~nonesuch() = delete;
+            nonesuch(nonesuch const&) = delete;
+            void operator=(nonesuch const&) = delete;
+        };
+
+        template <template<class...> class Op, class... Args>
+        using is_detected = typename detail::detector<nonesuch, void, Op, Args...>::value_t;
+
+        template <template<class...> class Op, class... Args>
+        using detected_t = typename detail::detector<nonesuch, void, Op, Args...>::type;
+
+        template <class Default, template<class...> class Op, class... Args>
+        using detected_or_t = typename detail::detector<Default, void, Op, Args...>::type;
+
+    } // END: utility
+
+
+    // OStream/IStream type aliases (needed by IPC section below)
+#if SUB0PUB_STD
+    typedef std::ostream OStream;
+    typedef std::istream IStream;
+#else
+    typedef utility::OStream OStream;
+    typedef utility::IStream IStream;
+#endif
+
+// ============================================================================
+// Section 4: IPC API — Serialization, forwarding, stream protocol
+// ============================================================================
+
+    /** Interface for data provider to indicate destination buffer status
+     * @see ForwardPublish
+     */
+    class IPublish
+    {
+    public:
+
+        /** Publish the data owned by the object
+         */
+        virtual void publish() = 0;
+    };
+
+    template< typename Prefix_t
+            , typename Header_t
+            , typename Postfix_t >
+    class BinaryWriter
+    {
+    public:
+        using Config = detail::Empty; //< Not configurable by default
+
+    public:
+        /** Output header and pay-load for data as binary
+         * @param stream  Stream to write into
+         * @param data  Data to construct a header record and data payload for
+         */
+        template<typename Data_t>
+        inline bool write(OStream& stream, const Data_t& data) const
+        {
+            return utility::write<Prefix_t>(stream)
+                && utility::write(stream, Header_t(data))
+                && utility::write(stream, data)
+                && utility::write<Postfix_t>(stream);
+        }
+
+        bool open(OStream& stream)
+        {
+            /* Do nothing */
+            return true;
+        }
+
+        void close( OStream& stream  )
+        {
+            /* Do nothing */
+        }
+
+    };
+
+    struct Buffer
+    {
+        IPublish* publisher; ///< Type specific publish of buffer
+        char* buffer; ///< Data buffer @note a nullptr buffer may be set for unsupported payloads where paddingSize != 0 is required
+        uint_least16_t bufferSize; ///< size of buffer
+        int32_t paddingSize; /**< size of buffer padding data to ignore after buffer
+                                  * @note Negative pad leaves unopulated bytes in buffer which are zeroed
+                                  * @note For protocol version compatibility when payloads grow
+                                  */
+    };
+
+    /** @tparam  cMaxDataBufferCount  Defines the maximum number of Data type buffers the deserializer can store
+    */
+    template< typename Header_t, uint_fast16_t cMaxDataBufferCount = 64U >
+    class BufferRegister
+    {
+        typedef std::pair<Header_t,Buffer> HeaderToBuffer;
+        typedef std::array<HeaderToBuffer, cMaxDataBufferCount> HeaderToBufferLookup;
+
+    public:
+        BufferRegister()
+            : registry_()
+            , registryEnd_(registry_.begin())
+        {}
+
+        /** Register a sink to the specified typed Data buffer
+         * @remark Performs insertion sorting on buffers by the IPublish::typeId() for the buffer
+         * @todo Make search meahcnism selectable i.e. Array-index, hash, or binary-lookup etc
+         * @remark Called by sub0::ForwardPublish<Data>
+         *
+         * @param[in] publisher  Buffer handling object to store and signal data completion
+         * @param[in] paddingSize  Number of trailing bytes after sizeof(Data) has been consumed to ignore/discard 
+         *                         for alignment or protocol-version compatibility
+         */
+        template < typename Data >
+        void set(Data& buffer, IPublish& publisher, const int32_t paddingSize = 0U )
+        {
+            set( Header_t(buffer)
+               , Buffer{
+                     &publisher 
+                    , reinterpret_cast<char*>(&buffer)
+                    , static_cast<uint_least16_t>(sizeof(buffer))
+                    , paddingSize
+               } );
+        }
+
+        void set(const Header_t& header, const Buffer& buffer)
+        {
+            /// @todo make this a linked list to remove capacity limitations?
+#if SUB0PUB_ASSERT
+            assert(registryEnd_ < std::end(registry_)); //< Capacity reached
+#endif
+
+            typename HeaderToBufferLookup::iterator iInsert = std::lower_bound(std::begin(registry_), registryEnd_, header,
+                [](const HeaderToBuffer& lhs, const Header_t& rhs) { return lhs.first < rhs; });
+
+            const bool exists = (iInsert != registryEnd_) && (iInsert->first == header);
+            if (!exists) //< Insert new entry at location
+            {
+                std::move_backward(iInsert, registryEnd_, registryEnd_ + 1U);
+                ++registryEnd_;
+                iInsert->first = header;
+            }
+
+            iInsert->second = buffer;
+
+            if ( buffer.paddingSize < 0 ) //< Nullify unpopulated bytess
+            {
+                char* bufferEnd = buffer.buffer + buffer.bufferSize;
+                std::fill(bufferEnd + buffer.paddingSize, bufferEnd, 0x00); //< Clear content that will not be written
+            }
+        }
+
+        Buffer find(const Header_t header)
+        {
+            typename HeaderToBufferLookup::iterator iFind = std::lower_bound(std::begin(registry_), registryEnd_, HeaderToBuffer(header, Buffer())
+                , [](const HeaderToBuffer& lhs, const HeaderToBuffer& rhs) { return lhs.first < rhs.first; });
+
+            if ((iFind != registryEnd_) && (iFind->first == header))
+                return iFind->second;
+            else
+                return { nullptr, nullptr, 0U , 0U };
+        }
+
+        /** Default validation check against provided header
+         * @note No validation occurs by default and processing is pushed onto find() to perform respective lookup operation
+         * @todo Unify find/validate so that find returns a handle that can be validated or buffer accessed etc i.e. Iterator or the likes!
+         * @param header Header data to validate against
+         * @return True always
+        */
+        bool validate(const Header_t& header) const
+        {
+            return true;
+        }
+
+        bool close()///< @TODO This is here as a use-case contained stream state within the buffer map! Remove/deprecate this when/as possible
+        {
+            /** Do nothing - no state to clear */
+            return true;
+        }
+
+    private:
+        HeaderToBufferLookup registry_;
+        typename HeaderToBufferLookup::iterator registryEnd_; ///< Iterator to end of registry_ @note Count = registryEnd_-registry_
+    };
+
+    template< typename Prefix_t, typename Header_t, typename Postfix_t, typename BufferRegister = BufferRegister<Header_t> >
+    class BinaryReader
+    {
+    public:
+        using Config = detail::Empty; //< Not configurable by default
+
+        enum class State { 
+              Prefix///< [optional] Prefix-Delimiter is being read
+            , Header ///< Data-Header  is being read
+            , Data ///< Data payload is being  read
+            , Postfix ///< [optional] Postfix-Delimiter is being read
+
+            , SyncLost ///< Error state entered when an error occurs in any state i.e. Corrupted input stream
+
+            , COUNT_ 
+        };
+
+    public:
+        BinaryReader()
+            : dataBufferRegistry_()
+            , currentBuffer_()
+            , state_()
+            , prefix_()
+            , header_()
+            , postfix_()
+        {}
+
+        /** Initialise from IStream
+        */
+        bool open(IStream& stream)
+        {
+            //TODO: Do this on open or close?
+            state_ = !std::is_void<Prefix_t>::value ? State::Prefix : stateAfter(State::Prefix);
+            currentBuffer_ = findStateBuffer(state_);
+            return true;
+        }
+
+        /** Read from the stream
+        */
+        bool update(IStream& stream)
+        {
+            for (;;)
+            {
+                // Handle SyncLost: scan for next valid prefix
+                if (state_ == State::SyncLost)
+                {
+                    if (!tryResync(stream))
+                        return false;
+                }
+
+                // Handle skip of unknown payload (data + postfix bytes)
+                if (skipRemaining_ > 0)
+                {
+                    char skipBuf[256];
+                    const auto toSkip = std::min(static_cast<uint32_t>(sizeof(skipBuf)), skipRemaining_);
+#if SUB0PUB_STD
+                    const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip).gcount());
+#else
+                    const auto skipped = static_cast<uint32_t>(stream.read(skipBuf, toSkip));
+#endif
+                    skipRemaining_ -= skipped;
+                    if (skipRemaining_ > 0)
+                        return false;
+                    // Skip complete — reset to next prefix
+                    state_ = !std::is_void_v<Prefix_t> ? State::Prefix : stateAfter(State::Prefix);
+                    currentBuffer_ = findStateBuffer(state_);
+                    continue;
+                }
+
+                // Normal read
+                if (!readBuffer(stream))
+                    return false;
+                if (state_ == State::Header)
+                    return true;
+            }
+        }
+
+        template < typename Data >
+        void setDataPublisher(Data& dataBuffer, IPublish& publisher)
+        {
+#if SUB0PUB_ASSERT
+            assert(!currentBuffer_.buffer); /// @todo We don't intend to support adding buffers while stream is being processed?
+#endif
+            dataBufferRegistry_.set(dataBuffer, publisher);
+        }
+
+        bool close( IStream& stream  )
+        {
+            dataBufferRegistry_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
+            return true;
+        }
+
+    private:
+
+        /** Returns/finds buffer for state
+        */
+        Buffer findStateBuffer(const State state)
+        {
+            switch (state)
+            {
+            default: //< @todo unreachable unless SyncLost
+            case State::Prefix: 
+                return {nullptr, reinterpret_cast<char*>(&prefix_), static_cast<uint_least16_t>( !std::is_void<Prefix_t>::value ? sizeof(prefix_) : 0U), 0U};
+            case State::Header: 
+                return {nullptr, reinterpret_cast<char*>(&header_), static_cast<uint_least16_t>(sizeof(header_)), 0U };
+            case State::Data:   
+                return dataBufferRegistry_.find(header_);
+            case State::Postfix: 
+                return {currentBuffer_.publisher , reinterpret_cast<char*>(&postfix_), static_cast<uint_least16_t>( !std::is_void<Postfix_t>::value ? sizeof(postfix_) : 0U), 0U};
+            }
+        }
+        
+        /** Read payload data from stream and detect payload completion
+         * @return True when data packet(s) have been published, false if no completed packet was present in stream
+        */
+        bool readBuffer(IStream& stream)
+        {
+            if (currentBuffer_.bufferSize > 0)
+            {
+#if SUB0PUB_STD
+                const uint_fast16_t readCount = static_cast<uint_fast16_t>(stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize).gcount()); ///< @todo readsome() for async
+#else
+                const uint_fast16_t readCount = stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize);
+#endif
+                currentBuffer_.buffer += readCount;
+                currentBuffer_.bufferSize -= readCount;
+
+                /// If buffer not complete then we need to return and await more data
+                if (currentBuffer_.bufferSize > 0)
+                    return false;
+            }
+
+            if (currentBuffer_.paddingSize > 0)
+            {
+                char ignoreBuff[256];
+                const size_t ignoreSize = std::min(std::size(ignoreBuff), static_cast<size_t>(currentBuffer_.paddingSize));
+    #if SUB0PUB_STD
+                const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.read(ignoreBuff, ignoreSize).gcount());
+    #else
+                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, ignoreSize);
+    #endif
+
+                currentBuffer_.paddingSize -= ignoreCount;
+
+                /// If padding not complete then we need to return and await more data
+                /// @todo We could publish the data before completion of the padding... however we cannot check for a post-fix delimiter without doing pad first!?
+                if (currentBuffer_.paddingSize > 0)
+                    return false;
+            }
+
+            //If we got here the buffer and any padding has been read from the stream
+            return stateComplete();
+        }
+
+        constexpr bool getStateStatus(const State state) const
+        {
+            switch (state)
+            {
+            default:
+            case State::Prefix:
+                if constexpr (!std::is_void_v<Prefix_t>)
+                {
+                    const Prefix_t emptyPrefix{}; // Named: taking the address of a temporary is ill-formed (GCC hard error)
+                    return std::memcmp(&prefix_, &emptyPrefix, sizeof(Prefix_t)) == 0;
+                }
+                else
+                    return true;
+            case State::Header:  return dataBufferRegistry_.validate(header_);
+            case State::Data:    return true;
+            case State::Postfix: return postfix_ == Postfix_t();
+            }
+        }
+
+        constexpr bool isPublishReady(const State currentState) const
+        {
+            // @todo In absence of Postfix we should probably wait for Prefix instead of just Data completion?
+            return currentState == (!std::is_void<Postfix_t>::value ? State::Postfix : State::Data);
+        }
+
+        constexpr State stateAfter(const State currentState ) const
+        {
+            switch (currentState)
+            {
+            default: //< @todo unreachable
+            case State::Prefix:  return State::Header;
+            case State::Header:  return State::Data;
+            case State::Data:    return !std::is_void<Postfix_t>::value ? State::Postfix : stateAfter(State::Postfix); ///< @note may not have Prefix_t or Postfix_t
+            case State::Postfix: return !std::is_void<Prefix_t>::value ? State::Prefix : stateAfter(State::Prefix);
+            }
+        }
+
+        bool checkStatusOfState(const State currentState) const
+        {
+            const bool stateStatus = getStateStatus(currentState);
+            if(stateStatus)
+                return true;
+
+            const char* failureMessage = nullptr;
+            switch(currentState)
+            {
+                case State::Header: failureMessage = "Binary-Header mismatch - stream corruption or incompatible data-stream"; break;
+                case State::Postfix: failureMessage = "Binary-Postfix mismatch - stream corruption or incompatible data-stream"; break;
+                default: failureMessage = "Sync-Lost - TODO Details"; break;
+            }
+
+            if(failureMessage != nullptr)
+            {
+#if __cpp_exceptions
+                throw std::runtime_error(failureMessage);
+#elif SUB0PUB_ASSERT
+                assert((void*)0 == failureMessage);
+#endif
+            }
+
+            return false;
+        }
+
+        bool stateComplete()
+        {
+            if( !checkStatusOfState(state_) )
+            {
+                // Prefix or postfix mismatch — enter SyncLost to scan for next valid frame
+                state_ = State::SyncLost;
+                return false;
+            }
+
+            if ( isPublishReady(state_) )
+            {
+                if (currentBuffer_.publisher)
+                    currentBuffer_.publisher->publish();
+            }
+
+            state_ = stateAfter( state_ );
+            currentBuffer_ = findStateBuffer(state_);
+
+            // Unknown typeId: skip the payload + postfix bytes and continue to next frame
+            if (currentBuffer_.buffer == nullptr && state_ == State::Data)
+            {
+                skipRemaining_ = header_.dataBytes;
+                if constexpr (!std::is_void_v<Postfix_t>)
+                    skipRemaining_ += sizeof(Postfix_t);
+                return true;
+            }
+
+            if (currentBuffer_.paddingSize < 0)
+            {
+                currentBuffer_.bufferSize += currentBuffer_.paddingSize;
+                currentBuffer_.paddingSize = 0;
+            }
+
+            return currentBuffer_.buffer != nullptr;
+        }
+
+        /** Attempt to recover from SyncLost by scanning for the next valid prefix magic
+         * @return True if magic found and state reset to Header, false if more data needed
+         */
+        bool tryResync(IStream& stream)
+        {
+            if constexpr (std::is_void_v<Prefix_t>)
+            {
+                // No prefix defined — cannot resync
+                return false;
+            }
+            else
+            {
+                // Scan one byte at a time looking for the prefix magic
+                char byte;
+                auto* prefixBytes = reinterpret_cast<char*>(&prefix_);
+                const auto prefixSize = sizeof(Prefix_t);
+                const Prefix_t expected{};
+
+#if SUB0PUB_STD
+                const auto readCount = static_cast<uint_fast16_t>(stream.read(&byte, 1).gcount());
+#else
+                const auto readCount = stream.read(&byte, 1);
+#endif
+                if (readCount == 0)
+                    return false;
+
+                // Shift prefix buffer left and append new byte
+                std::memmove(prefixBytes, prefixBytes + 1, prefixSize - 1);
+                prefixBytes[prefixSize - 1] = byte;
+
+                // Check if we've found the magic
+                if (std::memcmp(&prefix_, &expected, prefixSize) == 0)
+                {
+                    state_ = State::Header;
+                    currentBuffer_ = findStateBuffer(state_);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+    private:
+        BufferRegister dataBufferRegistry_;
+        Buffer currentBuffer_; ///< Current prefix/header/payload/postfix buffer
+        State state_; ///< Which buffer is being read
+        uint32_t skipRemaining_ = 0; ///< Bytes remaining to skip for unknown typeId payloads
+
+        using MemberPrefix_t = std::conditional_t<std::is_void_v<Prefix_t>, char, Prefix_t>;
+        using MemberPostfix_t = std::conditional_t<std::is_void_v<Postfix_t>, char, Postfix_t>;
+
+        MemberPrefix_t prefix_;
+        Header_t header_; ///< Packet head buffer
+        MemberPostfix_t postfix_;
+    };
+
+    /** Binary protocol for serialised signal and data transfer
+     * @remark The protocol consists of a Header chunk followed by Header::dataBytes bytes of payload data
+     */
+    struct DefaultSerialisation
+    {
+        struct Prefix
+        {
+            const uint32_t magic = sub0::utility::FourCC<'S', 'U', 'B', '0'>::value; //< Magic number to identify Sub0 network protocol packets
+        };
+
+        /** Header containing signal type information
+        */
+        struct Header
+        {
+            uint32_t typeId; ///< Data type identifier @note The Id may be user specified for inter-process
+            uint32_t dataBytes; ///< Count of bytes that follow after the header data
+
+            Header() = default;
+
+            /** header for specified Data type
+            */
+            template<typename Data>
+            Header( const Data& data )
+#if SUB0PUB_TYPEIDNAME
+                : typeId(detail::Broker<Data>::typeId() )
+#else
+                : typeId(utility::typeHash<Data>())
+#endif
+                , dataBytes(sizeof(Data))
+            {}
+
+            /** Sort by typeId only
+            */
+            bool operator < (const Header& rhs) const
+            { return typeId < rhs.typeId; }
+
+            /** Compare full equality 
+            */
+            bool operator == (const Header& rhs) const
+            { return (typeId == rhs.typeId) && (dataBytes == rhs.dataBytes); }
+        };
+
+        struct Postfix
+        {
+            uint8_t delim = '\n';
+            bool operator==(const Postfix& rhs) const { return delim == rhs.delim; }
+        };
+
+        using Writer = BinaryWriter<Prefix, Header, Postfix>;
+        using Reader = BinaryReader<Prefix, Header, Postfix>;
+    };
+
+    /** Serialises Sub0Pub data into a target stream object
+     * @remark Serialised data can be received and published using the counterpart StreamDeserializer instance
+     * @remark Can be used to create inter-process transfers very easily using the specified Protocol @see sub0::DefaultSerialisation
+     * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
+     */
+    template< typename Protocol = DefaultSerialisation, typename ProtocolWriter = typename Protocol::Writer >
+    class StreamSerializer
+    {
+    public:
+
+        using WriterConfig = typename ProtocolWriter::Config;
+
+        using ForwardReceiver = StreamSerializer<Protocol,ProtocolWriter>; //<@note Allow disambiguation for forwarding from derived classes
+
+    public:
+        /** Construct from stream
+         * @param[in] stream  Stream reference stored and used to write serialised data into
+         */
+        StreamSerializer( OStream& stream )
+            : ostream_(stream)
+            , writer_()
+        {}
+
+        bool configure( const WriterConfig& config )
+        {
+            if constexpr (!std::is_same_v<WriterConfig, detail::Empty>)
+                return writer_.configure(ostream_, config);
+            else
+                return true;
+        }
+
+        /** Receives forwarded data from a subscriber and serialises it to the output stream
+         * @param[in] data  Forwarded data
+         */
+        template<typename Data>
+        void receive( const Data& data )
+        {
+            writer_.write( ostream_, data );
+        }
+
+        bool open()
+        {
+            return writer_.open(ostream_);
+        }
+
+        bool update()
+        {
+            return writer_.update(ostream_);
+        }
+
+        /** Reset writer internal  state
+        */
+        bool close()
+        {
+            writer_.close( ostream_ );
+            ostream_.flush();
+            return true;
+        }
+
+    protected:
+        OStream& ostream_; ///< Stream into which data is serialised
+        ProtocolWriter writer_;
+    };
+
+
+    /** Publishes messages from a serialised-input stream using the specified Protocol 
+     * @remark StreamDeserializer can be used for inter-process or distributed systems over a network where the stream
+     *  could be a TcpStream or could be a file in simple cases. The serialised data is expected to be generated from a
+     *  corresponding StreamSerializer instance for the same Protocol.
+     * @tparam  Protocol  Stream data protocol to use defining how the data header and payload is structured
+     */
+    template< typename Protocol = DefaultSerialisation, typename ProtocolReader = typename Protocol::Reader >
+    class StreamDeserializer
+    {
+    public:
+
+        using ReaderConfig = typename ProtocolReader::Config;
+
+    public:
+        /** Store reference to supplied IStream which will be read on update()
+        */
+        StreamDeserializer( IStream& istream )
+            : istream_(istream)
+            , reader_()
+        {}
+
+        bool configure(const ReaderConfig& config)
+        {
+            if constexpr (!std::is_same_v<ReaderConfig, detail::Empty>)
+                return reader_.configure(istream_, config);
+            else
+                return true;
+        }
+
+        template < typename Data >
+        void setDataPublisher( Data& dataBuffer, IPublish& publisher )
+        {
+            reader_.setDataPublisher(dataBuffer, publisher );
+        }
+
+        /** Prime reader internal  state
+        */
+        bool open()
+        {
+            return reader_.open(istream_);
+        }
+
+        /** Polls data from the input istream
+         * @return True when data packet(s) have been published, false if no completed packet was present in istream
+         */
+        bool update()
+        {
+            return reader_.update(istream_);
+        }
+
+        /** Reset reader internal  state
+        */
+        bool close()
+        {
+            return reader_.close( istream_ );
+        }
+
+    protected:
+        IStream& istream_; ///< Stream from which data is de-serialized
+        ProtocolReader reader_;
+    };
+
+    /** Check for `Target::ForwardReceiver` for SFINAE 
+    */
+    template<typename Target>
+    using forward_receiver_t = typename Target::ForwardReceiver;
+
+    /** Forward receive() to  Target type convertible from this
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see class StreamSerializer
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
+     * @tparam  Data  Data type which will be forwarded to the derived Target implementation
+     * @tparam  Target  Type of derived class which implements a function of type Target::receive<>( const Data& data ) via base inheritance or direct member
+     */
+    template<typename Data, typename Target >
+    class ForwardSubscribe : public Subscribe<Data>
+    {
+    public:
+        /** Receives subscribed data and forward to target object
+         * @param data  Data to forward
+         */
+        inline void receive( const Data& data ) noexcept override
+        {
+            using ForwardReceiver_t = utility::detected_or_t<Target, forward_receiver_t, Target>;
+            static_cast<Target*>(this)->ForwardReceiver_t::receive(data);
+        }
+    };
+
+    /** Register publication of data with a provider instance
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see class StreamSerializer
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardPublish<..>
+     * @tparam  Data  Data type which will be read into from a DataProvider
+     * @tparam  DataProvider  CRTP Type of derived class which implements a function of type DataProvider::setDataPublisher( Data&, IPublish& ) via base inheritance or direct member
+     *
+     * @todo API not final
+     */
+    template<typename Data, typename DataProvider >
+    class ForwardPublish : public Publish<Data>, protected IPublish
+    {
+    public:
+        /** Register publisher buffer with the data provider
+         * @param typeName  Unique name given to the serialised data entry @note Replaces compiler generated name which is not portable
+         */
+        ForwardPublish(
+#if SUB0PUB_TYPEIDNAME            
+            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
+#endif
+        )
+            : Publish<Data>(
+#if SUB0PUB_TYPEIDNAME
+                typeId, typeName
+#endif
+              )
+            , IPublish()
+        {
+            DataProvider& provider = static_cast<DataProvider&>(*this);
+            provider.setDataPublisher( buffer_, static_cast<IPublish&>(*this) ); // Register the buffer sink to the data provider
+        }
+
+    private:
+
+        /** Publish the data populated in buffer_
+         */
+        virtual void publish() final
+        { Publish<Data>::publish( buffer_ ); }
+
+    private:
+        Data buffer_ = {}; ///< Data buffer to be published 
+                      ///< @todo Double-buffer data storage for asynchronous processing and receive?
+    };
+
+    /** Forward receive() to Target type convertible from this for all Datas types listed
+     * @remark The call is made with Data type allowing for templated receive<>() handler functions @see `class StreamSerializer` for example `template receive<>()`
+     * @note This uses the CRTP(curiously recurring template pattern) to forward to a target type derived from ForwardSubscribe<..>
+     * @tparam  Data  Data type which will be forwarded to the derived Target implementation
+     * @tparam  Target  Type of derived class which implements a function of type Target::receive<>( const Data& data ) via base inheritance or direct member
+     */
+    template< typename SubscriberTarget, typename... Datas >
+    class ForwardSubscribeAll : public ForwardSubscribe<Datas, SubscriberTarget>... {};
+
+    template<typename SubscriberTarget, typename... Datas>
+    class ForwardSubscribeAll<SubscriberTarget, std::tuple<Datas...> > : public ForwardSubscribe<Datas, SubscriberTarget>... {};
+
+
+    /** Register publication of data with a provider instance
+    */
+    template< typename DataProvider, typename... Datas >
+    class ForwardPublishAll : public ForwardPublish<Datas, DataProvider>... {};
+
+    template<typename DataProvider, typename... Datas>
+    class ForwardPublishAll<DataProvider, std::tuple<Datas...> > : public ForwardPublish<Datas, DataProvider>... {};
+
+} // END: sub0
+
+#endif
