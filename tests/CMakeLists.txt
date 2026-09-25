@@ -31,3 +31,6 @@ sub0pub_add_bench(Sub0Pub_Bench_Unchecked  bench/bench_core.cpp SUB0PUB_REENTRAN
 sub0pub_add_bench(Sub0Pub_Bench_Checked    bench/bench_core.cpp SUB0PUB_REENTRANT_SAFE=false SUB0PUB_REENTRANT_CHECK=true)
 sub0pub_add_bench(Sub0Pub_Bench_ThreadSafe bench/bench_core.cpp SUB0PUB_THREAD_SAFE=true)
 sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
+
+# Design prototypes (not public API)
+add_subdirectory(design/broker_config)
