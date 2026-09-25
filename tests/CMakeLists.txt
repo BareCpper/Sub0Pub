@@ -34,3 +34,6 @@ sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
 
 # Design prototypes (not public API)
 add_subdirectory(design/broker_config)
+
+# Collapse evidence cases (issue #9)
+add_subdirectory(collapse)

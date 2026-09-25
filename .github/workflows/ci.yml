@@ -4,7 +4,7 @@ on:
   push:
     branches: [develop, v2]
   pull_request:
-    branches: [develop, v2]
+    branches: [develop, v2, 'claude/**'] # claude/**: PRs stacked on another PR's branch
 
 jobs:
   build-linux:
@@ -72,3 +72,23 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }}
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
+
+  collapse-evidence:
+    # Issue #9: final-link evidence per case/variant/build (docs/design/COLLAPSE_EVIDENCE.md).
+    # Fails on behaviour mismatch; collapse criteria are reported (pattern A is expected to fail them).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchains
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends valgrind clang gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
+      - name: Collect evidence
+        run: python3 tests/collapse/collapse_evidence.py --json collapse-evidence.json > collapse-evidence.md
+      - name: Summary
+        if: always()
+        run: cat collapse-evidence.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: collapse-evidence
+          path: collapse-evidence.*
+

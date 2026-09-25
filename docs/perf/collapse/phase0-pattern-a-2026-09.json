@@ -1,0 +1,1679 @@
+[
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 18,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2345,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 17,
+   "publish": 19.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6696,
+   "data": 920,
+   "bss": 176,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=2261637700 args=1000 publishes=1000",
+  "instr": {
+   "setup": 43,
+   "teardown": 89,
+   "publish": 122.513
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2297,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 17,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6620,
+   "data": 920,
+   "bss": 176,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 89,
+   "setup": 43,
+   "publish": 111.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 26,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2409,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 20,
+   "publish": 30.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 2,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7180,
+   "data": 920,
+   "bss": 192,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 128,
+   "publish": 129.013,
+   "setup": 55
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2345,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 9.013,
+   "setup": 20,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 2,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7132,
+   "data": 920,
+   "bss": 192,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 104.013,
+   "setup": 55,
+   "teardown": 128
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 11,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2329,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 18,
+   "publish": 15.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 51,
+   "direct_calls": 2,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5000,
+   "data": 848,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 248,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=1687924188 args=1000 publishes=1000",
+  "instr": {
+   "publish": 47.013,
+   "teardown": 49,
+   "setup": 33
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2297,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "teardown": 16,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 4668,
+   "data": 840,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 248,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 33,
+   "publish": 8.013,
+   "teardown": 49
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2297,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 17,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3199,
+   "data": 704,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 139,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "teardown": 16,
+   "setup": 20
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2297,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "setup": 17,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3199,
+   "data": 704,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 139,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 18.013,
+   "setup": 20
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2100,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 publishes=1000",
+  "instr": {
+   "setup": 15,
+   "teardown": 14,
+   "publish": 22.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4915,
+   "data": 976,
+   "bss": 145,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=2261637700 args=1000 publishes=1000",
+  "instr": {
+   "setup": 41,
+   "teardown": 92,
+   "publish": 113.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2052,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 15
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4883,
+   "data": 976,
+   "bss": 145,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 41,
+   "publish": 99.513,
+   "teardown": 92
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 29,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2148,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "teardown": 14,
+   "publish": 33.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5001,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 publishes=1000",
+  "instr": {
+   "setup": 54,
+   "teardown": 135,
+   "publish": 150.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2052,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 16,
+   "publish": 9.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4958,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 54,
+   "teardown": 135,
+   "publish": 122.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2084,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "setup": 16,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4420,
+   "data": 904,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=1687924188 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 54,
+   "setup": 31,
+   "publish": 78.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2052,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 15,
+   "publish": 8.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4404,
+   "data": 904,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "teardown": 54,
+   "publish": 69.013,
+   "setup": 31
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2052,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 15,
+   "publish": 8.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2808,
+   "data": 752,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 105,
+  "retained_sub0": [
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 19,
+   "setup": 18
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2052,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 15,
+   "teardown": 14,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2808,
+   "data": 752,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 105,
+  "retained_sub0": [
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "publish": 8.013,
+   "teardown": 19
+  }
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1116,
+   "data": 8,
+   "bss": 496,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2920,
+   "data": 88,
+   "bss": 836,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 225,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1084,
+   "data": 8,
+   "bss": 496,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2872,
+   "data": 88,
+   "bss": 836,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 225,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1176,
+   "data": 8,
+   "bss": 508,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 162,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2928,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1124,
+   "data": 8,
+   "bss": 508,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 162,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2888,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1116,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 146,
+   "direct_calls": 2,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Controller::receive((anonymous namespace)::Sample const&)",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2656,
+   "data": 88,
+   "bss": 568,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 64,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1092,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2296,
+   "data": 88,
+   "bss": 568,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 64,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1084,
+   "data": 8,
+   "bss": 496,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1804,
+   "data": 88,
+   "bss": 820,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 41,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1084,
+   "data": 8,
+   "bss": 496,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1804,
+   "data": 88,
+   "bss": 820,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 41,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ }
+]
