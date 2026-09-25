@@ -133,6 +133,24 @@ namespace sub0x
         void (*call_)(const void*, const T&) noexcept;
     };
 
+    /** CRTP publisher mixin (Phase 2 spike, issue #9 publisher-ergonomics face-off): the derived publisher
+     * stores a reference to its output and gets `this->publish(msg)` instead of `out.publish(msg)`. Still a
+     * template over Out (the mixin argument), so it has the same one-instantiation-per-topology shape as
+     * writing `template<class Out>` by hand; only the spelling at the call site changes. */
+    template<class Derived, class Out>
+    class Publisher
+    {
+    public:
+        constexpr explicit Publisher(const Out& out) noexcept : out_(out) {}
+
+    protected:
+        template<class T>
+        void publish(const T& msg) const noexcept { out_.publish(msg); }
+
+    private:
+        const Out& out_;
+    };
+
     /** Typed transport endpoint binding for a transport with static storage: no RAM, fixed target */
     template<auto* TransportObject>
     struct StaticForward
