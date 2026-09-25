@@ -27,6 +27,7 @@ namespace collapse
 {
     uint32_t g_state = 0;
     uint32_t g_args = 0;
+    uint32_t g_io = 0;
 }
 
 namespace
@@ -52,6 +53,7 @@ int main()
     collapse_teardown();
     collapse::g_state = 0;
     collapse::g_args = 0;
+    collapse::g_io = 0;
 
     // Round 2: measured
     CALLGRIND_ZERO_STATS;
@@ -67,11 +69,11 @@ int main()
 
 #if defined(COLLAPSE_NO_STDIO)
     // Bare-metal builds are analysed statically (final ELF); keep stdio out of the image
-    return static_cast<int>(collapse::g_state ^ collapse::g_args);
+    return static_cast<int>(collapse::g_state ^ collapse::g_args ^ collapse::g_io);
 #else
-    std::printf("checksum state=%u args=%u publishes=%u\n",
+    std::printf("checksum state=%u args=%u io=%u publishes=%u\n",
                 static_cast<unsigned>(collapse::g_state), static_cast<unsigned>(collapse::g_args),
-                static_cast<unsigned>(kPublishes));
+                static_cast<unsigned>(collapse::g_io), static_cast<unsigned>(kPublishes));
     return 0;
 #endif
 }

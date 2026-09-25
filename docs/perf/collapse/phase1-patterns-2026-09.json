@@ -1,0 +1,7456 @@
+[
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 50,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2617,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 61.013,
+   "teardown": 16,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7235,
+   "data": 920,
+   "bss": 184,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 235,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 128,
+   "publish": 130.013,
+   "setup": 56
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 56,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2681,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 68.013,
+   "teardown": 16,
+   "setup": 29
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 50,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2617,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 61.013,
+   "teardown": 16,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 34,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2574,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 21,
+   "teardown": 16,
+   "publish": 36.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7187,
+   "data": 920,
+   "bss": 184,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 235,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 105.013,
+   "setup": 56,
+   "teardown": 128
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 40,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2638,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 29,
+   "teardown": 16,
+   "publish": 43.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 34,
+   "direct_calls": 4,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2574,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 21,
+   "publish": 36.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 87,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 3676,
+   "data": 736,
+   "bss": 104,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 32,
+   "publish": 60.763,
+   "setup": 30
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 215,
+   "direct_calls": 4,
+   "indirect_calls": 3,
+   "functions": [
+    "collapse_publish",
+    "memmove@plt"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6872,
+   "data": 920,
+   "bss": 160,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 93.263,
+   "setup": 33,
+   "teardown": 49
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 145,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy",
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 5478,
+   "data": 872,
+   "bss": 136,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 66,
+   "publish": 107.263,
+   "setup": 37
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 87,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 3600,
+   "data": 736,
+   "bss": 104,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 32,
+   "publish": 51.013,
+   "setup": 30
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 215,
+   "direct_calls": 4,
+   "indirect_calls": 3,
+   "functions": [
+    "collapse_publish",
+    "memmove@plt"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6796,
+   "data": 920,
+   "bss": 160,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 49,
+   "setup": 33,
+   "publish": 83.513
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 145,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy",
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 5402,
+   "data": 872,
+   "bss": 136,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 66,
+   "setup": 37,
+   "publish": 97.513
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 18,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 19.013,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6744,
+   "data": 920,
+   "bss": 176,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 44,
+   "publish": 122.513,
+   "teardown": 89
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 18,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2399,
+   "data": 600,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 19.013,
+   "setup": 24,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 18,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 18,
+   "publish": 19.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2531,
+   "data": 600,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 35.513,
+   "setup": 26,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "publish": 8.013,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 6668,
+   "data": 920,
+   "bss": 176,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 44,
+   "teardown": 89,
+   "publish": 111.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 16,
+   "setup": 24
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 8.013,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2483,
+   "data": 600,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 22.013,
+   "setup": 26,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 26,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2431,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 21,
+   "publish": 30.013,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 2,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7228,
+   "data": 920,
+   "bss": 192,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 56,
+   "teardown": 128,
+   "publish": 129.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 34,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2495,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 29,
+   "teardown": 16,
+   "publish": 39.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 26,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2431,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 30.013,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2627,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 51.013,
+   "setup": 31
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 9.013,
+   "teardown": 16,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 2,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7180,
+   "data": 920,
+   "bss": 192,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 257,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 128,
+   "setup": 56,
+   "publish": 104.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2415,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 29,
+   "publish": 11.013,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 9.013,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2531,
+   "data": 600,
+   "bss": 72,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 31,
+   "publish": 24.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 11,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 15.013,
+   "setup": 19,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 51,
+   "direct_calls": 2,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5048,
+   "data": 848,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 248,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 49,
+   "publish": 47.013,
+   "setup": 34
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 13,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2383,
+   "data": 600,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 23,
+   "teardown": 16,
+   "publish": 17.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 11,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 15.013,
+   "setup": 19
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2515,
+   "data": 600,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 25,
+   "publish": 31.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 19,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 4716,
+   "data": 840,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 248,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 49,
+   "setup": 34
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 23,
+   "teardown": 16,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 19,
+   "publish": 8.013,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2483,
+   "data": 600,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 22.013,
+   "teardown": 16,
+   "setup": 25
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 23,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2383,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 18,
+   "publish": 27.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 31,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2447,
+   "data": 600,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "setup": 24,
+   "publish": 30.013,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 23,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2383,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 27.013,
+   "setup": 18,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 115,
+   "direct_calls": 3,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5973,
+   "data": 872,
+   "bss": 184,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "setup": 62,
+   "teardown": 124,
+   "publish": 205.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 11,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 14.013,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 20,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2415,
+   "data": 600,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "setup": 24,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 11,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2351,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 14.013,
+   "teardown": 16,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 115,
+   "direct_calls": 3,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5957,
+   "data": 872,
+   "bss": 184,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 189.013,
+   "teardown": 124,
+   "setup": 62
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2431,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "setup": 21,
+   "teardown": 16,
+   "publish": 31.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 37,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2527,
+   "data": 600,
+   "bss": 80,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 41.013,
+   "teardown": 16,
+   "setup": 31
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2431,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 31.013,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 128,
+   "direct_calls": 3,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 6286,
+   "data": 880,
+   "bss": 312,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "setup": 107,
+   "publish": 178.013,
+   "teardown": 233
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 10.013,
+   "setup": 21,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2431,
+   "data": 600,
+   "bss": 80,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 12.013,
+   "setup": 31
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2367,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 10.013,
+   "setup": 21,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 128,
+   "direct_calls": 3,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 6238,
+   "data": 880,
+   "bss": 312,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 153.013,
+   "setup": 107,
+   "teardown": 233
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 8.013,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3247,
+   "data": 704,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 139,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "setup": 21,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2335,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 20,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 18,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2467,
+   "data": 600,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 22,
+   "publish": 22.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "publish": 8.013,
+   "setup": 18
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3247,
+   "data": 704,
+   "bss": 144,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 139,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "teardown": 16,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2335,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 20,
+   "teardown": 16,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2319,
+   "data": 600,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 16,
+   "setup": 18,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "gcc-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 1,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail"
+   ]
+  },
+  "sections": {
+   "text": 2467,
+   "data": 600,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 22.013,
+   "setup": 22,
+   "teardown": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 42,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2298,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 19,
+   "publish": 55.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5022,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 600,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "vtable for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 57,
+   "publish": 150.013,
+   "teardown": 129
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 48,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2378,
+   "data": 640,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 25,
+   "teardown": 14,
+   "publish": 61.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 42,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2298,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 19,
+   "publish": 55.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 24,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2256,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 19,
+   "publish": 27.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4990,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 600,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "vtable for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 129,
+   "publish": 122.013,
+   "setup": 57
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2336,
+   "data": 640,
+   "bss": 56,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 25,
+   "publish": 33.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 24,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2256,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 27.013,
+   "setup": 19,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 142,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3671,
+   "data": 752,
+   "bss": 96,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 57.013,
+   "teardown": 30,
+   "setup": 26
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 129,
+   "direct_calls": 3,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy",
+    "sub0::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 5113,
+   "data": 976,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 103.263,
+   "teardown": 54,
+   "setup": 31
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 147,
+   "direct_calls": 3,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy",
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 4995,
+   "data": 896,
+   "bss": 112,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=4089999652 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 35,
+   "teardown": 58,
+   "publish": 112.513
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 142,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3630,
+   "data": 752,
+   "bss": 96,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 26,
+   "teardown": 30,
+   "publish": 45.763
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 129,
+   "direct_calls": 3,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy",
+    "sub0::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 5072,
+   "data": 976,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 54,
+   "setup": 31,
+   "publish": 92.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 147,
+   "direct_calls": 3,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy",
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 4963,
+   "data": 896,
+   "bss": 112,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 101.263,
+   "teardown": 58,
+   "setup": 35
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2122,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 22.013,
+   "teardown": 14,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4937,
+   "data": 976,
+   "bss": 145,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 113.013,
+   "teardown": 92,
+   "setup": 42
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2122,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 22.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2122,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 22.013,
+   "setup": 16,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "_ZZN5sub0x4SinkIN12_GLOBAL__N_16SampleEEC1INS_6WiringIJNS1_10ControllerENS1_11EvenMonitorEEEETnNSt9enable_ifIXntsr3stdE9is_same_vINSt9remove_cvIT_E4typeES3_EEiE4typeELi0EEERSB_ENUlPKvRKS2_E_8__invokeESI_SK_"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2233,
+   "data": 640,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=2261637700 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 30.013,
+   "teardown": 14,
+   "setup": 22
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "publish": 8.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4905,
+   "data": 976,
+   "bss": 145,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 99.513,
+   "teardown": 92,
+   "setup": 42
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "setup": 16,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 48,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 22,
+   "teardown": 14,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 29,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2170,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 19,
+   "teardown": 14,
+   "publish": 33.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5023,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 150.013,
+   "teardown": 135,
+   "setup": 55
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 29,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2170,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 33.013,
+   "setup": 19,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 29,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2170,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 33.013,
+   "setup": 19,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 41,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "_ZZN5sub0x4SinkIN12_GLOBAL__N_16SampleEEC1INS_6WiringIJNS1_10ControllerES6_NS1_6LoggerEEEETnNSt9enable_ifIXntsr3stdE9is_same_vINSt9remove_cvIT_E4typeES3_EEiE4typeELi0EEERSB_ENUlPKvRKS2_E_8__invokeESI_SK_"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2315,
+   "data": 640,
+   "bss": 64,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 27,
+   "publish": 44.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 17,
+   "publish": 9.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4980,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 135,
+   "setup": 55,
+   "publish": 122.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2090,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 19,
+   "publish": 9.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 9.013,
+   "teardown": 14,
+   "setup": 17
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "_ZZN5sub0x4SinkIN12_GLOBAL__N_16SampleEEC1INS_6WiringIJNS1_10ControllerES6_NS1_6LoggerEEEETnNSt9enable_ifIXntsr3stdE9is_same_vINSt9remove_cvIT_E4typeES3_EEiE4typeELi0EEERSB_ENUlPKvRKS2_E_8__invokeESI_SK_"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2239,
+   "data": 640,
+   "bss": 64,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 27,
+   "publish": 17.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "setup": 17,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4442,
+   "data": 904,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 78.013,
+   "setup": 32,
+   "teardown": 54
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 17,
+   "teardown": 14,
+   "publish": 18.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 17,
+   "teardown": 14,
+   "publish": 18.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 22,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "_ZZN5sub0x4SinkIN12_GLOBAL__N_16SampleEEC1INS_6WiringIJNS1_10ControllerEEEETnNSt9enable_ifIXntsr3stdE9is_same_vINSt9remove_cvIT_E4typeES3_EEiE4typeELi0EEERSA_ENUlPKvRKS2_E_8__invokeESH_SJ_"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2214,
+   "data": 640,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=1687924188 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "publish": 25.013,
+   "setup": 21
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 66,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4426,
+   "data": 904,
+   "bss": 129,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 596,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 69.013,
+   "setup": 32,
+   "teardown": 54
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 16,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 21
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2138,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "publish": 29.013,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 34,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2186,
+   "data": 640,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "setup": 20,
+   "publish": 33.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2138,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 29.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 136,
+   "direct_calls": 2,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5425,
+   "data": 896,
+   "bss": 152,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3596238080 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "teardown": 121,
+   "setup": 60,
+   "publish": 238.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 10,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2090,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 14.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 20,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2138,
+   "data": 640,
+   "bss": 40,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 18.013,
+   "setup": 20,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 10,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2090,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "publish": 14.013,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 136,
+   "direct_calls": 2,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 5409,
+   "data": 896,
+   "bss": 152,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=1953632812 publishes=1000",
+  "instr": {
+   "publish": 220.013,
+   "setup": 60,
+   "teardown": 121
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 31,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2186,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 34.013,
+   "setup": 19,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 31,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2186,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "setup": 19,
+   "teardown": 14,
+   "publish": 34.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 31,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2186,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "publish": 34.013,
+   "setup": 19
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 138,
+   "direct_calls": 2,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 5940,
+   "data": 904,
+   "bss": 272,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=560074984 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 195,
+   "setup": 79,
+   "publish": 203.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2090,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 17,
+   "publish": 9.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2106,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "setup": 18,
+   "publish": 9.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2090,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 9.013,
+   "setup": 17,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 138,
+   "direct_calls": 2,
+   "indirect_calls": 4,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memmove"
+   ]
+  },
+  "sections": {
+   "text": 5908,
+   "data": 904,
+   "bss": 272,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=2000 io=0 publishes=1000",
+  "instr": {
+   "publish": 175.013,
+   "setup": 79,
+   "teardown": 195
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2830,
+   "data": 752,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 105,
+  "retained_sub0": [
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 19,
+   "publish": 8.013,
+   "teardown": 19
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "setup": 16,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 14,
+   "publish": 8.013,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "publish": 8.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 16
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2830,
+   "data": 752,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 105,
+  "retained_sub0": [
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "sub0::Publish<(anonymous namespace)::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<(anonymous namespace)::Sample>",
+   "vtable for sub0::Publish<(anonymous namespace)::Sample>",
+   "typeinfo name for sub0::Publish<(anonymous namespace)::Sample>"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 19,
+   "setup": 19
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "teardown": 14,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 16,
+   "publish": 8.013,
+   "teardown": 14
+  }
+ },
+ {
+  "build": "clang-O2",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2074,
+   "data": 640,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 14,
+   "setup": 18
+  }
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 43,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1220,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "sub0::detail::Broker<app::Sample"
+   ]
+  },
+  "sections": {
+   "text": 3024,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 641,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::Subscribe()",
+   "sub0::Subscribe<app::Sample>::Subscribe()",
+   "sub0::detail::Broker<app::Sample>::publish(app::Sample const&) const",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 43,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1236,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 43,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1220,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1176,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "sub0::detail::Broker<app::Sample"
+   ]
+  },
+  "sections": {
+   "text": 2984,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 641,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::Subscribe()",
+   "sub0::Subscribe<app::Sample>::Subscribe()",
+   "sub0::detail::Broker<app::Sample>::publish(app::Sample const&) const",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1192,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 3,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "app::Logger::receive(app::Sample const&)",
+    "app::Controller::receive(app::Sample const&)"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1176,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 162,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Registry::publish((anonymous namespace)::Sample const&)",
+    "(anonymous namespace)::Registry::remove((anonymous namespace)::Receiver*)",
+    "memmove"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1636,
+   "data": 8,
+   "bss": 540,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 46,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Probe::~Probe()"
+   ],
+   "external": [
+    "sub0::detail::Broker<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 2940,
+   "data": 88,
+   "bss": 836,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 357,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::publish((anonymous namespace)::Sample const&) const",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "observable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 35,
+   "direct_calls": 3,
+   "indirect_calls": 3,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Probe::~Probe()"
+   ],
+   "external": [
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 2968,
+   "data": 88,
+   "bss": 824,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 138,
+   "direct_calls": 2,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Registry::remove((anonymous namespace)::Receiver*)",
+    "memmove"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1520,
+   "data": 8,
+   "bss": 540,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 46,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Probe::~Probe()"
+   ],
+   "external": [
+    "sub0::detail::Broker<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 2896,
+   "data": 88,
+   "bss": 836,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 357,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::publish((anonymous namespace)::Sample const&) const",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "dynamic_subscriptions",
+  "form": "removable",
+  "variant": "sub0x_dynamic",
+  "path": {
+   "instructions": 35,
+   "direct_calls": 3,
+   "indirect_calls": 3,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Probe::~Probe()"
+   ],
+   "external": [
+    "sub0x::Subscribe<(anonymous namespace)::Sample"
+   ]
+  },
+  "sections": {
+   "text": 2924,
+   "data": 88,
+   "bss": 824,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1128,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2932,
+   "data": 88,
+   "bss": 844,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 225,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1156,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 19,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1128,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1192,
+   "data": 8,
+   "bss": 520,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2884,
+   "data": 88,
+   "bss": 844,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 225,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1124,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "filters",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1156,
+   "data": 8,
+   "bss": 520,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1188,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 162,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2940,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 31,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1208,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1188,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1240,
+   "data": 8,
+   "bss": 532,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1136,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 162,
+   "direct_calls": 4,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2900,
+   "data": 88,
+   "bss": 860,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_",
+   "sub0::Subscribe<(anonymous namespace)::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::unsubscribe(sub0::Subscribe<(anonymous namespace)::Sample>*) [clone .constprop.0]"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1160,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1136,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "multi_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1184,
+   "data": 8,
+   "bss": 532,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1128,
+   "data": 8,
+   "bss": 504,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 146,
+   "direct_calls": 2,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "(anonymous namespace)::Controller::receive((anonymous namespace)::Sample const&)",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2668,
+   "data": 88,
+   "bss": 572,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 64,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 17,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1148,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1128,
+   "data": 8,
+   "bss": 504,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1176,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1104,
+   "data": 8,
+   "bss": 504,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2308,
+   "data": 88,
+   "bss": 572,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 64,
+  "retained_sub0": [
+   "sub0::Subscribe<(anonymous namespace)::Sample>::filter((anonymous namespace)::Sample const&)",
+   "vtable for sub0::Subscribe<(anonymous namespace)::Sample>",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1120,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1104,
+   "data": 8,
+   "bss": 504,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "one_receiver",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1152,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1148,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 34,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1200,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1148,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "observable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 20,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3056,
+   "data": 88,
+   "bss": 840,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 13,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1112,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1172,
+   "data": 8,
+   "bss": 516,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 13,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1112,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "transport_endpoint",
+  "form": "removable",
+  "variant": "sub0x_dynamic_route",
+  "path": {
+   "instructions": 20,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3036,
+   "data": 88,
+   "bss": 840,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1188,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 39,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1240,
+   "data": 8,
+   "bss": 532,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1188,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "observable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 23,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3760,
+   "data": 88,
+   "bss": 920,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1136,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 16,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1180,
+   "data": 8,
+   "bss": 532,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1136,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "two_domains",
+  "form": "removable",
+  "variant": "sub0x_dynamic_domain",
+  "path": {
+   "instructions": 23,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 3720,
+   "data": 88,
+   "bss": 920,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1816,
+   "data": 88,
+   "bss": 828,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 41,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1108,
+   "data": 8,
+   "bss": 508,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1140,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 1,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1816,
+   "data": 88,
+   "bss": 828,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 41,
+  "retained_sub0": [
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCanceled_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::threadCurrent_",
+   "sub0::detail::Broker<(anonymous namespace)::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1108,
+   "data": 8,
+   "bss": 508,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 7,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1096,
+   "data": 8,
+   "bss": 500,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os",
+  "case": "zero_receivers",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 15,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1140,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2388,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 30.013,
+   "setup": 21,
+   "teardown": 11
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7228,
+   "data": 920,
+   "bss": 208,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 235,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 128,
+   "setup": 56,
+   "publish": 130.013
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 29,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2441,
+   "data": 600,
+   "bss": 64,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 11,
+   "publish": 34.013,
+   "setup": 29
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 25,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2388,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 21,
+   "publish": 30.013,
+   "teardown": 11
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2321,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 9.013,
+   "teardown": 11,
+   "setup": 21
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 73,
+   "direct_calls": 2,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "__stack_chk_fail",
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 7180,
+   "data": 920,
+   "bss": 208,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 235,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 56,
+   "publish": 105.013,
+   "teardown": 128
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 6,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2375,
+   "data": 600,
+   "bss": 64,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 29,
+   "teardown": 11,
+   "publish": 11.013
+  }
+ },
+ {
+  "build": "gcc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2321,
+   "data": 600,
+   "bss": 32,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 11,
+   "publish": 9.013,
+   "setup": 21
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2114,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 10,
+   "setup": 18,
+   "publish": 31.013
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4982,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 600,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "vtable for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 146.013,
+   "setup": 54,
+   "teardown": 129
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2114,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 10,
+   "setup": 18,
+   "publish": 31.013
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 27,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2114,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 18,
+   "publish": 31.013,
+   "teardown": 10
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2004,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "teardown": 10,
+   "setup": 15
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 65,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 4950,
+   "data": 976,
+   "bss": 161,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 600,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Publish<app::Sample>::~Publish()",
+   "typeinfo for sub0::Publish<app::Sample>",
+   "typeinfo for sub0::Subscribe<app::Sample>",
+   "typeinfo name for sub0::Publish<app::Sample>",
+   "vtable for sub0::Publish<app::Sample>",
+   "typeinfo name for sub0::Subscribe<app::Sample>",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::~Subscribe()"
+  ],
+  "dependencies": [
+   "operator delete"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "setup": 53,
+   "publish": 121.013,
+   "teardown": 129
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2024,
+   "data": 640,
+   "bss": 24,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "publish": 8.013,
+   "setup": 17,
+   "teardown": 10
+  }
+ },
+ {
+  "build": "clang-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2004,
+   "data": 640,
+   "bss": 16,
+   "init_array": 8
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [],
+  "checksum": "state=0 args=1000 io=0 publishes=1000",
+  "instr": {
+   "teardown": 10,
+   "setup": 15,
+   "publish": 8.013
+  }
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1172,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2960,
+   "data": 88,
+   "bss": 864,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<app::Sample>::unsubscribe(sub0::Subscribe<app::Sample>*)"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1188,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 30,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1172,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1116,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 168,
+   "direct_calls": 4,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish",
+    "__aeabi_read_tp",
+    "memcpy"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 2916,
+   "data": 88,
+   "bss": 864,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 265,
+  "retained_sub0": [
+   "sub0::detail::Broker<app::Sample>::threadCanceled_",
+   "sub0::detail::Broker<app::Sample>::threadCurrent_",
+   "sub0::Subscribe<app::Sample>::filter(app::Sample const&)",
+   "vtable for sub0::Subscribe<app::Sample>",
+   "sub0::detail::Broker<app::Sample>::state_",
+   "sub0::Subscribe<app::Sample>::Subscribe() [clone .isra.0]",
+   "sub0::detail::Broker<app::Sample>::unsubscribe(sub0::Subscribe<app::Sample>*)"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 14,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1140,
+   "data": 8,
+   "bss": 528,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ },
+ {
+  "build": "cm33-gcc-Os-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 12,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 1116,
+   "data": 8,
+   "bss": 512,
+   "init_array": 4
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "atexit"
+  ]
+ }
+]

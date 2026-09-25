@@ -38,7 +38,8 @@ CASES_DIR = os.path.join(HERE, "cases")
 PUBLISHES = 1000  # driver.cpp kPublishes
 REFERENCE = "handwritten"
 
-COMMON = ["-std=c++17", "-DNDEBUG", "-ffunction-sections", "-fdata-sections", "-I" + HERE, "-I" + INCLUDE]
+PROTOTYPE = os.path.join(ROOT, "tests", "design", "broker_config")  # #8 runtime-registry prototype (dynamic variants)
+COMMON = ["-std=c++17", "-DNDEBUG", "-ffunction-sections", "-fdata-sections", "-I" + HERE, "-I" + INCLUDE, "-I" + PROTOTYPE]
 
 # Named builds. host builds run (checksum + callgrind); cross builds are analysed from the final ELF only.
 BUILDS = OrderedDict([
@@ -54,6 +55,14 @@ BUILDS = OrderedDict([
                      "objdump": "arm-none-eabi-objdump", "nm": "arm-none-eabi-nm", "size": "arm-none-eabi-size",
                      "run": False, "arch": "arm"}),
 ])
+
+# LTO counterparts: only meaningful (and only run) for cases whose variants span several translation units
+for _name in list(BUILDS):
+    _cfg = dict(BUILDS[_name])
+    _cfg["flags"] = _cfg["flags"] + ["-flto"]
+    _cfg["ldflags"] = _cfg["ldflags"] + ["-flto"] + [f for f in _cfg["flags"] if f.startswith("-O")]
+    _cfg["multi_tu_only"] = True
+    BUILDS[_name + "-lto"] = _cfg
 
 FORMS = OrderedDict([("observable", 1), ("removable", 0)])
 
@@ -83,19 +92,32 @@ def discover_cases(only=None):
         d = os.path.join(CASES_DIR, name)
         if not os.path.isdir(d) or (only and name != only):
             continue
+        # A variant is a single file (<variant>.cpp) or a directory of translation units (<variant>/*.cpp)
         variants = sorted(f[:-4] for f in os.listdir(d) if f.endswith(".cpp"))
+        variants += sorted(f for f in os.listdir(d) if os.path.isdir(os.path.join(d, f)))
         if REFERENCE not in variants:
-            sys.exit(f"case {name}: missing {REFERENCE}.cpp")
+            sys.exit(f"case {name}: missing {REFERENCE}")
         variants.remove(REFERENCE)
         cases[name] = [REFERENCE] + variants
     return cases
+
+
+def variant_sources(case, variant):
+    path = os.path.join(CASES_DIR, case, variant)
+    if os.path.isdir(path):
+        return sorted(os.path.join(path, f) for f in os.listdir(path) if f.endswith(".cpp"))
+    return [path + ".cpp"]
+
+
+def multi_tu(case, variants):
+    return any(os.path.isdir(os.path.join(CASES_DIR, case, v)) for v in variants)
 
 
 def build(build_cfg, case, variant, observable, out_dir):
     exe = os.path.join(out_dir, f"{case}-{variant}-{observable}.elf")
     mapfile = exe[:-4] + ".map"
     cmd = [build_cfg["cxx"], *COMMON, *build_cfg["flags"], f"-DCOLLAPSE_OBSERVABLE={observable}",
-           os.path.join(HERE, "driver.cpp"), os.path.join(CASES_DIR, case, variant + ".cpp"),
+           os.path.join(HERE, "driver.cpp"), *variant_sources(case, variant),
            *(os.path.join(HERE, f) for f in build_cfg.get("support", [])),
            "-o", exe, *build_cfg["ldflags"], f"-Wl,-Map={mapfile}"]
     r = run(cmd)
@@ -287,6 +309,8 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         for build_name, build_cfg in builds.items():
             for case, variants in cases.items():
+                if build_cfg.get("multi_tu_only") and not multi_tu(case, variants):
+                    continue
                 for form, observable in FORMS.items():
                     for variant in variants:
                         key = (build_name, case, form, variant)
@@ -305,6 +329,8 @@ def main():
     for case, variants in cases.items():
         print(f"## Case: {case}\n")
         for build_name, build_cfg in builds.items():
+            if (build_name, case, "observable", REFERENCE) not in results:
+                continue
             for form in FORMS:
                 ref = results[(build_name, case, form, REFERENCE)]
                 print(f"### {build_name}, {form} work\n")

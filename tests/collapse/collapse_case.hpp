@@ -37,12 +37,20 @@ namespace collapse
     extern uint32_t g_state;
     /// Count of argument evaluations: side effects of building the published value
     extern uint32_t g_args;
+    /// Transport I/O performed (required behaviour: observable in both forms)
+    extern uint32_t g_io;
 
     /// Build a published value with an observable side effect that must survive any optimisation
     inline uint32_t arg(uint32_t v) noexcept
     {
         ++g_args;
         return v;
+    }
+
+    /// A transport's required I/O effect (e.g. writing a frame): kept in the removable form too
+    inline void io(uint32_t v) noexcept
+    {
+        g_io = g_io * 33U + v;
     }
 
     /// Order-sensitive accumulation, so receiver order and instance selection are part of the checksum
