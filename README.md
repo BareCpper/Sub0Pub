@@ -68,6 +68,7 @@ int main() {
 | Pre-push test hook | Done -- blocks push on test failure |
 | Atomic publish cancellation | Done -- `std::atomic<bool>` |
 | Configurable subscriber limit | Done -- `SUB0PUB_MAX_SUBSCRIPTIONS` |
+| Bounded capacity contract | Done -- `isSubscribed()` / `trySubscribe()`, no table overflow in release builds |
 | Compile-time type IDs for IPC | Done -- `utility::typeHash<T>()` |
 | Subscription order preservation | Done -- `std::move` replaces swap-remove |
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
@@ -200,6 +201,22 @@ class EvenOnly : public sub0::Subscribe<int> {
 };
 ```
 
+### Subscriber Capacity
+
+Each `Data` type has a fixed subscription table of `SUB0PUB_MAX_SUBSCRIPTIONS` entries (no heap allocation). Constructing a subscriber never fails, but if the table is already full the subscriber is **not registered** and will not receive data. This is reported, not asserted, and behaves identically in debug and release (`NDEBUG`) builds -- the table is never written past its end.
+
+```cpp
+MySubscriber sub;
+if (!sub.isSubscribed()) {
+    // Table was full: handle it (log, raise SUB0PUB_MAX_SUBSCRIPTIONS, or retry later)
+}
+
+// Retry once another subscriber of the same type has been destroyed
+if (sub.trySubscribe() == sub0::SubscribeResult::CapacityExceeded) { /* still full */ }
+```
+
+Destroying a subscriber frees its slot. Destroying one that was never registered is a no-op. With `SubscribeAll<A, B>`, check each base: `sub.sub0::Subscribe<A>::isSubscribed()`.
+
 ### Cross-Module / IPC Serialization
 
 ```cpp
@@ -234,7 +251,7 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_TYPEIDNAME` | `false` | Enable user-defined type IDs and names for IPC |
 | `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub |
 | `SUB0PUB_REENTRANT_SAFE` | `true` | Snapshot subscribers before dispatch for re-entrant safety. Adds ~1.5ns overhead per publish. Set `false` if you guarantee no subscriber will publish the same type from within `receive()` |
-| `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>` |
+| `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>`. Subscribers beyond this are rejected (see [Subscriber Capacity](#subscriber-capacity)) |
 
 ---
 

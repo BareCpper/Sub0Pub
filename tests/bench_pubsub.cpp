@@ -239,6 +239,36 @@ int main()
         });
     }
 
+    // --- Bounded capacity (issue #4) ---
+    // Compare against "create + destroy subscriber" and "8 subscribers (max default)" above:
+    // those are the unchanged success paths; these measure the CapacityExceeded paths.
+
+    bench.title("Bounded capacity");
+
+    {
+        IntPublisher pub;
+        NoOpSubscriber subs[sub0::detail::Broker<int>::cMaxSubscriptions]; // table full
+        (void)subs;
+
+        bench.run("create + destroy subscriber (table full, rejected)", [&] {
+            NoOpSubscriber sub;
+            ankerl::nanobench::doNotOptimizeAway(&sub);
+        });
+
+        NoOpSubscriber rejected;
+        bench.run("trySubscribe() retry (table full, rejected)", [&] {
+            ankerl::nanobench::doNotOptimizeAway(rejected.trySubscribe());
+        });
+
+        bench.run("trySubscribe() (already subscribed)", [&] {
+            ankerl::nanobench::doNotOptimizeAway(subs[0].trySubscribe());
+        });
+
+        bench.run("publish, 8 subscribers + 1 rejected", [&] {
+            pub.send(42);
+        });
+    }
+
     // --- No subscribers (empty publish) ---
 
     bench.title("Edge cases");
