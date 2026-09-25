@@ -23,7 +23,7 @@ struct Guarded : Base
     ~Guarded() override { this->disconnect(); delete counter; counter = nullptr; }
     void receive(const Data&) noexcept override
     {
-        for (volatile int spin = 0; spin < 200; ++spin) {}
+        for (volatile int spin = 0; spin < 200;) { spin = spin + 1; } // not ++spin: deprecated on volatile in C++20
         ++*counter;
     }
     int* counter;

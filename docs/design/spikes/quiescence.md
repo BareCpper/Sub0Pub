@@ -8,8 +8,9 @@
 > **Review verdict (section 9): the recommendation below is reversed.** Mechanisms 2 (hazard pointer) and 3
 > (epoch) fail three lifetime probes that mechanism 1 (handshake, the #8 prototype's design) passes:
 > self-disconnect inside `receive()` deadlocks, and a nested same-type publication or a 9th publishing thread
-> lets `disconnect()` return while `receive()` is still running. **Mechanism 1 remains the design** until a
-> fixed mechanism 2/3 passes the probes and is re-measured with the fixes' cost included.
+> lets `disconnect()` return while `receive()` is still running. Round 2 (section 10) fixed 2 and 3 and
+> re-measured them: **mechanism 1 remains the design**. Once fixed, 2 and 3 cost more at 0-1 subscribers and at
+> create+destroy, and they bound threads and nesting (dropping publications past the bound in release builds).
 
 This spike implements four teardown mechanisms side by side (plus a C++20 outlook variant), measures
 each one, and tries to break each one with a deliberate mutation under ASan. It also found and fixed two
@@ -406,7 +407,7 @@ correctness gaps. Fixed, mechanism 2 is:
 
 Mechanism 3 (epoch) keeps the cheapest publish path at every subscriber count even after the fix (130 at 8
 subscribers vs mechanism 1's 256), which is a real number, but its tail latency remains one to three orders
-of magnitude worse than the other two, and it costs the most RAM of the three per table (344 B). It is
+of magnitude worse than the other two, and it costs 4.3x mechanism 1's RAM per table (344 B vs 80 B; the fixed hazard table is larger still, 528 B). It is
 defensible only for a workload that is publish-heavy, essentially never calls `disconnect()` on the hot
 path, and can tolerate an occasional long wait when it does -- a narrower recommendation than round 1's
 "cheapest publish path" framing suggested, now that its correctness fix is priced in and its RAM and tail
@@ -423,3 +424,25 @@ measured. This is the "loud failure over silent sharing" design explicitly asked
 visibly priced rather than a free lunch: any recommendation of mechanism 2 or 3 over mechanism 1 has to be
 justified by 8-subscriber (or higher) fan-out being the dominant case for the type in question, not by the
 now-outdated round-1 numbers.
+
+### 10.7 Review of round 2 (added on integration)
+
+- **Numbers reproduced.** Re-running `Sub0Pub_QxBench` under callgrind gives the section 10.3 table exactly
+  (for example 67/95/256/108, 100/111/188/198 and 57/84/130/163).
+- **"Fails loudly" holds only in debug builds.** With `NDEBUG` (every release build), a full slot registry
+  (more than `kMaxReaders` threads publishing the same type at once) or nesting deeper than `kMaxNesting`
+  **drops the publication**, leaving only a `refusedFull`/`refusedNesting` count. That is lossy delivery
+  under load, a correctness compromise mechanism 1 does not have: its dispatch frames live on each
+  publishing thread's stack, so neither the thread count nor the nesting depth is bounded.
+- **P3 now passes through slot reuse.** The probe's extra threads publish one after another, so a slot
+  released at thread exit is reclaimed. It does not put more than `kMaxReaders` threads inside `publish()`
+  at the same moment; that case takes the refusal path above by design.
+- **Mechanism 4 (`disconnectLater`) is built on mechanism 2's table** in this spike. Layering it on
+  mechanism 1 as recommended needs a port that scans the active-dispatch list instead. That is not yet
+  measured.
+
+**Outcome for #5 and K3:** mechanism 1 stays. Its measured K3 cost (8 subscribers 256 instr/op, create +
+destroy 108) is the price of unbounded, allocation-free, lossless teardown safety. The only measured
+alternative that is cheaper per publish at 8 subscribers (epoch, 130) adds bounded threads and nesting,
+lossy overflow in release builds, 4.3x the table RAM and a tail latency up to three orders of magnitude
+worse.
