@@ -55,14 +55,19 @@ jobs:
 
   sanitizers:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # ci-asan: Debug with assertions; ci-asan-release: -O2 -DNDEBUG (release-mode capacity contract, issue #4)
+        preset: [ci-asan, ci-asan-release]
     steps:
       - uses: actions/checkout@v4
       - name: Configure (ASan + UBSan)
-        run: cmake --preset ci-asan
+        run: cmake --preset ${{ matrix.preset }}
         env:
           CC: gcc
           CXX: g++
       - name: Build
-        run: cmake --build --preset ci-asan
+        run: cmake --build --preset ${{ matrix.preset }}
       - name: Test
-        run: ctest --preset ci-asan
+        run: ctest --preset ${{ matrix.preset }}

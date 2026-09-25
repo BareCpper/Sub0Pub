@@ -54,6 +54,24 @@
             }
         },
         {
+            "name": "ci-asan-release",
+            "displayName": "CI - ASan/UBSan (NDEBUG)",
+            "binaryDir": "${sourceDir}/build-asan-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+                "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+                "SUB0PUB_BUILD_TESTING": "ON",
+                "SUB0PUB_BUILD_EXAMPLES": "OFF"
+            },
+            "condition": {
+                "type": "notEquals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
             "name": "ci-unix",
             "displayName": "CI - GCC/Clang",
             "binaryDir": "${sourceDir}/build-ci",
@@ -92,6 +110,10 @@
         {
             "name": "ci-asan",
             "configurePreset": "ci-asan"
+        },
+        {
+            "name": "ci-asan-release",
+            "configurePreset": "ci-asan-release"
         }
     ],
     "testPresets": [
@@ -121,6 +143,11 @@
         {
             "name": "ci-asan",
             "configurePreset": "ci-asan",
+            "output": { "outputOnFailure": true }
+        },
+        {
+            "name": "ci-asan-release",
+            "configurePreset": "ci-asan-release",
             "output": { "outputOnFailure": true }
         }
     ]

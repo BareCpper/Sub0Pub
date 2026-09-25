@@ -59,9 +59,21 @@ The free functions `sub0::publish()` and `Publish<Data>::publish()` are now `noe
 
 **Action:** Ensure no exceptions propagate out of subscriber `receive()` callbacks.
 
+### `Subscribe<Data>::isSubscribed()` and `trySubscribe()` added
+
+New `sub0::SubscribeResult` enum (`Subscribed`, `CapacityExceeded`). `Subscribe<Data>::isSubscribed()` reports whether the subscriber is in the per-type table. `Subscribe<Data>::trySubscribe()` retries registration and returns a `SubscribeResult`, leaving the table unchanged when it is full.
+
+**Action:** None required. Check `isSubscribed()` where the number of subscribers per type cannot be bounded ahead of time.
+
 ---
 
 ## Behavioral Changes
+
+### Subscription capacity is a reported outcome, not an assertion
+
+In v1 and earlier v2, exceeding `SUB0PUB_MAX_SUBSCRIPTIONS` only triggered `assert()`. With `NDEBUG` the broker wrote past its fixed table, and the next `publish()` overflowed its snapshot buffer. Now the extra subscriber is constructed but not registered: `isSubscribed()` returns `false`, it never receives data, and destroying it is a no-op. This is the same in debug and release builds. The capacity assertion has been removed, so debug builds no longer abort.
+
+**Action:** Code that relied on the debug assertion to detect over-subscription should check `isSubscribed()` instead.
 
 ### Subscription order preserved on removal
 
@@ -174,5 +186,7 @@ auto layout = sub0::utility::makeLayout<MyStruct>();
 // Compare layouts between peers at connection time
 if (localLayout != remoteLayout) { /* reject connection */ }
 ```
+
+`memberCount<T>` (and so the fingerprint arity) counts an array member as one member. Earlier v2 builds counted each array element separately (`struct { float d[4]; int t; }` reported 5, not 2). As a result, fingerprints of structs that contain arrays differ from those builds, and GCC now compiles `makeLayout<T>()` for such structs.
 
 On GCC/Clang, the layout hash captures per-member offset and size via structured bindings (Boost.PFR-style), recursively fingerprinting nested structs and arrays. On MSVC, only the fingerprint (sizeof+alignof+arity) is available due to a compiler bug with structured bindings in template specializations. Full MSVC support is planned for C++26 reflection.

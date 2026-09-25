@@ -112,6 +112,15 @@ namespace sub0
     template< typename Data > class Publish;
     template< typename Data > class Subscribe;
 
+    /** Outcome of a bounded subscription registration
+     * @see Subscribe::trySubscribe, Subscribe::isSubscribed
+     */
+    enum class SubscribeResult : uint8_t
+    {
+        Subscribed,        ///< Registered; subscriber receives subsequent publish() calls
+        CapacityExceeded   ///< Table already held SUB0PUB_MAX_SUBSCRIPTIONS entries; table left unchanged
+    };
+
     namespace detail
     {
         template< typename Data > class Broker;
@@ -135,8 +144,9 @@ namespace sub0
             {
 #if SUB0PUB_ASSERT
                 assert( subscriber );
-                assert( subscriptionCount < subscriptionCapacity );
 #endif
+                // Capacity is intentionally not asserted: exceeding it is a reported runtime outcome
+                // (SubscribeResult::CapacityExceeded), identical in debug and release builds.
                 (void)broker; (void)subscriber; (void)subscriptionCount; (void)subscriptionCapacity;
             }
 
@@ -206,16 +216,21 @@ namespace sub0
         { broker_.cancel(); }
 
         /** @return Whether this subscriber is registered and will receive published Data
-         * @remark False only if the fixed per-type subscription table (cMaxSubscriptions, see
-         *         SUB0PUB_MAX_SUBSCRIPTIONS) was already full at construction time — construction
-         *         itself always succeeds, but a subscriber that returns false here is inert: it
-         *         will never have receive() called. Check this after construction if the process
-         *         cannot bound the number of concurrent subscribers ahead of time. In debug builds
-         *         (SUB0PUB_ASSERT, no NDEBUG) capacity exhaustion still asserts immediately instead
-         *         of reaching this state; only release builds rely on isSubscribed() == false.
+         * @remark False only if the fixed per-type subscription table (SUB0PUB_MAX_SUBSCRIPTIONS)
+         *         was already full when registration was attempted. Construction itself never fails,
+         *         but a subscriber that returns false here is inert: receive() is never called until
+         *         a later trySubscribe() succeeds. Behaviour is identical in debug and release builds.
          */
         bool isSubscribed() const noexcept
         { return broker_.isSubscribed(); }
+
+        /** Retry registration after construction reported SubscribeResult::CapacityExceeded
+         * @return SubscribeResult::Subscribed if now (or already) registered, otherwise
+         *         SubscribeResult::CapacityExceeded with the subscription table left unchanged
+         * @remark Use after another subscriber of the same Data has been destroyed to reclaim its slot.
+         */
+        SubscribeResult trySubscribe() noexcept
+        { return broker_.trySubscribe(this); }
 
 #if SUB0PUB_TYPEIDNAME
         /** Get name identifier of the Data from the broker
@@ -354,25 +369,13 @@ namespace sub0
     public:
         static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
 
-        /** Outcome of a bounded (try_subscribe) registration attempt
-         * @see trySubscribe, Subscribe::isSubscribed
-         */
-        enum class SubscribeResult : uint8_t
-        {
-            Subscribed,        ///< Registered; subscriber will receive subsequent publish() calls.
-            CapacityExceeded   ///< Table already holds cMaxSubscriptions entries. Table left byte-for-byte
-                               ///< unchanged — no partial write occurs, regardless of NDEBUG/SUB0PUB_ASSERT.
-        };
-
     public:
         /** Registers subscriber in brokers subscription table
          * @param[in] typeName Optional unique data name given to data for inter-process signaling.
          * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
          * @note Construction can fail to register (see trySubscribe()) if the fixed table is already
-         *       full: this is not itself an error — the object is fully constructed and destructible —
-         *       but it will never receive published Data. Call isSubscribed() to check. In debug builds
-         *       (SUB0PUB_ASSERT and no NDEBUG) this condition still asserts immediately, matching prior
-         *       behaviour; only release builds rely on the graceful CapacityExceeded path.
+         *       full: the object is fully constructed and destructible, but will not receive published
+         *       Data. Call isSubscribed() to check.
          */
         Broker( Subscribe<Data>* subscriber
 #if SUB0PUB_TYPEIDNAME
@@ -383,37 +386,37 @@ namespace sub0
 #if SUB0PUB_TYPEIDNAME
             setDataName(typeId, typeName);
 #endif
-            subscribed_ = (trySubscribe(subscriber) == SubscribeResult::Subscribed);
+            trySubscribe(subscriber);
         }
 
         /** Bounded, explicit-error registration: the fixed-capacity counterpart of an unbounded push_back.
          * @param[in] subscriber  Subscriber to register; must be non-null.
-         * @return SubscribeResult::Subscribed on success. SubscribeResult::CapacityExceeded if the table
-         *         already holds cMaxSubscriptions entries — in that case the table (subscriptions[] and
-         *         subscriptionCount) is left completely unchanged: no partial or out-of-bounds write ever
-         *         occurs, independent of NDEBUG or SUB0PUB_ASSERT.
+         * @return SubscribeResult::Subscribed on success, or if already registered. SubscribeResult::CapacityExceeded
+         *         if the table already holds cMaxSubscriptions entries — in that case the table (subscriptions[]
+         *         and subscriptionCount) is left completely unchanged, independent of NDEBUG or SUB0PUB_ASSERT.
          * @note Thread-safe when SUB0PUB_THREAD_SAFE is enabled (registration is serialized with publish()'s
          *       snapshot copy and with unsubscribe()).
-         * @note Check::onSubscription() still asserts in debug builds for fast local feedback; only
-         *       release builds (or SUB0PUB_ASSERT=0) observe the CapacityExceeded return value below.
          */
-        SubscribeResult trySubscribe(Subscribe<Data>* subscriber)
+        SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
         {
 #if SUB0PUB_THREAD_SAFE
             std::lock_guard<std::mutex> lk{state_.mtx};
 #endif
+            if (subscribed_)
+                return SubscribeResult::Subscribed;
+
             Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
 
             if (state_.subscriptionCount >= cMaxSubscriptions)
                 return SubscribeResult::CapacityExceeded; ///< Table unchanged — bounded, no OOB write.
 
             state_.subscriptions[state_.subscriptionCount++] = subscriber;
+            subscribed_ = true;
             return SubscribeResult::Subscribed;
         }
 
         /** @return Whether this Broker's subscriber is currently registered in the subscription table
-         * @remark False only when construction hit SubscribeResult::CapacityExceeded (release builds) or
-         *         after unsubscribe() has already run.
+         * @remark False when registration hit SubscribeResult::CapacityExceeded, or after unsubscribe().
          */
         bool isSubscribed() const noexcept
         { return subscribed_; }
@@ -439,9 +442,7 @@ namespace sub0
         /** Remove subscriber from the subscription table, recovering its slot for a later registration
          * @note Safe to call for a subscriber that was never actually registered (e.g. its construction
          *       hit SubscribeResult::CapacityExceeded): this is a no-op rather than an out-of-bounds
-         *       access, independent of NDEBUG/SUB0PUB_ASSERT. The prior implementation unconditionally
-         *       decremented subscriptionCount and shifted from std::find's end-iterator in that case,
-         *       which was itself an OOB read/write once assert() was compiled out.
+         *       access, independent of NDEBUG/SUB0PUB_ASSERT.
          */
         void unsubscribe(Subscribe<Data>* subscriber)
         {
@@ -452,6 +453,7 @@ namespace sub0
             if (iRemove == state_.subscriptions + state_.subscriptionCount)
                 return; ///< Not registered (never subscribed, or already unsubscribed) — nothing to recover.
 
+            subscribed_ = false;
             --state_.subscriptionCount;
             std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
         }
@@ -586,7 +588,7 @@ namespace sub0
         inline static thread_local const Broker* threadCurrent_ = nullptr;
         inline static thread_local bool threadCanceled_ = false;
 
-        bool subscribed_ = false; ///< Per-instance (not shared state_): whether trySubscribe() succeeded.
+        bool subscribed_ = false; ///< Per-instance (not shared state_): whether this subscriber is in the table.
                                    ///< Always true for the Publish<Data>* constructor overload (publishers
                                    ///< are not capacity-limited).
     };
