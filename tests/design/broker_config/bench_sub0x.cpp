@@ -7,10 +7,10 @@
  * out-of-line subscribers with more than one implementation.
  */
 #define ANKERL_NANOBENCH_IMPLEMENT
+#include "sub0x_broker.hpp"
+
 #include "bench_harness.hpp"
 #include "bench_system_info.hpp"
-
-#include "sub0x_broker.hpp"
 
 #if defined(_MSC_VER)
 #define BENCH_NOINLINE __declspec(noinline)

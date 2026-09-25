@@ -6,6 +6,9 @@
 #include <thread>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX // windows.h min/max macros break std::min/std::max in any header included after this one
+#endif
 #include <windows.h>
 #elif defined(__linux__)
 #include <fstream>

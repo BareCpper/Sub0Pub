@@ -11,10 +11,10 @@
  * loop) that set the bar for what type-erased dispatch to N receivers can cost on this machine.
  */
 #define ANKERL_NANOBENCH_IMPLEMENT
+#include "sub0pub/sub0pub.hpp"
+
 #include "bench_harness.hpp"
 #include "bench_system_info.hpp"
-
-#include "sub0pub/sub0pub.hpp"
 
 #include <functional>
 #include <optional>

@@ -4,10 +4,10 @@
  * rather than a transport. A memcpy of the same framed size is included as the floor.
  */
 #define ANKERL_NANOBENCH_IMPLEMENT
+#include "sub0pub/sub0pub.hpp"
+
 #include "bench_harness.hpp"
 #include "bench_system_info.hpp"
-
-#include "sub0pub/sub0pub.hpp"
 
 #include <array>
 #include <cstring>
