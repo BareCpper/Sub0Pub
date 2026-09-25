@@ -36,6 +36,11 @@ foreach(case_dir ${SUB0PUB_COLLAPSE_CASES})
             target_link_libraries(${target} PRIVATE Sub0Pub::Sub0Pub)
             target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${SUB0PUB_COLLAPSE_PROTOTYPE}")
             target_compile_definitions(${target} PRIVATE COLLAPSE_OBSERVABLE=${form_value})
+            # A variant named *_cpp23 opts into C++23 for itself only (issue #9 spike: static/dynamic bridge);
+            # every other variant stays on the project's C++17 baseline.
+            if(variant MATCHES "_cpp23$")
+                target_compile_features(${target} PRIVATE cxx_std_23)
+            endif()
             if(NOT variant STREQUAL "handwritten")
                 add_test(NAME Collapse_${case}_${form}_${variant}
                          COMMAND ${CMAKE_COMMAND} -DREFERENCE=$<TARGET_FILE:Collapse_${case}_${form}_handwritten>
