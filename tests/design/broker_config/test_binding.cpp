@@ -69,7 +69,7 @@ TEST_CASE("sub0x: trySubscribe() reclaims a freed slot") {
     Sink<Imu> b, late;
     CHECK_FALSE(late.isSubscribed());
     a.reset();
-    CHECK(late.trySubscribe() == sub0::SubscribeResult::Subscribed);
+    CHECK(late.trySubscribe() == sub0x::SubscribeResult::Subscribed);
 }
 
 TEST_CASE("sub0x: lean configuration dispatches without context or filter") {

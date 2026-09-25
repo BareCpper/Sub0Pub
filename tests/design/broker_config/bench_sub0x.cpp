@@ -12,6 +12,8 @@
 #include "bench_harness.hpp"
 #include "bench_system_info.hpp"
 
+#include <atomic>
+
 #if defined(_MSC_VER)
 #define BENCH_NOINLINE __declspec(noinline)
 #else
@@ -24,6 +26,15 @@ struct MsgDirect { int v; using sub0_config = sub0x::config<sub0x::Direct>; };
 struct MsgStatic { int v; using sub0_config = sub0x::config<sub0x::Direct, sub0x::StaticContext>; };
 struct MsgNoFilter { int v; using sub0_config = sub0x::config<sub0x::Direct, sub0x::NoFilter>; };
 struct MsgLean { int v; using sub0_config = sub0x::config<sub0x::Direct, sub0x::NoContext, sub0x::NoFilter>; };
+
+/// Minimal lock for the concurrent configuration (compare with the baseline's ThreadSafe column)
+struct BenchSpinLock
+{
+    std::atomic_flag flag = ATOMIC_FLAG_INIT;
+    void lock() noexcept { while (flag.test_and_set(std::memory_order_acquire)) {} }
+    void unlock() noexcept { flag.clear(std::memory_order_release); }
+};
+struct MsgLocked { int v; using sub0_config = sub0x::config<sub0x::LockWith<BenchSpinLock>>; };
 
 namespace bench_types {
 
@@ -46,6 +57,7 @@ SUB0X_BENCH_TYPES(MsgDirect)
 SUB0X_BENCH_TYPES(MsgStatic)
 SUB0X_BENCH_TYPES(MsgNoFilter)
 SUB0X_BENCH_TYPES(MsgLean)
+SUB0X_BENCH_TYPES(MsgLocked)
 
 template<class Data>
 struct Source : sub0x::Publish<Data> {
@@ -56,6 +68,8 @@ template<class Data>
 BENCH_NOINLINE void createDestroy() noexcept
 {
     NoOpSink<Data> sub;
+    if constexpr (sub0x::detail::cConcurrent<sub0x::config_t<Data>>)
+        sub.trySubscribe(); // concurrent configurations activate explicitly after construction
     ankerl::nanobench::doNotOptimizeAway(&sub);
 }
 
@@ -70,7 +84,9 @@ void publishN(bench::Harness& h, const std::string& name)
 {
     Source<Data> pub;
     NoOpSink<Data> subs[N];
-    (void)subs;
+    if constexpr (sub0x::detail::cConcurrent<sub0x::config_t<Data>>)
+        for (auto& sub : subs)
+            sub.trySubscribe();
     h.run(name, [&] { pub.send(Data{42}); });
 }
 
@@ -100,5 +116,6 @@ int main()
     runConfig<MsgStatic>(h, "Direct + StaticContext (no TLS)");
     runConfig<MsgNoFilter>(h, "Direct + NoFilter");
     runConfig<MsgLean>(h, "Lean (Direct, NoContext, NoFilter)");
+    runConfig<MsgLocked>(h, "Locked (Snapshot, spin lock, uncontended)");
     return 0;
 }

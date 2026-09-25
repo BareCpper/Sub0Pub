@@ -22,6 +22,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <thread>
 #include <type_traits>
 
 namespace sub0x
@@ -65,9 +66,16 @@ namespace sub0x
     };
 #endif
 
+    namespace detail
+    {
+        template<class Data, class Config> class Broker; ///< the library broker (default implementation)
+    }
+
     /// Builtin defaults: exactly today's behaviour, derived from the legacy SUB0PUB_* macros
     struct Builtin
     {
+        /// Broker implementation (see Implementation<> and the broker concept in BROKER_CUSTOMISATION.md)
+        template<class Data, class Config> using broker = detail::Broker<Data, Config>;
         static constexpr uint32_t capacity = SUB0PUB_MAX_SUBSCRIPTIONS;
         static constexpr Dispatch dispatch =
             (SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
@@ -107,6 +115,10 @@ namespace sub0x
 
     struct Scoped
     { template<class B> struct apply : B { static constexpr Storage storage = Storage::Scoped; }; };
+
+    /// Replace the broker implementation for a Data type with an application-defined one (Global storage)
+    template<template<class, class> class BrokerTemplate> struct Implementation
+    { template<class B> struct apply : B { template<class Data, class Config> using broker = BrokerTemplate<Data, Config>; }; };
 
     namespace detail
     {
@@ -212,6 +224,48 @@ namespace sub0x
     template<class Data> class Publish;
     template<class Data> class Domain;
 
+    // ========================================================================
+    // Results
+    // ========================================================================
+
+    enum class SubscribeResult : uint8_t
+    {
+        Subscribed,        ///< registered: receives subsequent publishes
+        CapacityExceeded,  ///< table full; table unchanged
+        Closed             ///< the subscriber's Domain has been closed
+    };
+
+    /// Outcome of handing a message to a transport. Acceptance is NOT remote delivery.
+    enum class SendResult : uint8_t
+    {
+        Accepted,          ///< the transport took the message (copied/serialized it)
+        Full,              ///< temporary: queue/buffer exhausted
+        Disconnected,      ///< no peer at the moment
+        Closed             ///< the transport is shutting down / shut down
+    };
+
+    /// Opt-in per-publish report of route results (sub0x::publish(from, data, report)). Local delivery is not
+    /// affected by route results: every local subscriber is still called when a route rejects.
+    struct PublishReport
+    {
+        uint32_t routed = 0;
+        uint32_t accepted = 0;
+        uint32_t rejected = 0;
+        SendResult lastRejection = SendResult::Accepted;
+
+        void record(SendResult r) noexcept
+        {
+            ++routed;
+            if (r == SendResult::Accepted)
+                ++accepted;
+            else
+            {
+                ++rejected;
+                lastRejection = r;
+            }
+        }
+    };
+
     namespace detail
     {
         /** Fingerprint of a configuration's effective values (not its type name)
@@ -266,35 +320,248 @@ namespace sub0x
             typename Config::Lock& l_;
         };
 
-        /// Subscription table for one Data type (Global) or one Domain (Scoped). Lock is an empty base when NoLock.
+        template<class Config>
+        constexpr bool cConcurrent = !std::is_same_v<typename Config::Lock, NoLock>;
+
+        /** One dispatch in progress (concurrent configurations only), linked into its table under the table lock
+         * @remark disconnect()/close() null a removed subscriber out of every active snapshot, then wait only while
+         *         another thread is inside that subscriber's callback (`current`): bounded by one callback, no starvation.
+         *         Dispatcher: store current, re-load entry; writer: store null entry, load current. Both seq_cst, so at
+         *         least one side observes the other: a subscriber is never called after disconnect() returns.
+         */
+        template<class Data>
+        struct ActiveDispatch
+        {
+            std::atomic<Subscribe<Data>*>* snapshot;
+            uint32_t count;
+            std::atomic<Subscribe<Data>*> current{nullptr};
+            std::thread::id thread;
+            ActiveDispatch* next = nullptr;
+            ActiveDispatch* previous = nullptr;
+        };
+
+        template<class Data, bool Concurrent>
+        struct ActiveList {};
+        template<class Data>
+        struct ActiveList<Data, true>
+        {
+            ActiveDispatch<Data>* activeHead = nullptr;
+
+            void link(ActiveDispatch<Data>& d) noexcept
+            {
+                d.next = activeHead;
+                if (activeHead)
+                    activeHead->previous = &d;
+                activeHead = &d;
+            }
+            void unlink(ActiveDispatch<Data>& d) noexcept
+            {
+                (d.previous ? d.previous->next : activeHead) = d.next;
+                if (d.next)
+                    d.next->previous = d.previous;
+            }
+        };
+
+        /// Lifecycle state, only for Scoped storage: closed flag and count of bound handles
+        template<bool Scoped>
+        struct ScopeState {};
+        template<>
+        struct ScopeState<true>
+        {
+            bool closed = false;
+            std::atomic<uint32_t> handles{0};
+        };
+
+        /// Subscription table for one Data type (Global) or one Domain (Scoped). Empty bases cost nothing.
         template<class Data, class Config>
-        struct Table : Config::Lock
+        struct Table : Config::Lock, ActiveList<Data, cConcurrent<Config>>, ScopeState<Config::storage == Storage::Scoped>
         {
             uint32_t count = 0;
             Subscribe<Data>* entries[Config::capacity] = {};
         };
 
-        /** Publish context used by cancel() and re-entrancy checks, per Context policy
-         * @remark `current` identifies the subscription table being dispatched (one per Data type for Global storage,
-         *         one per Domain for Scoped), so cancel() and DirectChecked only act on their own table's dispatch.
+        /** One dispatch in progress on this thread. Frames form a per-thread stack (per Data type).
+         * @remark `table` identifies the subscription table being dispatched, so cancel(), re-entrancy checks and
+         *         disconnect act only on their own table (per Domain for Scoped storage). `origin` is the ingress
+         *         binding that injected the message (split horizon); `report` collects route results (opt-in).
          */
-        template<class Data, Context C> struct PublishContext
+        template<class Data>
+        struct Frame
+        {
+            const void* table;
+            const void* origin;
+            PublishReport* report;
+            Subscribe<Data>** snapshot; ///< this dispatch's snapshot (Snapshot dispatch), else nullptr
+            uint32_t count;             ///< entries in snapshot
+            bool canceled;
+            Frame* previous;
+        };
+
+        template<class Data, Context C>
+        struct PublishContext
         {
             static constexpr bool enabled = false;
         };
-        template<class Data> struct PublishContext<Data, Context::ThreadLocal>
+        template<class Data>
+        struct PublishContext<Data, Context::ThreadLocal>
         {
             static constexpr bool enabled = true;
-            inline static thread_local const void* current = nullptr;
-            inline static thread_local bool canceled = false;
+            static Frame<Data>*& top() noexcept { return top_; }
+            inline static thread_local Frame<Data>* top_ = nullptr;
         };
-        template<class Data> struct PublishContext<Data, Context::Static>
+        template<class Data>
+        struct PublishContext<Data, Context::Static>
         {
             static constexpr bool enabled = true;
-            inline static const void* current = nullptr;
-            inline static bool canceled = false;
+            static Frame<Data>*& top() noexcept { return top_; }
+            inline static Frame<Data>* top_ = nullptr;
         };
 
+        template<class Lock, class = void> struct has_yield : std::false_type {};
+        template<class Lock> struct has_yield<Lock, std::void_t<decltype(Lock::yield())>> : std::true_type {};
+
+        /// Yield while quiescing: Lock::yield() if the lock type provides one (RTOS), else std::this_thread::yield()
+        template<class Config>
+        void yieldThread() noexcept
+        {
+            if constexpr (has_yield<typename Config::Lock>::value)
+                Config::Lock::yield();
+            else
+                std::this_thread::yield();
+        }
+
+        /// Scope handle held by each Subscribe/Publish: empty for Global storage; Scoped counts bound handles
+        template<class TableT, bool Scoped>
+        struct ScopeRef
+        {
+            TableT* get(TableT& global) const noexcept { return &global; }
+        };
+        template<class TableT>
+        struct ScopeRef<TableT, true>
+        {
+            explicit ScopeRef(TableT& t) noexcept : t_(&t) { t_->handles.fetch_add(1, std::memory_order_relaxed); }
+            ~ScopeRef() { t_->handles.fetch_sub(1, std::memory_order_release); }
+            ScopeRef(const ScopeRef&) = delete;
+            ScopeRef& operator=(const ScopeRef&) = delete;
+            TableT* get(TableT&) const noexcept { return t_; }
+            TableT* t_;
+        };
+    }
+
+    // ========================================================================
+    // Broker author kit: what an application-defined broker (Implementation<>) builds on
+    // ========================================================================
+
+    namespace kit
+    {
+        /** RAII dispatch frame: push while calling receivers so cancel(), routes (origin, report) and same-thread
+         * disconnect work. Zero-size when the Data type's configuration has no publish context.
+         */
+        template<class Data>
+        class DispatchScope
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+        public:
+            DispatchScope(const void* table, const void* origin, PublishReport* report,
+                          Subscribe<Data>** snapshot, uint32_t count) noexcept
+                : frame_(makeFrame(table, origin, report, snapshot, count))
+            {
+                if constexpr (Ctx::enabled)
+                    Ctx::top() = &frame_;
+            }
+            ~DispatchScope()
+            {
+                if constexpr (Ctx::enabled)
+                    Ctx::top() = frame_.previous;
+            }
+            DispatchScope(const DispatchScope&) = delete;
+            DispatchScope& operator=(const DispatchScope&) = delete;
+
+            bool canceled() const noexcept
+            {
+                if constexpr (Ctx::enabled)
+                    return frame_.canceled;
+                else
+                    return false;
+            }
+
+        private:
+            struct NoFrame {};
+            using FrameT = std::conditional_t<Ctx::enabled, detail::Frame<Data>, NoFrame>;
+
+            /// Initialise the frame once, in place (no zero-fill then overwrite: avoids memset on small targets)
+            static FrameT makeFrame(const void* table, const void* origin, PublishReport* report,
+                                    Subscribe<Data>** snapshot, uint32_t count) noexcept
+            {
+                if constexpr (Ctx::enabled)
+                    return FrameT{ table, origin, report, snapshot, count, false, Ctx::top() };
+                else
+                {
+                    (void)table; (void)origin; (void)report; (void)snapshot; (void)count;
+                    return FrameT{};
+                }
+            }
+
+            FrameT frame_;
+        };
+
+        /// Call one subscriber: filter() (when configured) then receive()
+        template<class Data>
+        void deliver(Subscribe<Data>* s, const Data& data) noexcept;
+
+        /// Innermost dispatch in progress on this thread for Data, or nullptr
+        template<class Data>
+        const detail::Frame<Data>* activeDispatch() noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            if constexpr (Ctx::enabled)
+                return Ctx::top();
+            else
+                return nullptr;
+        }
+
+        /// Number of dispatches of `table` in progress on this thread
+        template<class Data>
+        uint32_t ownDispatches(const void* table) noexcept
+        {
+            uint32_t n = 0;
+            for (const detail::Frame<Data>* f = activeDispatch<Data>(); f; f = f->previous)
+                n += (f->table == table) ? 1U : 0U;
+            return n;
+        }
+
+        /// Cancel the innermost dispatch of `table` on this thread; no-op if that table is not being dispatched
+        template<class Data>
+        void cancel(const void* table) noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            static_assert(Ctx::enabled, "sub0x: cancel() needs a publish context (ThreadLocalContext or StaticContext)");
+            if constexpr (Ctx::enabled)
+                for (detail::Frame<Data>* f = Ctx::top(); f; f = f->previous)
+                    if (f->table == table)
+                    {
+                        f->canceled = true;
+                        return;
+                    }
+        }
+
+        /// Remove `s` from this thread's in-progress snapshots of `table`, so a subscriber disconnected (and possibly
+        /// destroyed) during a dispatch on this thread is not called afterwards by that dispatch
+        template<class Data>
+        void forgetInOwnDispatches(const void* table, const Subscribe<Data>* s) noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            if constexpr (Ctx::enabled)
+                for (detail::Frame<Data>* f = Ctx::top(); f; f = f->previous)
+                    if (f->table == table && f->snapshot)
+                        for (uint32_t i = 0; i < f->count; ++i)
+                            if (f->snapshot[i] == s)
+                                f->snapshot[i] = nullptr;
+        }
+    }
+
+    namespace detail
+    {
         /// Subscriber interface, with filter() only when the configuration asks for it
         template<class Data, bool Filter>
         class SubscriberInterface
@@ -314,7 +581,15 @@ namespace sub0x
             ~SubscriberInterface() = default;
         };
 
-        /** Broker for one Data type with one resolved configuration
+        /** The library broker for one Data type with one resolved configuration (the default Implementation)
+         *
+         * Broker concept (what Subscribe/Publish/Route require of any Implementation<>):
+         *   Broker() noexcept                                            Global storage
+         *   SubscribeResult trySubscribe(Subscribe<Data>*) noexcept
+         *   void disconnect(Subscribe<Data>*) noexcept                   after return: no further receive() calls
+         *   void publish(const Data&, const void* origin, PublishReport*) const noexcept
+         *   void cancel() const noexcept
+         *
          * @remark Every TU must resolve the same configuration for a Data type (build contract, see Registry).
          */
         template<class Data, class Config>
@@ -323,186 +598,320 @@ namespace sub0x
             static_assert(Config::capacity > 0, "sub0x: Capacity must be at least 1");
             static_assert(!(Config::dispatch == Dispatch::DirectChecked && Config::context == Context::None),
                           "sub0x: DirectChecked needs a publish context (ThreadLocalContext or StaticContext)");
-            static_assert(std::is_same_v<typename Config::Lock, NoLock> || Config::dispatch == Dispatch::Snapshot,
+            static_assert(!cConcurrent<Config> || Config::dispatch == Dispatch::Snapshot,
                           "sub0x: a Lock requires Snapshot dispatch (receivers are called outside the lock)");
+            static_assert(!cConcurrent<Config> || Config::context != Context::None,
+                          "sub0x: a Lock requires a publish context (disconnect must not wait on its own dispatch)");
 
             using Ctx = PublishContext<Data, Config::context>;
-            using TableT = Table<Data, Config>;
             static constexpr bool cScoped = Config::storage == Storage::Scoped;
 
         public:
             using Configuration = Config;
+            using TableT = Table<Data, Config>;
 
-            Broker() noexcept : scope_() { checkConfig<Data, Config>(); }
+            template<bool S = cScoped, std::enable_if_t<!S, int> = 0>
+            Broker() noexcept { checkConfig<Data, Config>(); }
+
+            template<bool S = cScoped, std::enable_if_t<S, int> = 0>
             explicit Broker(TableT& table) noexcept : scope_(table) { checkConfig<Data, Config>(); }
 
-            sub0::SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
+            SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
             {
                 TableT& t = table();
                 LockGuard<Config> lk(t);
-                checkNotDispatching();
+                checkNotDispatching(t);
+                if constexpr (cScoped)
+                    if (t.closed)
+                        return SubscribeResult::Closed;
                 if (t.count >= Config::capacity)
-                    return sub0::SubscribeResult::CapacityExceeded;
+                    return SubscribeResult::CapacityExceeded;
                 t.entries[t.count++] = subscriber;
-                return sub0::SubscribeResult::Subscribed;
+                return SubscribeResult::Subscribed;
             }
 
-            void unsubscribe(Subscribe<Data>* subscriber) noexcept
+            /** Remove `subscriber`; on return no dispatch (on any thread) will call it again
+             * @remark Dispatches in progress forget it. Concurrent configurations then wait while another thread is
+             *         inside its callback. Safe from within the subscriber's own receive().
+             * @warning Concurrent: do not disconnect, from inside a receive(), a subscriber that another thread's
+             *          receive() is disconnecting you from at the same time (mutual wait). Defer such teardown.
+             */
+            void disconnect(Subscribe<Data>* subscriber) noexcept
             {
                 TableT& t = table();
-                LockGuard<Config> lk(t);
-                Subscribe<Data>** const it = std::find(t.entries, t.entries + t.count, subscriber);
-                if (it == t.entries + t.count)
-                    return;
-                checkNotDispatching();
-                std::move(it + 1, t.entries + t.count, it);
-                --t.count;
+                {
+                    LockGuard<Config> lk(t);
+                    Subscribe<Data>** const it = std::find(t.entries, t.entries + t.count, subscriber);
+                    if (it != t.entries + t.count)
+                    {
+                        checkNotDispatching(t);
+                        std::move(it + 1, t.entries + t.count, it);
+                        --t.count;
+                    }
+                    if constexpr (cConcurrent<Config>)
+                        forgetInActiveDispatches(t, subscriber);
+                }
+                if constexpr (cConcurrent<Config>)
+                    waitWhileCalledElsewhere(t, subscriber);
+                else
+                    kit::forgetInOwnDispatches<Data>(&t, subscriber);
             }
 
-            void publish(const Data& data) const noexcept
+            void publish(const Data& data, const void* origin = nullptr, PublishReport* report = nullptr) const noexcept
             {
                 TableT& t = table();
-                if constexpr (Config::dispatch == Dispatch::Snapshot)
+                if constexpr (cConcurrent<Config>)
+                {
+                    std::atomic<Subscribe<Data>*> snapshot[Config::capacity];
+                    ActiveDispatch<Data> active{snapshot, 0, {nullptr}, std::this_thread::get_id()};
+                    {
+                        LockGuard<Config> lk(t);
+                        if constexpr (cScoped)
+                            if (t.closed)
+                                return;
+                        active.count = t.count;
+                        for (uint32_t i = 0; i < active.count; ++i)
+                            snapshot[i].store(t.entries[i], std::memory_order_relaxed);
+                        t.link(active);
+                    }
+                    {
+                        kit::DispatchScope<Data> scope(&t, origin, report, nullptr, 0);
+                        for (uint32_t i = 0; !scope.canceled() && i < active.count; ++i)
+                        {
+                            Subscribe<Data>* const s = snapshot[i].load(std::memory_order_seq_cst);
+                            if (s == nullptr)
+                                continue;
+                            active.current.store(s, std::memory_order_seq_cst);
+                            if (snapshot[i].load(std::memory_order_seq_cst) == s) // not disconnected meanwhile
+                                kit::deliver(s, data);
+                            active.current.store(nullptr, std::memory_order_seq_cst);
+                        }
+                    }
+                    LockGuard<Config> lk(t);
+                    t.unlink(active);
+                }
+                else if constexpr (Config::dispatch == Dispatch::Snapshot)
                 {
                     Subscribe<Data>* snapshot[Config::capacity];
                     uint32_t count;
-                    {
-                        LockGuard<Config> lk(t);
-                        count = t.count;
-                        std::copy_n(t.entries, count, snapshot);
-                    }
-                    dispatch(snapshot, count, data);
+                    if constexpr (cScoped)
+                        if (t.closed)
+                            return;
+                    count = t.count;
+                    std::copy_n(t.entries, count, snapshot);
+                    kit::DispatchScope<Data> scope(&t, origin, report, snapshot, count);
+                    for (uint32_t i = 0; !scope.canceled() && i < count; ++i)
+                        if (Subscribe<Data>* const s = snapshot[i])
+                            kit::deliver(s, data);
                 }
                 else
                 {
-                    checkNotDispatching();
-                    dispatch(t.entries, t.count, data);
+                    checkNotDispatching(t);
+                    kit::DispatchScope<Data> scope(&t, origin, report, nullptr, 0);
+                    for (uint32_t i = 0; !scope.canceled() && i < t.count; ++i)
+                        kit::deliver(t.entries[i], data);
                 }
             }
 
-            /// Cancel the dispatch in progress on this broker's table; a no-op for any other table's dispatch
-            void cancel() const noexcept
-            {
-                static_assert(Ctx::enabled, "sub0x: cancel() needs a publish context (ThreadLocalContext or StaticContext)");
-                if constexpr (Ctx::enabled)
-                    if (Ctx::current == &table())
-                        Ctx::canceled = true;
-            }
+            void cancel() const noexcept { kit::cancel<Data>(&table()); }
+
+            /// Close a Scoped table: reject subscriptions, drop publishes, detach subscribers, then quiesce
+            static void close(TableT& t) noexcept;
 
         private:
-            template<class Entries>
-            void dispatch(Entries& entries, const uint32_t& count, const Data& data) const noexcept
+            /// Concurrent: null `s` (or every entry when s == nullptr) in all active snapshots. Call under the table lock.
+            static void forgetInActiveDispatches(TableT& t, const Subscribe<Data>* s) noexcept
             {
-                if constexpr (Ctx::enabled)
+                for (ActiveDispatch<Data>* a = t.activeHead; a; a = a->next)
+                    for (uint32_t i = 0; i < a->count; ++i)
+                        if (s == nullptr || a->snapshot[i].load(std::memory_order_relaxed) == s)
+                            a->snapshot[i].store(nullptr, std::memory_order_seq_cst);
+            }
+
+            /// Concurrent: wait while another thread is inside `s`'s callback (any callback when s == nullptr)
+            static void waitWhileCalledElsewhere(TableT& t, const Subscribe<Data>* s) noexcept
+            {
+                const std::thread::id me = std::this_thread::get_id();
+                for (;;)
                 {
-                    const void* const previous = Ctx::current;
-                    const bool previousCanceled = Ctx::canceled;
-                    Ctx::current = &table();
-                    Ctx::canceled = false;
-                    for (uint32_t i = 0; !Ctx::canceled && i < count; ++i)
-                        deliver(entries[i], data);
-                    Ctx::current = previous;
-                    Ctx::canceled = previousCanceled;
-                }
-                else
-                {
-                    for (uint32_t i = 0; i < count; ++i)
-                        deliver(entries[i], data);
+                    bool busy = false;
+                    {
+                        LockGuard<Config> lk(t);
+                        for (ActiveDispatch<Data>* a = t.activeHead; a && !busy; a = a->next)
+                        {
+                            Subscribe<Data>* const current = a->current.load(std::memory_order_seq_cst);
+                            busy = a->thread != me && current != nullptr && (s == nullptr || current == s);
+                        }
+                    }
+                    if (!busy)
+                        return;
+                    yieldThread<Config>();
                 }
             }
 
-            static void deliver(Subscribe<Data>* s, const Data& data) noexcept;
-
-            /// DirectChecked: only a use of the table currently being iterated is a violation (other domains are fine)
-            void checkNotDispatching() const noexcept
+            /// DirectChecked: only a use of the table currently being iterated on this thread is a violation
+            static void checkNotDispatching(TableT& t) noexcept
             {
                 if constexpr (Config::dispatch == Dispatch::DirectChecked)
-                    if (Ctx::current == &table())
+                    if (kit::ownDispatches<Data>(&t) != 0)
                         SUB0X_REENTRANT_VIOLATION("sub0x: re-entrant use of a Data type's table during its own dispatch requires Snapshot");
+                (void)t;
             }
 
-            TableT& table() const noexcept
-            {
-                if constexpr (cScoped)
-                    return scope_;
-                else
-                    return global_;
-            }
+            TableT& table() const noexcept { return *scope_.get(global_); }
 
-            struct Unscoped { Unscoped() = default; };
-            std::conditional_t<cScoped, TableT&, Unscoped> scope_; ///< empty for Global storage
-            inline static TableT global_ = {};
-
-            template<class> friend class sub0x::Domain;
+            ScopeRef<TableT, cScoped> scope_;
+            inline static TableT global_;
         };
 
         template<class Data>
-        using BrokerFor = Broker<Data, config_t<Data>>;
+        using BrokerFor = typename config_t<Data>::template broker<Data, config_t<Data>>;
     }
 
-    /// Scope for Storage::Scoped types (issue #5): independent subscription tables for the same Data type
+#ifndef SUB0X_DOMAIN_LIFETIME
+#define SUB0X_DOMAIN_LIFETIME(what) do { assert(!(what)); std::abort(); } while(false)
+#endif
+
+    /** Session scope for Storage::Scoped types (issue #5): independent subscription tables for the same Data type
+     * @remark Lifetime contract: a Domain must outlive every Subscribe/Publish/Route bound to it (debug-checked).
+     *         close() ends the session early: subscribe returns Closed, publish is dropped, current subscribers are
+     *         detached, and in-flight dispatches are waited for.
+     */
     template<class Data>
     class Domain
     {
-        static_assert(config_t<Data>::storage == Storage::Scoped, "sub0x: Domain<Data> requires a Data type configured with sub0x::Scoped");
+        using Config = config_t<Data>;
+        using BrokerT = detail::BrokerFor<Data>;
+        static_assert(Config::storage == Storage::Scoped, "sub0x: Domain<Data> requires a Data type configured with sub0x::Scoped");
+        static_assert(std::is_same_v<BrokerT, detail::Broker<Data, Config>>, "sub0x: Scoped storage requires the library broker (prototype)");
     public:
         Domain() = default;
         Domain(const Domain&) = delete;
         Domain& operator=(const Domain&) = delete;
+
+        ~Domain()
+        {
+            close();
+            if (table_.handles.load(std::memory_order_acquire) != 0)
+                SUB0X_DOMAIN_LIFETIME("sub0x: Domain destroyed while Subscribe/Publish/Route handles are still bound to it");
+        }
+
+        void close() noexcept { BrokerT::close(table_); }
+
+        bool isClosed() const noexcept
+        {
+            detail::LockGuard<Config> lk(const_cast<typename BrokerT::TableT&>(table_));
+            return table_.closed;
+        }
+
     private:
         template<class> friend class Subscribe;
         template<class> friend class Publish;
-        detail::Table<Data, config_t<Data>> table_;
+        typename BrokerT::TableT table_;
     };
 
-    /** Subscriber base; configuration-dependent interface (filter() only if configured) */
+    /** Subscriber base; configuration-dependent interface (filter() only if configured)
+     *
+     * Activation contract: single-threaded configurations register in the constructor. Concurrent configurations
+     * (a Lock) do not: another thread could otherwise dispatch into the object before the derived class is
+     * constructed. Call trySubscribe() at the end of the most-derived constructor (Route does this).
+     *
+     * Teardown contract: after disconnect() returns, receive() is not called again, on any thread. The base destructor
+     * disconnects too, but by then the derived object is already destroyed: when other threads may publish, call
+     * disconnect() from the most-derived destructor (Route does this). Same-thread disconnect during a dispatch,
+     * including from the subscriber's own receive(), is safe with Snapshot dispatch.
+     */
     template<class Data>
     class Subscribe : public detail::SubscriberInterface<Data, config_t<Data>::filter>
     {
         using Config = config_t<Data>;
         using Broker = detail::BrokerFor<Data>;
+        template<class> friend class Domain;
         template<class, class> friend class detail::Broker;
     public:
         template<class C = Config, std::enable_if_t<C::storage == Storage::Global, int> = 0>
-        Subscribe() noexcept { trySubscribe(); }
+        Subscribe() noexcept { activateIfSingleThreaded(); }
 
         template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
-        explicit Subscribe(Domain<Data>& domain) noexcept : broker_(domain.table_) { trySubscribe(); }
+        explicit Subscribe(Domain<Data>& domain) noexcept : broker_(domain.table_) { activateIfSingleThreaded(); }
 
         Subscribe(const Subscribe&) = delete;
         Subscribe& operator=(const Subscribe&) = delete;
 
-        virtual ~Subscribe()
+        virtual ~Subscribe() { disconnect(); }
+
+        bool isSubscribed() const noexcept { return subscribed_.load(std::memory_order_relaxed); }
+
+        SubscribeResult trySubscribe() noexcept
         {
-            if (subscribed_)
-                broker_.unsubscribe(this);
+            if (isSubscribed())
+                return SubscribeResult::Subscribed;
+            const SubscribeResult result = broker_.trySubscribe(this);
+            subscribed_.store(result == SubscribeResult::Subscribed, std::memory_order_relaxed);
+            return result;
         }
 
-        bool isSubscribed() const noexcept { return subscribed_; }
-
-        sub0::SubscribeResult trySubscribe() noexcept
+        /// Stop receiving. Idempotent; safe from within receive(); see the teardown contract above
+        void disconnect() noexcept
         {
-            if (subscribed_)
-                return sub0::SubscribeResult::Subscribed;
-            const sub0::SubscribeResult result = broker_.trySubscribe(this);
-            subscribed_ = (result == sub0::SubscribeResult::Subscribed);
-            return result;
+            const bool wasSubscribed = subscribed_.exchange(false, std::memory_order_relaxed);
+            // Concurrent: always, so a subscriber already detached by Domain::close() still waits out a callback in
+            // progress on another thread. Single-threaded: close() already made it safe; nothing left to do.
+            if (detail::cConcurrent<Config> || wasSubscribed)
+                broker_.disconnect(this);
         }
 
         void cancel() const noexcept { broker_.cancel(); }
 
+    protected:
+        void activateIfSingleThreaded() noexcept
+        {
+            if constexpr (!detail::cConcurrent<Config>)
+                trySubscribe();
+        }
+
+        /// For bindings (Route): publish into this subscriber's table with an ingress origin
+        void injectFrom(const void* origin, const Data& data) const noexcept { broker_.publish(data, origin, nullptr); }
+
     private:
         Broker broker_;
-        bool subscribed_ = false;
+        std::atomic<bool> subscribed_{false};
     };
 
-    template<class Data, class Config>
-    void detail::Broker<Data, Config>::deliver(Subscribe<Data>* s, const Data& data) noexcept
+    namespace kit
     {
-        if constexpr (Config::filter)
-            if (!s->filter(data))
-                return;
-        s->receive(data);
+        template<class Data>
+        void deliver(Subscribe<Data>* s, const Data& data) noexcept
+        {
+            if constexpr (config_t<Data>::filter)
+                if (!s->filter(data))
+                    return;
+            s->receive(data);
+        }
+    }
+
+    template<class Data, class Config>
+    void detail::Broker<Data, Config>::close(TableT& t) noexcept
+    {
+        static_assert(cScoped, "sub0x: only Scoped tables can be closed");
+        uint32_t n;
+        Subscribe<Data>* detached[Config::capacity];
+        {
+            LockGuard<Config> lk(t);
+            t.closed = true;
+            n = t.count;
+            std::copy_n(t.entries, n, detached);
+            for (uint32_t i = 0; i < n; ++i)
+                t.entries[i]->subscribed_.store(false, std::memory_order_relaxed);
+            t.count = 0;
+            if constexpr (cConcurrent<Config>)
+                forgetInActiveDispatches(t, nullptr);
+        }
+        if constexpr (cConcurrent<Config>)
+            waitWhileCalledElsewhere(t, nullptr);
+        else
+            for (uint32_t i = 0; i < n; ++i)
+                kit::forgetInOwnDispatches<Data>(&t, detached[i]);
     }
 
     /** Publisher base: no virtual destructor (publishers hold no registration), so no vptr */
@@ -519,10 +928,11 @@ namespace sub0x
         explicit Publish(Domain<Data>& domain) noexcept : broker_(domain.table_) {}
 
     protected:
-        void publish(const Data& data) const noexcept { broker_.publish(data); }
+        void publish(const Data& data, PublishReport* report = nullptr) const noexcept { broker_.publish(data, nullptr, report); }
 
     private:
         template<class From, class D> friend void publish(From&, const D&) noexcept;
+        template<class From, class D> friend void publish(From&, const D&, PublishReport&) noexcept;
         Broker broker_;
     };
 
@@ -532,6 +942,57 @@ namespace sub0x
         const Publish<Data>& publisher = from;
         publisher.publish(data);
     }
+
+    /// Publish and report route results (routed / accepted / rejected). Local delivery is unaffected by rejections.
+    template<class From, class Data>
+    inline void publish(From& from, const Data& data, PublishReport& report) noexcept
+    {
+        static_assert(config_t<Data>::context != Context::None, "sub0x: publish reports need a publish context");
+        const Publish<Data>& publisher = from;
+        publisher.publish(data, &report);
+    }
+
+    /** Endpoint binding: connects one application-owned Transport instance to one table (a Domain, or the global
+     * table) for one Data type.
+     *
+     *   Egress:  every message published into the table is handed to transport.send(data) -> SendResult.
+     *            The transport must copy/serialize at acceptance and never retain a reference to `data`.
+     *   Ingress: inject(data) publishes a message received from the transport into the table. That message is
+     *            not sent back out through this route (split horizon), preventing echo loops between peers.
+     *   Teardown: the destructor disconnects first, so after destruction the transport is never called.
+     *
+     * Transport concept: SendResult send(const Data&) noexcept.
+     */
+    template<class Data, class Transport>
+    class Route final : public Subscribe<Data>
+    {
+        using Config = config_t<Data>;
+        static_assert(Config::context != Context::None, "sub0x: Route needs a publish context (split horizon and reports)");
+    public:
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Global, int> = 0>
+        explicit Route(Transport& transport) noexcept : transport_(transport) { this->trySubscribe(); }
+
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
+        Route(Domain<Data>& domain, Transport& transport) noexcept : Subscribe<Data>(domain), transport_(transport) { this->trySubscribe(); }
+
+        ~Route() override { this->disconnect(); }
+
+        /// Ingress: deliver a message received from the transport to this route's table
+        void inject(const Data& data) const noexcept { this->injectFrom(this, data); }
+
+    private:
+        void receive(const Data& data) noexcept override
+        {
+            const detail::Frame<Data>* const frame = kit::activeDispatch<Data>();
+            if (frame != nullptr && frame->origin == this)
+                return; // split horizon: this message arrived through this route
+            const SendResult result = transport_.send(data);
+            if (frame != nullptr && frame->report != nullptr)
+                frame->report->record(result);
+        }
+
+        Transport& transport_;
+    };
 
     // Tagged types (docs/TAGGED_TYPES_PROPOSAL.md) take their configuration from the tag, so fundamental
     // and third-party payloads can be configured without touching the payload type.

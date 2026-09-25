@@ -16,6 +16,7 @@ add_executable(Sub0Pub_Sub0xTests
     test_binding.cpp
     test_multi_tu_a.cpp
     test_multi_tu_b.cpp
+    test_endpoints.cpp
 )
 sub0x_target(Sub0Pub_Sub0xTests SUB0X_TEST_COUNT_MISMATCHES SUB0X_CHECK_CONFIG=true)
 add_test(NAME Sub0Pub_Sub0xTests COMMAND Sub0Pub_Sub0xTests)

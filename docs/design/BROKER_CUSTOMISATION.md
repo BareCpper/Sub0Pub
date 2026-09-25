@@ -144,45 +144,48 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
 | `mismatch_a.cpp`, `mismatch_b.cpp` | a deliberately forgotten traits specialisation in one TU is **detected** at runtime (debug registry) |
 | `compile_fail/*.cpp` | six misuse cases rejected at compile time with the intended diagnostic |
 | `test_binding.cpp` (review fixes) | `cancel()` and `DirectChecked` are scoped to the dispatching table: another domain's subscriber cannot cancel this domain's dispatch, and publishing into another domain from a receiver is not re-entry. The registry fingerprint is value-based |
+| `test_endpoints.cpp` | the review's worked example (section 7): two isolated sessions and the same type, two transports (synchronous pipe and bounded asynchronous queue), bidirectional ingress/egress with split horizon, rejection reports while local delivery continues, teardown during delivery on the same thread and from another thread, domain close, and an application-defined broker (`Implementation<SingleSubscriberBroker>`) with a route |
 | `bench_sub0x.cpp` | each configuration bound to its own type in one binary, measured under the baseline's control conditions |
 | `footprint/fp_sub0x_*.cpp` | footprint per configuration (host, Cortex-M33) via `tests/footprint/measure_footprint.py` |
 
 ### Measured against the baseline
 
 Full results: [../perf/prototype-sub0x-2026-09.md](../perf/prototype-sub0x-2026-09.md). Built with no project header,
-so `Default` is the Builtin configuration, the same policy as `sub0pub.hpp` today.
+so `Default` is the Builtin configuration, the same policy as `sub0pub.hpp` today. These figures include the
+endpoint/teardown machinery added for the review (section 7). Earlier figures from before that work are in the git history.
 
 | instr/op (GCC 13) | 0 subscribers | 1 subscriber | 8 subscribers | create + destroy |
 |---|---:|---:|---:|---:|
 | **Baseline** Snapshot (default) | 38 | 72 | 247 | 61 |
 | **Baseline** Direct unchecked | 39 | 60 | 207 | 61 |
-| sub0x Default (Snapshot, ThreadLocal, filter) | 37 | 68 | 194 | 59 |
-| sub0x Direct | 38 | 52 | 150 | 59 |
-| sub0x Direct + NoFilter | 35 | 46 | 123 | 59 |
-| sub0x Lean (Direct, NoContext, NoFilter) | **9** | **33** | **96** | 59 |
+| **Baseline** ThreadSafe (`std::mutex`) | 123 | 157 | 333 | 218 |
+| sub0x Default (Snapshot, ThreadLocal, filter) | 31 | 74 | 228 | 73 |
+| sub0x Direct | 46 | 61 | 166 | 73 |
+| sub0x Direct + NoFilter | 41 | 52 | 129 | 73 |
+| sub0x Lean (Direct, NoContext, NoFilter) | **9** | **33** | **96** | 65 |
+| sub0x Locked (Snapshot, spin lock, uncontended) | 90 | 123 | 347 | 105 |
 | Floor: virtual `receive()` loop | | 11 | 89 | |
 
 | Cortex-M33 `-Os`, 1 type (publisher, subscriber, publish site) | text | `sizeof(Publish)` | needs TLS | needs memcpy |
 |---|---:|---:|---|---|
 | **Baseline** Snapshot (default) | 566 | 8 | yes | yes |
-| sub0x Default | 534 | 1 | yes | yes |
-| sub0x Direct | 482 | 1 | yes | no |
-| sub0x Direct + StaticContext | 458 | 1 | **no** | no |
-| sub0x Lean | **382** | 1 | **no** | no |
+| sub0x Default | 566 | 1 | yes | yes |
+| sub0x Direct | 530 | 1 | yes | no |
+| sub0x Direct + StaticContext | 518 | 1 | **no** | no |
+| sub0x Lean | **394** | 1 | **no** | no |
 
-- **Zero-cost requirement (R1): met.** The default configuration is at or below the baseline everywhere.
-  Most of the difference is `Publish<T>` losing its vtable, plus codegen.
-- Pay-for-what-you-use works: each option removes its own cost. The lean configuration is 4× cheaper to
-  publish with no subscribers, about 2.5× cheaper with 8, and 32% smaller on Cortex-M33.
+- **Zero-cost requirement (R1): met only partly.** The default configuration costs less than the baseline
+  with 0 and 8 subscribers, but more with 1 subscriber (+2) and for create+destroy (+12). It is the same
+  size on Cortex-M33. The regressions are the price of the new correctness guarantees and are recorded as
+  known issues in **section 8**. The baseline has neither the guarantees nor the costs.
+- Pay-for-what-you-use works per option: the lean configuration is 4.2× cheaper to publish with no
+  subscribers, 2.6× cheaper with 8, and 30% smaller on Cortex-M33.
 - `StaticContext` costs the same as TLS on x86 (segment-relative access) but removes `__aeabi_read_tp` on
   Cortex-M. Only target measurements show that difference.
 - **Portability finding:** MSVC did not detect the ADL hook with a zero-argument deleted poison pill plus
   `void_t` partial-specialisation detection. The prototype now uses a deleted *template* poison pill
   `template<class T> void sub0_config(T*) = delete;` with overload-based detection, which works on GCC,
   Clang and MSVC.
-- `operator delete` is still required through `Subscribe<T>`'s virtual destructor. A protected
-  non-virtual destructor would remove it (subscribers are rarely deleted through a base pointer), but
-  that is an API decision for review.
 
 ### Not yet proven (next steps, in order)
 
@@ -199,12 +202,12 @@ so `Default` is the Builtin configuration, the same policy as `sub0pub.hpp` toda
    - Naming: `sub0_config` for the member and ADL hook; `configure<T>` for traits; option names.
    - Should `Storage::Scoped` with a default domain also be allowed (a global instance plus opt-in scopes)?
    - IPC: should routes live in the per-type configuration (static) or be attached by endpoints at runtime (current `ForwardSubscribe` model)? Likely both: the static route list enables zero-cost dispatch tables.
-   - Should `Subscribe<T>` keep a virtual destructor? See the last bullet above.
+   - Should `Subscribe<T>` keep a virtual destructor? See known issue K7 in section 8.
 
 ## 6. How to continue (for the review session)
 
 ```bash
-cmake --preset default && cmake --build --preset default && ctest --preset default   # 9 tests incl. prototype
+cmake --preset default && cmake --build --preset default && ctest --preset default   # 9 tests incl. prototype; also ci-tsan preset
 python3 tests/bench/run_baseline.py build/tests          # baseline instr/op + ns/op
 python3 tests/footprint/measure_footprint.py             # host + Cortex-M33 footprint
 ```
@@ -220,11 +223,15 @@ or a transport endpoint (R5).
 
 | # | Finding | Status |
 |---|---|---|
-| 1 | No implementation-selection hook, endpoint dependency or transport contract; `Routes<>` is future work | **Open.** Blocks the API freeze. Acceptance criterion below |
+| 1 | No implementation-selection hook, endpoint dependency or transport contract; `Routes<>` is future work | **Prototyped:** `Implementation<B>` hook plus a documented broker concept and `sub0x::kit`; `Route<Data, Transport>` bindings with the transport concept `SendResult send(const Data&)` |
+
 | 2 | Cross-TU guarantee overstated; registry hashed the type name, not values; unsynchronised registry | **Fixed:** doc states a build contract; registry is value-based, atomic and best-effort (sections 3 and 4) |
 | 3 | Scoped domains isolated subscriptions but not `cancel()` / `DirectChecked` | **Fixed:** the context is keyed by the table being dispatched; regression tests reproduce the reported case |
-| 4 | Teardown: snapshot dispatch retains raw pointers; `Domain` has no shutdown protocol | **Open.** Must be settled with registration, disconnect, quiescence and self-disconnect together (#5) |
-| 5 | Transport results and routing: `void publish()` cannot report rejection; async payload ownership; echo loops | **Open.** Design direction below |
+| 4 | Teardown: snapshot dispatch retains raw pointers; `Domain` has no shutdown protocol | **Prototyped:** activation, disconnect, quiescence, self-disconnect and `Domain::close()` contracts (below), ASan/TSan-tested |
+| 5 | Transport results and routing: `void publish()` cannot report rejection; async payload ownership; echo loops | **Prototyped:** `PublishReport`, copy-at-acceptance rule, split horizon on ingress origin |
+
+All five findings are now addressed in the prototype. The API is still not frozen. The prototype
+answers are proposals for the maintainer, and their costs are listed in section 8.
 
 **Separation of concerns agreed in review:**
 
@@ -237,7 +244,7 @@ or a transport endpoint (R5).
 | Disconnect and callback lifetime | Registration/connection contract |
 | Wire identity and encoding | Explicit protocol/schema contract |
 
-**Acceptance criterion before the API freeze.** A worked example covering:
+**Acceptance criterion before the API freeze** (now implemented in `test_endpoints.cpp`). A worked example covering:
 - two isolated sessions and the same message type;
 - two transport implementations;
 - ingress and egress;
@@ -274,4 +281,45 @@ The example determines the public surface; no further policy options are added b
    - A subscriber unsubscribing itself from its own callback is detected through the dispatch context, and
      completes when that dispatch unwinds instead of waiting on itself.
    - `Domain` destruction first closes the domain to new bindings, then quiesces.
+
+### Lifetime contracts as prototyped (finding 4)
+
+- **Activation.** Single-threaded configurations register in the `Subscribe` constructor. Concurrent
+  configurations (a `Lock`) do not, because another thread could otherwise dispatch into a half-constructed
+  object. The most-derived constructor calls `trySubscribe()`; `Route` does so itself.
+- **Disconnect.** After `disconnect()` returns, `receive()` is never called again, on any thread.
+  - The base destructor disconnects too, but by then the derived object is gone. With concurrent publishers,
+    call `disconnect()` first in the most-derived destructor; `Route` does so.
+  - Same-thread: disconnecting (and destroying) a subscriber during a dispatch, including from its own
+    `receive()`, is safe with Snapshot dispatch. The dispatch forgets it.
+  - Concurrent: each dispatch registers its snapshot in the table's active list and publishes which
+    subscriber it is calling. `disconnect()` nulls the subscriber in every active snapshot and waits only
+    while another thread is inside *that* subscriber's callback. The wait is bounded by one callback and
+    cannot starve.
+  - A seq_cst store-then-load handshake (dispatcher: publish `current`, re-load the entry; writer: null the
+    entry, load `current`) guarantees at least one side sees the other.
+- **Domain.** `close()` rejects new subscriptions (`SubscribeResult::Closed`), drops publishes, detaches the
+  current subscribers and waits out callbacks in progress. A `Domain` must outlive every handle bound to
+  it; this is debug-checked by a handle count.
+
+## 8. Known issues: compromises against correctness without cost
+
+The design intent of the Sub0 libraries is **correctness without cost**. Wherever the prototype pays for
+correctness, or accepts a limitation to avoid a cost, the compromise is recorded here with its measured
+price (GCC 13 instructions per operation, Cortex-M33 bytes; see section 5), so it can be engineered away
+rather than forgotten. Baseline issues in today's library are listed in
+[PERFORMANCE_BASELINE.md](../PERFORMANCE_BASELINE.md) ("Embedded findings").
+
+| # | Compromise | Measured cost | Why | Route to zero cost |
+|---|---|---|---|---|
+| K1 | Same-thread teardown safety on every create+destroy: an atomic registration flag, plus a thread-local check for in-progress dispatches that must forget the subscriber | create+destroy 73 vs 61 (+12) | a subscriber destroyed during a dispatch must not be called by it | skip the check when no dispatch of that table is active on this thread (already a single thread-local load); make the flag non-atomic in single-threaded configurations |
+| K2 | The dispatch frame carries `origin`, `report` and `snapshot` for routes and teardown even when a type has no routes | Snapshot, 1 subscriber: 74 vs 72 (+2); Direct, 0 subscribers: 46 vs 39 (+7) | split horizon, rejection reports and same-thread teardown need them | a `Routable` option: types without routes use a minimal frame |
+| K3 | Concurrent configurations pay a seq_cst handshake per subscriber per publish, and a second lock acquisition to unlink the dispatch | Locked, 8 subscribers: 347 (spin lock) vs baseline ThreadSafe 333 (`std::mutex`; the lock types differ) | disconnect-while-delivering safety, which the baseline ThreadSafe mode lacks: it has the #5 use-after-free | per-subscriber reference counts or epoch-based reclamation; measure against the handshake |
+| K4 | Concurrent `disconnect()` can block (bounded by one callback on another thread); two receivers disconnecting each other at the same moment from different threads deadlock | blocking; a documented usage rule | the only way to guarantee "no call after disconnect returns" without allocation | a non-blocking `disconnectLater()` for use inside receivers; a deadlock detector in debug builds |
+| K5 | Concurrent configurations need an explicit `trySubscribe()` at the end of the most-derived constructor | API burden, easy to forget | the base constructor runs before the derived object exists | a CRTP `Subscriber<Derived, Data>` helper that activates after construction; a debug warning for a never-activated subscriber |
+| K6 | `Domain` lifetime (it must outlive its handles) is only debug-checked; configuration consistency across TUs is a build contract with a best-effort diagnostic | undefined behaviour if violated in release | no zero-cost runtime mechanism exists | link-time detection research (section 5, question 4) |
+| K7 | `Subscribe<T>` keeps a virtual destructor, so `operator delete` and `__cxa_pure_virtual` remain link dependencies | Cortex-M33: link dependency plus deleting-destructor code | subscribers are occasionally deleted through a base pointer | a protected non-virtual destructor (API decision) |
+| K8 | Custom brokers (`Implementation<>`) support Global storage only; `Domain` requires the library broker | limitation | the prototype's scoped table type is library-internal | put the table type in the broker concept |
+| K9 | Cancel, re-entrancy checks and teardown walk this thread's dispatch-frame stack | O(nesting depth), usually 1 | frames are per Data type, shared by all of that type's domains | per-table frame chains if deep nesting appears in practice |
+| K10 | The cross-thread teardown test is probabilistic | a mutation (no wait in disconnect) is caught in about 4 of 5 runs | data races are timing-dependent | a deterministic interleaving harness (test hooks at the handshake points) |
 
