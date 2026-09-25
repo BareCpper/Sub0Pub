@@ -17,9 +17,17 @@ target_include_directories(Sub0Pub_Tests PRIVATE
 
 add_test(NAME Sub0Pub_Tests COMMAND Sub0Pub_Tests)
 
-# Performance benchmarks (not run by ctest, run manually)
-add_executable(Sub0Pub_Bench bench_pubsub.cpp)
-target_link_libraries(Sub0Pub_Bench PRIVATE Sub0Pub::Sub0Pub)
-target_include_directories(Sub0Pub_Bench PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
-)
+# Performance benchmarks (not run by ctest; see tests/bench/run_baseline.sh)
+# The core benchmark is built once per dispatch policy so policies are compared on identical scenarios.
+function(sub0pub_add_bench name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
+    target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+    target_compile_definitions(${name} PRIVATE ${ARGN})
+endfunction()
+
+sub0pub_add_bench(Sub0Pub_Bench            bench/bench_core.cpp)
+sub0pub_add_bench(Sub0Pub_Bench_Unchecked  bench/bench_core.cpp SUB0PUB_REENTRANT_SAFE=false SUB0PUB_REENTRANT_CHECK=false)
+sub0pub_add_bench(Sub0Pub_Bench_Checked    bench/bench_core.cpp SUB0PUB_REENTRANT_SAFE=false SUB0PUB_REENTRANT_CHECK=true)
+sub0pub_add_bench(Sub0Pub_Bench_ThreadSafe bench/bench_core.cpp SUB0PUB_THREAD_SAFE=true)
+sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
