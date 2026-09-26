@@ -17,6 +17,7 @@ add_executable(Sub0Pub_Sub0xTests
     test_multi_tu_a.cpp
     test_multi_tu_b.cpp
     test_endpoints.cpp
+    test_axes.cpp
 )
 sub0x_target(Sub0Pub_Sub0xTests SUB0X_TEST_COUNT_MISMATCHES SUB0X_CHECK_CONFIG=true)
 add_test(NAME Sub0Pub_Sub0xTests COMMAND Sub0Pub_Sub0xTests)
@@ -39,6 +40,7 @@ sub0x_compile_fail(cf_two_places          "configured in exactly one place")
 sub0x_compile_fail(cf_filter_disabled     "override")
 sub0x_compile_fail(cf_cancel_no_context   "cancel\\(\\) needs a publish context")
 sub0x_compile_fail(cf_lock_direct         "a Lock requires Snapshot dispatch")
+sub0x_compile_fail(cf_lock_static_context "a Lock requires ThreadLocalContext")
 sub0x_compile_fail(cf_domain_global       "requires a Data type configured with sub0x::Scoped")
 sub0x_compile_fail(cf_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
 
@@ -47,3 +49,8 @@ sub0x_compile_fail(cf_scoped_needs_domain "no matching|no appropriate default co
 add_executable(Sub0Pub_Sub0xBench bench_sub0x.cpp)
 target_link_libraries(Sub0Pub_Sub0xBench PRIVATE Sub0Pub::Sub0Pub)
 target_include_directories(Sub0Pub_Sub0xBench PRIVATE "${SUB0X_DIR}" "${SUB0X_VENDOR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../bench")
+
+# Every policy axis, one option at a time (docs/design/AXIS_SCORES.md)
+add_executable(Sub0Pub_Sub0xAxesBench bench_axes.cpp)
+target_link_libraries(Sub0Pub_Sub0xAxesBench PRIVATE Sub0Pub::Sub0Pub)
+target_include_directories(Sub0Pub_Sub0xAxesBench PRIVATE "${SUB0X_DIR}" "${SUB0X_VENDOR}" "${CMAKE_CURRENT_SOURCE_DIR}/../../bench")

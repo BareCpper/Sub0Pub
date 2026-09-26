@@ -600,8 +600,10 @@ namespace sub0x
                           "sub0x: DirectChecked needs a publish context (ThreadLocalContext or StaticContext)");
             static_assert(!cConcurrent<Config> || Config::dispatch == Dispatch::Snapshot,
                           "sub0x: a Lock requires Snapshot dispatch (receivers are called outside the lock)");
-            static_assert(!cConcurrent<Config> || Config::context != Context::None,
-                          "sub0x: a Lock requires a publish context (disconnect must not wait on its own dispatch)");
+            static_assert(!cConcurrent<Config> || Config::context == Context::ThreadLocal,
+                          "sub0x: a Lock requires ThreadLocalContext (disconnect must not wait on its own dispatch, and a "
+                          "StaticContext frame stack shared by concurrent publishers lets one thread's cancel() and "
+                          "frames act on another thread's dispatch)");
 
             using Ctx = PublishContext<Data, Config::context>;
             static constexpr bool cScoped = Config::storage == Storage::Scoped;

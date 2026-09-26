@@ -45,6 +45,19 @@ PROTO_SCENARIOS = OrderedDict([
     ("fp_sub0x_direct", "Direct"),
     ("fp_sub0x_static", "Direct + StaticContext (no TLS)"),
     ("fp_sub0x_lean", "Lean (Direct, NoContext, NoFilter)"),
+    # One option changed from Default at a time (docs/design/AXIS_SCORES.md)
+    ("fp_axis_checked", "Default, Dispatch=DirectChecked"),
+    ("fp_axis_snapstatic", "Default, Context=Static"),
+    ("fp_axis_nocontext", "Default, Context=None"),
+    ("fp_axis_nofilter", "Default, Filter=off"),
+    ("fp_axis_lock", "Default, Lock=spin (RTOS-style yield hook)"),
+    ("fp_axis_lockstatic", "Default, Lock=spin + StaticContext (must be rejected)"),
+    ("fp_axis_scoped", "Default, Storage=Scoped"),
+    ("fp_axis_cap64", "Default, Capacity=64"),
+    ("fp_axis_impl", "Default, Implementation=SingleSubscriberBroker"),
+    ("fp_axis_route", "Default + 1 Route"),
+    ("fp_axis_2types_default", "Default, 2 Data types (marginal cost of a type)"),
+    ("fp_axis_2types_lean", "Lean, 2 Data types (marginal cost of a type)"),
 ])
 
 COMMON = ["-std=c++17", "-Os", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections", "-I" + INCLUDE]
@@ -197,8 +210,9 @@ def main():
                     pub = sum(sz for sz, k, n in syms if "Broker<" in n and "::publish(" in n)
                     sizes = {n[len("fp_sizeof_"):]: sz for sz, k, n in syms if n.startswith("fp_sizeof_")}
                     undef = ", ".join(f"`{u}`" for u in undefined(target, obj))
+                    more = "".join(f", {k} {v}" for k, v in sizes.items() if k not in ("Subscribe", "Publish"))
                     print(f"| {desc} | {' / '.join(map(str, section_sizes(target, obj)))} | {pub or 'inlined'} | "
-                          f"{sizes.get('Subscribe', '?')} / {sizes.get('Publish', '?')} | {undef} |")
+                          f"{sizes.get('Subscribe', '?')} / {sizes.get('Publish', '?')}{more} | {undef} |")
                 print()
 
 

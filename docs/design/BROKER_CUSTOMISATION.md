@@ -111,8 +111,12 @@ It cannot catch every violation, and it is not a safety guarantee.
 | Filter | `NoFilter` removes the `filter()` virtual from `Subscribe<T>` (overriding it is then a compile error) | enabled | F4 |
 | Storage | `Global` (one table per type), `Scoped` (tables in `Domain<T>` instances passed at construction) | Global | #5 |
 
-Invalid combinations are compile errors: a lock without Snapshot dispatch, `DirectChecked` without a
-context, `cancel()` without a context, `Domain<T>` for a non-scoped type, and a scoped subscriber built
+Every option is scored on measured cost, footprint and guarantees in [AXIS_SCORES.md](AXIS_SCORES.md), one option
+at a time.
+
+Invalid combinations are compile errors: a lock without Snapshot dispatch, a lock without `ThreadLocalContext`
+(a `StaticContext` frame stack shared by concurrent publishers let one thread cancel another's publication; found by
+the axis review), `DirectChecked` without a context, `cancel()` without a context, `Domain<T>` for a non-scoped type, and a scoped subscriber built
 without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an empty handle for global storage.
 
 ### Planned axes the design must leave room for (not in the prototype)
@@ -142,10 +146,11 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
 | `test_binding.cpp` | resolution (static assertions), per-type capacity, `trySubscribe` reclaim, lean dispatch, `cancel()`, `filter()`, scoped domains with no cross-talk, tagged channels, publisher has no vtable (`sizeof == 1`) |
 | `test_multi_tu_a.cpp`, `test_multi_tu_b.cpp` | a subscriber in one TU receives a publish from another; both TUs see the same table and configuration; no mismatch reported |
 | `mismatch_a.cpp`, `mismatch_b.cpp` | a deliberately forgotten traits specialisation in one TU is **detected** at runtime (debug registry) |
-| `compile_fail/*.cpp` | six misuse cases rejected at compile time with the intended diagnostic |
+| `compile_fail/*.cpp` | seven misuse cases rejected at compile time with the intended diagnostic |
 | `test_binding.cpp` (review fixes) | `cancel()` and `DirectChecked` are scoped to the dispatching table: another domain's subscriber cannot cancel this domain's dispatch, and publishing into another domain from a receiver is not re-entry. The registry fingerprint is value-based |
 | `test_endpoints.cpp` | the review's worked example (section 7): two isolated sessions and the same type, two transports (synchronous pipe and bounded asynchronous queue), bidirectional ingress/egress with split horizon, rejection reports while local delivery continues, teardown during delivery on the same thread and from another thread, domain close, and an application-defined broker (`Implementation<SingleSubscriberBroker>`) with a route |
 | `bench_sub0x.cpp` | each configuration bound to its own type in one binary, measured under the baseline's control conditions |
+| `bench_axes.cpp`, `test_axes.cpp`, `footprint/fp_axis_*.cpp` | every option alone (cost, footprint) and the guarantee each option claims: [AXIS_SCORES.md](AXIS_SCORES.md) |
 | `footprint/fp_sub0x_*.cpp` | footprint per configuration (host, Cortex-M33) via `tests/footprint/measure_footprint.py` |
 
 ### Measured against the baseline
@@ -327,4 +332,6 @@ rather than forgotten. Baseline issues in today's library are listed in
 | K13 | C++20/23 spellings (concepts, deducing this, `std::expected` results) are optional extras; the C++17 spelling is the contract | none at runtime; diagnostics are poorer under C++17 SFINAE | GCC 13 and `arm-none-eabi-g++` 13 lack deducing this; clang + libstdc++ 13 lacks `std::expected` ([spikes/cxx23_upgrade.md](spikes/cxx23_upgrade.md)) | raise the baseline once the embedded toolchains (Zephyr SDK, nRF Connect SDK) ship GCC 14 |
 | K14 | Capability routing is silent on a signature mismatch: a receiver whose `receive` does not accept the message (wrong parameter type, a non-const `receive` reached through a const binding) is not delivered to, with no diagnostic | a missed delivery, found only by tests | routing by capability is what lets receivers need no base class or registration | an opt-in `receives<T...>` declaration per receiver checked at bind time; a debug diagnostic when a bound receiver handles no message type ever published on its wiring |
 | K15 | Split horizon decides at compile time when the origin's type is bound once in the wiring; the origin must then be that bound endpoint | a debug assertion; undefined skip target if violated in release | otherwise an address compare per publish (+3 to +4 instr) | `publishFrom<Endpoint>(msg)`, which identifies the origin by type and needs no origin object |
+| K16 | A Lock (concurrent publishers) requires `ThreadLocalContext`, so every concurrent configuration needs TLS (`__aeabi_read_tp` on Cortex-M; Zephyr `CONFIG_THREAD_LOCAL_STORAGE`) | a link dependency and per-thread TLS block on targets that otherwise avoid TLS | a process-wide `StaticContext` frame stack is unsafe with concurrent publishers (reproduced: lost deliveries and data races) | a context keyed by the RTOS thread (for example indexed by `k_current_get()`) as a third context option |
+| K17 | Nothing is shared between `Data` types: each type instantiates its own table, dispatch loop and handle code | Cortex-M33: +554 B text and +53 B RAM per type (Default), +382 B / +49 B (Lean) ([AXIS_SCORES.md](AXIS_SCORES.md)) | the configuration is resolved per type at compile time | a type-erased dispatch core shared by all types with the same configuration (the loop over `Subscribe` bases does not depend on `Data`), leaving only the typed entry points per type |
 
