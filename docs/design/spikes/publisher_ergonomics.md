@@ -1,5 +1,9 @@
 # Spike: publisher ergonomics face-off (issue #9)
 
+> **Fairness review (2026-09): the "Fairness review" section at the end supersedes the evidence table.** The
+> first round compared runtime-bound alternatives with static-address hand-written code, and every alternative
+> stored its output by reference.
+
 Pattern B's zero-cost publish requires either a publisher templated on its output (`template<class Out>`)
 or one indirect call through `sub0x::Sink<T>`. This spike faces off coding patterns for the templated case
 to see whether any of them hide the `template<class Out>` boilerplate without adding cost, and re-confirms
@@ -148,3 +152,41 @@ indirect call per publish is the explicit, measured price of that decoupling, un
 
 **Do not adopt the CTAD-factory pattern (3)** as the recommended sugar: it is not more concise than the
 CRTP mixin at the call site that matters (construction), and it is demonstrably not free on Clang.
+
+
+## Fairness review (2026-09)
+
+The first round compared alternatives 1-5 (runtime `Wiring`) with `handwritten`, which calls statically placed
+receivers directly, so each delta mixed the price of runtime binding (paid by hand-written code too) with the
+spelling's own cost. Every alternative also stored its output as `const Out&` next to a separate wiring object
+(two hops per receiver). Corrections:
+- **Equal-work references.** `handwritten_runtime`: the publisher holds the receivers' addresses, stored at
+  setup. `handwritten_erased`: a C-style context pointer plus function pointer, for `Sink<T>`. Alternatives 1-4, 7
+  and 8 are judged against the first, alternative 5 against the second, alternative 6 (static) against `handwritten`.
+- **Best form.** The publisher holds its output by value (a `Wiring` is a tuple of receiver references, a
+  `StaticWiring` is empty), including the `sub0x::Publisher` mixin; no separate wiring object where the
+  alternative does not need one. `Wiring` delivers through an index sequence instead of `std::apply`.
+
+| Alternative | gcc-O2 | clang-O2 | cm33-gcc-Os |
+|---|---|---|---|
+| 1 hand-spelled `template<class Out>` | = | = | = |
+| 2 CRTP mixin `Publisher<Derived, Out>` | = | = | = |
+| 3 CTAD factory | = | publish +4.0, path +5, RAM +24 B | text +4 B |
+| 4 call-site argument | = | = | = |
+| 5 `Sink<T>` (vs `handwritten_erased`) | = | = (publish -1; the static path counts inlined work) | = |
+| 6 name the `StaticWiring` alias (vs `handwritten`) | = | = | = |
+| 7 deducing-this mixin (C++23) | not built (GCC 13) | = | not built |
+| 8 deducing-this call site (C++23) | not built | = | not built |
+
+"=" is PASS on every criterion in both forms (publish within the harness tolerance of +2). The price of the
+job itself, against static code: runtime binding costs gcc +8 publish instr and +24 B RAM in this case (clang
+proves the stored addresses constant and removes it); type erasure costs gcc +22, clang +12.
+
+**Why the factory still costs on Clang:** with alternative 1 Clang proves the sensor is only ever built from the
+addresses of statics and folds the loads away; built through `make_sensor`'s by-value return, it cannot, and the
+addresses stay runtime loads. A real, compiler-specific cost of the spelling.
+
+**Revised recommendation.** Unchanged in order, stronger in substance: name the `StaticWiring` alias where the
+topology is static; otherwise the CRTP mixin (or a hand-spelled template, or a call-site argument) costs exactly
+what hand-written runtime binding costs; `Sink<T>` costs exactly what hand-written type erasure costs. Only
+the CTAD factory carries a cost of its own (Clang), so it stays rejected. The earlier K11 is withdrawn.

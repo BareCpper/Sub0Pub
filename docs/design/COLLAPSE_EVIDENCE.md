@@ -14,7 +14,16 @@ measurement, not argued for.
 
 1. **Cases.** `tests/collapse/cases/<case>/` holds one application scenario per directory:
    - `handwritten.cpp` is the equal-work reference, written without Sub0Pub;
-   - every other `.cpp` implements the *same behaviour* through a Sub0Pub coding pattern (a *variant*).
+   - `handwritten_<kind>.cpp` are further equal-work references for patterns that do more than direct calls,
+     so each pattern is judged against what a careful engineer writes *for the same job*:
+     `handwritten_runtime` (receiver addresses stored at setup, called through), `handwritten_erased`
+     (a C-style context pointer plus function pointer), `handwritten_registry` (a hand-written dynamic
+     registry). A variant selects one with a leading `// SUB0X_REFERENCE: handwritten_<kind>` line; each extra
+     reference is itself reported against `handwritten`, which prices the choice (runtime binding, type
+     erasure, a dynamic registry) independently of any library;
+   - every other `.cpp` implements the *same behaviour* through a Sub0Pub coding pattern (a *variant*),
+     in its best form (for example the #8 registry in the leanest configuration the scenario allows, beside
+     its default).
 
    Each variant defines `collapse_setup()`, `collapse_publish(v)` and `collapse_teardown()`
    (`tests/collapse/collapse_case.hpp`). These entry points are the boundary of the measured application
@@ -124,23 +133,43 @@ Every variant of every case behaves identically to its hand-written reference (c
 | Form | What the user writes | Where identity is erased |
 |---|---|---|
 | **B2 static topology** | `using Bus = sub0x::StaticWiring<&controllerA, &controllerB, &logger>;` (static-storage objects); publishers call `Bus::publish(msg)` or are templated on `Out` | never |
-| **B1 runtime-bound wiring** | `auto bus = sub0x::wire(controllerA, controllerB, logger);`; publishers are templated on their output (`template<class Out> struct Sensor { const Out& out; ... }`) | never (addresses are runtime values, types are static) |
+| **B1 runtime-bound wiring** | `auto bus = sub0x::wire(controllerA, controllerB, logger);`; publishers are templated on their output and hold it by value (`template<class Out> struct Sensor { Out out; ... }`: a `Wiring` is a tuple of receiver references) | never (addresses are runtime values, types are static) |
 | **B3 type-erased publisher port** | a non-template publisher holds `sub0x::Sink<Sample>` constructed from a wiring | at the publisher: exactly one indirect call, everything behind it typed |
-| Transport endpoint | `sub0x::Forward<Radio>` / `sub0x::StaticForward<&radio>` bound like a receiver; ingress `bus.publishFrom(endpoint, msg)` skips that endpoint | never |
+| Transport endpoint | `sub0x::Forward<Radio>` (held by value in a `Wiring`) / `sub0x::StaticForward<&radio>` bound like a receiver; ingress `bus.publishFrom(endpoint, msg)` or `bus.publishFrom<Endpoint>(msg)` skips that endpoint | never |
 
-**Against hand-written equal-work code** (deltas; "=" means identical on every criterion):
+**Against hand-written equal-work code** (deltas; "=" means identical on every criterion). Each pattern is
+compared with the reference that does the same job (see "The loop"); the price of the job itself, paid by
+hand-written code too, is in the last column.
 
-| Case | B2 static | B1 wire | B3 sink | Pattern A (today) |
-|---|---|---|---|---|
-| zero / one / multi receivers, filters | **= on all builds** | publish +0 to +9, RAM +0 to +48 B | publish +0 to +21 (one indirect call) | publish +0 to +117 (+0 only where the compiler proves the table empty), teardown up to +121, +0.7 to +4.8 KB |
-| two domains | **= on all builds** | publish +0 to +10, RAM +0 to +48 B | not measured | not expressible (#8 prototype: +143 to +169) |
-| transport endpoint | **= on all builds** | publish +3 to +4 | not measured | not expressible (#8 prototype: +175 to +209) |
-| cross-file, no LTO | **= on all builds** | publish +6 to +7 | not measured | +69 to +95 |
-| cross-file, LTO | **= on all builds** | publish = on Clang, +2 to +4 on GCC; setup +0 to +8, RAM +8 to +32 B | not measured | +96 to +115: LTO does not devirtualise the runtime registry |
+| Case | B2 static (vs `handwritten`) | B1 wire (vs `handwritten_runtime`) | B3 sink (vs `handwritten_erased`) | Pattern A (today) vs `handwritten` | Price of the job, hand-written |
+|---|---|---|---|---|---|
+| zero / one / multi receivers, filters | **= on all builds** | **= on all builds** | **=** (Clang inlines the erased call: publish -1, larger static path) | publish +0 to +117; leanest macros (`SUB0PUB_REENTRANT_SAFE=0`, `SUB0PUB_ASSERT=0`) +0 to +100 | runtime binding: publish -1 to +8, RAM +0 to +32 B; type erasure: publish +0 to +22, RAM +12 to +40 B |
+| two domains | **= on all builds** | **= on all builds** | not measured | not expressible (#8 registry: +143 to +169; lean +63 to +71, against static hand-written code) | runtime binding as above |
+| transport endpoint | **= on all builds** | **= on all builds** | not measured | not expressible (#8 registry with a route: +175 to +209; lean +112 to +116, against static hand-written code) | runtime binding as above |
+| cross-file, no LTO | **= on all builds** | **= on all builds** | not measured | +69 to +95; leanest macros +53 to +78 | runtime binding: none |
+| cross-file, LTO | **= on all builds** | **= on all builds** | not measured | +96 to +115, leanest +80 to +98: LTO does not devirtualise the runtime registry | runtime binding: +0 to +3 |
 
-Dynamic subscriptions (runtime path, regression limits against a minimal hand-written registry): publish
-+32.5 (GCC) and +46.3 (Clang) for pattern A, and +46.5 and +55.5 for the #8 prototype. The runtime path
-stays supported, at an explicit, measured cost.
+Dynamic subscriptions, against a hand-written dynamic registry with the same features (8 slots, add/remove,
+no filter, no snapshot, no cancel): publish +13.0 (GCC) and +6.2 (Clang) for the #8 registry in its lean
+configuration (`config<Direct, NoContext, NoFilter>`), and +46.5 / +55.5 in its default configuration, whose
+snapshot, cancel context and filter the hand-written registry does not have. Today's API: +19.3 / +36.8 at
+its leanest macros, +32.5 / +46.3 by default. The runtime path stays supported, at an explicit, measured cost.
+
+**Fairness review (2026-09).** The first Phase 1 round compared B1 and B3 with static-address hand-written code,
+so their deltas mixed the price of runtime binding or type erasure (paid by hand-written code too) with the
+pattern's own overhead, and several variants were not in their best form. Corrections, each re-measured
+([../perf/collapse/phase1-fair-references-2026-09.md](../perf/collapse/phase1-fair-references-2026-09.md)):
+- B1 publishers held `const Out&` to a separate wiring object (two hops); they now hold the wiring by value.
+- `Wiring` read every binding up front through `std::apply`, keeping them live across the calls (+6 instr
+  cross-file); it now reads each binding just before its delivery, as hand-written code does.
+- A `Forward` transport adapter was held by reference (an extra hop); adapters now declare themselves
+  by-value, and split horizon identifies an endpoint through the object it refers to. When the origin's type is
+  bound once, the skip is decided at compile time (`publishFrom<Endpoint>(msg)`, or the object form with a
+  debug assertion that the origin is bound; known issue K15).
+- The #8 registry and today's API were measured only in their default configurations; their leanest valid
+  configurations are now measured beside them.
+
+With these, **B1 and B3 cost nothing over hand-written code doing the same job**, on every build, case and form.
 
 ### Answers to the three design questions (draft, from evidence)
 1. **Where are concrete subscriber instances bound?** At the application's composition point, by the wiring.
@@ -157,17 +186,20 @@ stays supported, at an explicit, measured cost.
 2. Bind instances at the composition point:
    - **static topology (`StaticWiring`)** for objects with static storage duration, the common embedded case,
      which is proven zero-cost;
-   - **`wire(...)`** when object lifetimes are dynamic, which costs one stored address per binding.
+   - **`wire(...)`** when object lifetimes are dynamic: exactly what hand-written runtime binding costs (one
+     stored address per binding), nothing more. Publishers hold the returned wiring by value.
 3. Publishers, in order of cost:
    - name the `StaticWiring` alias directly (`=` on every build);
    - use the CRTP mixin `sub0x::Publisher<Derived, Out>` when the topology is not known where the publisher
-     is written (the same cost as a hand-spelled `template<class Out>`);
-   - use `Sink<T>` across a library or ABI boundary, accepting one indirect call.
+     is written (`=` against hand-written runtime binding, like a hand-spelled `template<class Out>`);
+   - use `Sink<T>` across a library or ABI boundary (`=` against a hand-written context + function pointer:
+     the one indirect call is the price of erasure itself).
 4. A receiver that stops the rest of a publication returns `bool` (`false` stops), with `publishCancelable`
    (`=` on every build).
-5. Put genuinely dynamic subscribers behind a `DynamicPort<T, N>` bound into the static wiring (gcc +1
-   publish instr, clang and Cortex-M33 `=`), or behind a `BrokerPort<T>` to the #8 registry when they need
-   policy.
+5. Put genuinely dynamic subscribers behind a `DynamicPort<T, N>` bound into the static wiring (`=` against a
+   hand-written registry with the same features, populated or empty), or behind a `BrokerPort<T>` to the #8
+   registry when they need policy (publish `=` on GCC and Clang in its lean configuration; setup, teardown,
+   image and RAM cost more).
 
 The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README.md).
 
@@ -178,12 +210,13 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   lifetimes at the measured binding cost.
 - **Not yet in pattern B:** B3 rows for the new cases, and MSVC evidence (`dumpbin`). Cancellation and the
   static-to-dynamic bridge are done ([spikes/README.md](spikes/README.md)).
-- **A publisher that stores its output** (CRTP mixin, `template<class Out>` with `Out&`) costs gcc +9 publish
-  instr and +40 B RAM against naming the wiring directly; clang removes it. Known issue K11.
-- **The `DynamicPort` bridge** costs gcc +1 publish instr, and when empty gcc +3, clang +11 and Cortex-M33
-  +6 path instr. Known issue K12.
-- **B1's reference is static-address hand-written code,** so its delta mixes the binding cost with any
-  abstraction cost. An equal-work hand-written version with runtime addresses would separate them.
+- **Choosing runtime binding or type erasure has a price** (runtime binding: publish up to +8, RAM up to
+  +32 B; erasure: up to +22, +40 B, against static code), but it is the price of the choice, identical in
+  hand-written code. The earlier K11 and K12 entries measured that price, not a Sub0Pub overhead, and are
+  withdrawn.
+- **Capability routing drops silently on a signature mismatch.** A receiver whose `receive` does not match
+  the message (wrong parameter type, or non-const where the wiring is const) is simply not delivered to.
+  The fairness review hit exactly this with a by-value adapter. Known issue K14.
 - **The static path metric follows direct calls only.** Work behind an indirect call appears as an
   indirect-call count, not as instructions (for example pattern A's cross-file path on Cortex-M33).
 
@@ -201,7 +234,8 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   - ~~the static-to-dynamic bridge; cancellation in the static path; publisher ergonomics alternatives~~
     (done, [spikes/README.md](spikes/README.md));
   - MSVC evidence;
-  - the equal-work runtime-address reference for B1.
+  - ~~the equal-work runtime-address reference for B1~~ (done, with `handwritten_erased` and
+    `handwritten_registry`: see "Fairness review").
 - **Phase 2:** broker specialisation (#8) selects the chosen static structure per message type or domain,
   with runtime subscription kept at the dynamic boundary.
 - **Phase 3:** decision record here and in BROKER_CUSTOMISATION.md; compromises go into its known-issues list.

@@ -446,3 +446,27 @@ destroy 108) is the price of unbounded, allocation-free, lossless teardown safet
 alternative that is cheaper per publish at 8 subscribers (epoch, 130) adds bounded threads and nesting,
 lossy overflow in release builds, 4.3x the table RAM and a tail latency up to three orders of magnitude
 worse.
+
+## 11. Fairness review (2026-09)
+
+The handshake as measured (sections 5 and 10) took its lock, linked a dispatch frame and took the lock again
+to unlink it even when the table was empty, and none of the three mechanisms had an empty-table fast path.
+All three now share the same one: a relaxed atomic mirror of the subscriber count (`Table::live`, updated
+under the lock), read before any lock, slot claim or frame, returning when zero. The handshake also returns
+inside its first lock when the snapshot is empty. Correct by construction: a publish that returns there
+touches no subscriber, and a subscribe racing a publish has no ordering guarantee either way.
+
+| instr/op (GCC 13, callgrind) | 0 subscribers | 1 | 8 | create + destroy |
+|---|---:|---:|---:|---:|
+| 1 Handshake | **25** (was 67) | 99 (95) | 260 (256) | **121** (108) |
+| 2 Hazard pointer, fixed | 36 (100) | 115 (111) | 192 (188) | 204 (198) |
+| 3 Epoch, fixed | 30 (57) | **88** (84) | **134** (130) | 166 (163) |
+
+The fast path costs every mechanism +3 to +13 on create/destroy (the mirror's store) and +3 to +4 per
+non-empty publish, and saves 27 to 64 on an empty one. `Sub0Pub_QxTests`, `Sub0Pub_QxProbes` and the C++20
+variant pass, clean under ASan and TSan.
+
+**Outcome unchanged:** the handshake is now also the cheapest at 0 subscribers and at create/destroy, and
+epoch keeps the cheapest non-empty publish at the price recorded in section 10 (bounded threads and nesting,
+lossy overflow in release builds, 4.3x the table RAM, a wait tail up to three orders of magnitude worse).
+The same empty fast path is a candidate for the #8 prototype's handshake (known issue K3).

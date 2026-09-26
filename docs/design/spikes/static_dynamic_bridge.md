@@ -1,5 +1,7 @@
 # Spike: static <-> dynamic bridge (issue #9 open item)
 
+> **Fairness review (2026-09): see the "Fairness review" section at the end; it supersedes the evidence tables.**
+
 **Question:** applications mix a zero-cost static wiring (pattern B, `tests/collapse/sandbox/sub0x_static.hpp`)
 with a runtime registry at a genuinely dynamic boundary (plugins, diagnostics, late subscribers). How do the
 two join, so the static part keeps its measured zero cost and the dynamic part pays only its own cost?
@@ -249,3 +251,34 @@ Practical guidance for #8/v2: expose B as the default "add a dynamic boundary to
 document A as the escape hatch for when that boundary needs real policy. Neither needs to become part of
 `StaticWiring`/`Wiring` itself -- both are ordinary bindable receivers, which is the reason binding order,
 `detail::accepts`, and `publishFrom`'s split-horizon machinery already work for them unmodified.
+
+
+## Fairness review (2026-09)
+
+The first round's references did less work than the bridges, and A and C ran the #8 registry in its default
+configuration:
+- **Populated case:** the hand-written registry had 4 slots and no removal, while `DynamicPort` has 8 slots and
+  the variants unsubscribe at teardown. The reference now has 8 slots, the same order-preserving `remove()`,
+  and removes the probe at teardown.
+- **Empty case:** the reference had no registry at all, which prices *having* a dynamic side, not the bridge.
+  `handwritten` keeps that meaning; the bridges are now judged against `handwritten_registry`, a hand-written
+  program that can accept dynamic subscribers but has none.
+- **Registry configuration:** A and C now use `config<Scoped, Direct, NoContext, NoFilter>`, the features the
+  hand-written registry has, instead of the default snapshot dispatch, cancel context and filter.
+
+| | gcc-O2 publish | clang-O2 publish | cm33 path | setup / teardown (gcc) | text / RAM (gcc) |
+|---|---|---|---|---|---|
+| B `DynamicPort` populated | = | = | = | = | +48 B / = |
+| B `DynamicPort` empty | = | = | = | = | = |
+| A `BrokerPort` populated | = | -1.0 | +3 | +20 / +54 | +1461 B / +144 B |
+| A `BrokerPort` empty | +1.0 | = | = | +3 / +19 | +465 B / +24 B |
+| C inverted populated | +37.0 | +10.0 | -21 (behind an indirect call) | +44 / +105 | +2174 B / +240 B |
+| C inverted empty | +7.0 | +15.0 | -7 | +27 / +70 | +2202 B / +224 B |
+
+The price of accepting dynamic subscribers at all (`handwritten_registry` against `handwritten`, empty case):
+publish gcc +3, clang +11, Cortex-M33 path +6, RAM +72 to +96 B. That is what the first round reported as
+`DynamicPort`'s cost (K12, withdrawn): hand-written code pays it too.
+
+**Revised recommendation.** Unchanged, better founded: **B** is exactly the hand-written registry, populated or
+empty. **A** is now `=` on publish with the lean registry, and its costs are setup/teardown, about 1.5 KB of image
+and the #8 dependencies, the price of the policy surface it exists for. **C** stays rejected.

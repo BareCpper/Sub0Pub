@@ -1,5 +1,7 @@
 # Spike: static-path cancellation (issue #9 open item)
 
+> **Fairness review (2026-09): see the "Fairness review" section at the end for Alt 3 and Alt 4 in their best forms.**
+
 **Question.** Pattern B (`tests/collapse/sandbox/sub0x_static.hpp`) has no way for a receiver to stop the
 rest of the current publication, unlike the runtime path's `sub0::Publish<Data>::cancel()` /
 `sub0::Subscribe<Data>::cancel()`. Can a static-path receiver get the same power without static-path
@@ -156,3 +158,23 @@ at identical (GCC-measured) cost, not a new alternative with new trade-offs — 
 If/when the project adopts C++23, **Alt 1c (`std::expected<void, Stop>`)** is a free upgrade path from Alt 1
 with no measured cost difference (GCC) and a self-documenting stop reason; it does not change this
 recommendation, only its eventual return type.
+
+
+## Fairness review (2026-09)
+
+Two alternatives were not in their best form:
+- **Alt 3** always used a `thread_local` flag. A single-threaded image, where TLS hurt most, can keep it in plain
+  static storage: `SUB0X_STATIC_CANCEL_CONTEXT` (the counterpart of #8's `StaticContext`), variant
+  `sub0x_alt3_static`.
+- **Alt 4** gave every downstream receiver a `const Stopped&` member (a pointer each, plus an indirect load).
+  With static wiring a careful user reads one statically placed flag directly; the variant now does.
+
+| Alternative (observable form) | gcc-O2 publish | clang-O2 publish | cm33 path | cm33 text / RAM | cm33 deps |
+|---|---|---|---|---|---|
+| Alt 1 bool / Alt 2 token | = | = | = | = | none |
+| Alt 3 `thread_local` | +3.0 | = | +14 | +36 B / +257 B | TLS |
+| Alt 3 static flag (single-threaded) | +2.0 | = | +5 | +12 B / +4 B | none |
+| Alt 4 filter control, best form (was +9.3 / +4.3 / +15) | +6.3 | = | +11 | +32 B / +4 B | none |
+
+The recommendation stands: Alt 1 (Alt 2 as runner-up) is the only alternative identical to hand-written code on
+every build, needs no shared state, and is correct with concurrent publishers without any per-image choice.
