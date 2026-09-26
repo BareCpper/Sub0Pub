@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_erased
 /** Case: default and runtime filters: Controller declares an always-true filter (must compile away); EvenMonitor's runtime filter keeps its branch.
  *  Pattern B3: non-template publisher holding a type-erased Sink<Sample> into typed wiring (tests/collapse/sandbox/sub0x_static.hpp). */
 #include "collapse_case.hpp"

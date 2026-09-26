@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_registry
 /** Static/dynamic bridge, alternative B, empty dynamic side: the DynamicPort is still bound and constructed,
  *  but nothing is ever added to it. Checks whether an unused minimal slot array collapses. */
 #include "collapse_case.hpp"

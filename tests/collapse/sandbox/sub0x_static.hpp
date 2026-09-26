@@ -16,6 +16,8 @@
  * Message definitions never list receivers (per-message policy and application wiring stay separate).
  * Two instances of the same receiver type are two bindings; two independent sessions are two wirings.
  */
+#include <cassert>
+#include <cstddef>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -64,13 +66,53 @@ namespace sub0x
             }
         }
 
-        template<class R, class T, class Origin>
+        /// A binding adapter that only refers to the real endpoint (e.g. Forward<Transport>) declares
+        /// `using sub0x_by_value = void;` so a Wiring holds it by value: one hop to the endpoint, as hand-written
+        template<class B, class = void> struct by_value : std::false_type {};
+        template<class B> struct by_value<B, std::void_t<typename B::sub0x_by_value>> : std::true_type {};
+        template<class B> using stored_t = std::conditional_t<by_value<B>::value, B, B&>;
+
+        /// Endpoint identity for split horizon: the bound object, or for a by-value adapter what it refers to
+        template<class X, class = void> struct has_identity : std::false_type {};
+        template<class X> struct has_identity<X, std::void_t<decltype(std::declval<const X&>().sub0x_identity())>> : std::true_type {};
+        template<class X>
+        constexpr const void* identity(const X& x) noexcept
+        {
+            if constexpr (has_identity<X>::value)
+                return x.sub0x_identity();
+            else
+                return static_cast<const void*>(&x);
+        }
+
+        template<class X> using receiver_t = std::remove_cv_t<std::remove_reference_t<decltype(receiver(std::declval<X&>()))>>;
+        template<class Origin, class... R>
+        constexpr std::size_t countOf = (std::size_t(std::is_same_v<std::remove_cv_t<Origin>, R>) + ... + std::size_t(0));
+
+        /// Split horizon: do not send a message back to the binding it came from. When the origin's type is bound
+        /// exactly once (OriginUnique), the origin *is* that binding: decided at compile time, no address compare
+        /// (precondition: the origin is one of the bound endpoints, asserted in debug builds).
+        template<bool OriginUnique, class R, class T, class Origin>
         inline void deliverExcept(R& r, const T& msg, const Origin& origin) noexcept
         {
             if constexpr (std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>>)
-                if (static_cast<const void*>(&r) == static_cast<const void*>(&origin))
-                    return; // split horizon: do not send a message back to the binding it came from
+            {
+                if constexpr (OriginUnique)
+                {
+                    assert(identity(r) == identity(origin) && "publishFrom: origin is not a bound endpoint");
+                    return;
+                }
+                else if (identity(r) == identity(origin))
+                    return;
+            }
             deliver(r, msg);
+        }
+
+        /// Origin identified by type alone (publishFrom<Origin>(msg)): the one binding of that type is skipped
+        template<class Origin, class R, class T>
+        inline void deliverExceptType(R& r, const T& msg) noexcept
+        {
+            if constexpr (!std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>>)
+                deliver(r, msg);
         }
     }
 
@@ -83,20 +125,51 @@ namespace sub0x
 
         /// Deliver to every bound receiver that handles T, in bound order
         template<class T>
-        void publish(const T& msg) const noexcept
-        {
-            std::apply([&](auto&... b) { (detail::deliver(detail::receiver(b), msg), ...); }, bound_);
-        }
+        void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
 
         /// Ingress from one of the bound receivers (e.g. a transport endpoint): every other receiver gets it
         template<class T, class Origin>
         void publishFrom(const Origin& origin, const T& msg) const noexcept
         {
-            std::apply([&](auto&... b) { (detail::deliverExcept(detail::receiver(b), msg, origin), ...); }, bound_);
+            publishFrom(origin, msg, Indices{});
+        }
+
+        /// Ingress identified by the origin's type, which must be bound exactly once: no origin object needed
+        template<class Origin, class T>
+        void publishFrom(const T& msg) const noexcept
+        {
+            static_assert(detail::countOf<Origin, detail::receiver_t<Bound>...> == 1,
+                          "publishFrom<Origin>: Origin must be bound exactly once; pass the origin object instead");
+            publishFromType<Origin>(msg, Indices{});
         }
 
     private:
-        std::tuple<Bound&...> bound_;
+        // Each binding is read (std::get) right before its own delivery, as hand-written code does. std::apply
+        // would read every binding up front and keep them live across the calls (extra saved registers).
+        using Indices = std::index_sequence_for<Bound...>;
+
+        template<class T, std::size_t... I>
+        void publish(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::deliver(detail::receiver(std::get<I>(bound_)), msg), ...);
+        }
+
+        template<class T, class Origin, std::size_t... I>
+        void publishFrom(const Origin& origin, const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            constexpr bool unique = detail::countOf<Origin, detail::receiver_t<Bound>...> == 1;
+            (detail::deliverExcept<unique>(detail::receiver(std::get<I>(bound_)), msg, origin), ...);
+        }
+
+        template<class Origin, class T, std::size_t... I>
+        void publishFromType(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::deliverExceptType<Origin>(detail::receiver(std::get<I>(bound_)), msg), ...);
+        }
+
+        // mutable: publish() is const, and a by-value adapter must stay callable through it (a const adapter
+        // whose receive() is non-const would silently stop matching the capability check)
+        mutable std::tuple<detail::stored_t<Bound>...> bound_;
     };
 
     template<class... Bound>
@@ -190,7 +263,13 @@ namespace sub0x
         /// checks it after being delivered to. Save/restore around each publication makes nested publications
         /// (including of the same message type, e.g. two independent wirings) independent, exactly like the
         /// runtime path — but, like the runtime path, it costs a TLS access even for receivers that never cancel.
+        // SUB0X_STATIC_CANCEL_CONTEXT: single-threaded images keep the flag in plain static storage (no TLS);
+        // the counterpart of #8's StaticContext. Default: thread_local, correct with concurrent publishers.
+#if defined(SUB0X_STATIC_CANCEL_CONTEXT) && SUB0X_STATIC_CANCEL_CONTEXT
+        inline bool g_canceled = false;
+#else
         inline thread_local bool g_canceled = false;
+#endif
 
         template<class R, class T>
         inline bool deliverTLS(R& r, const T& msg) noexcept
@@ -254,7 +333,17 @@ namespace sub0x
         template<class T, class Origin>
         static void publishFrom(const Origin& origin, const T& msg) noexcept
         {
-            (detail::deliverExcept(detail::receiver(*Bound), msg, origin), ...);
+            constexpr bool unique = detail::countOf<Origin, detail::receiver_t<std::remove_pointer_t<decltype(Bound)>>...> == 1;
+            (detail::deliverExcept<unique>(detail::receiver(*Bound), msg, origin), ...);
+        }
+
+        /// Ingress identified by the origin's type, which must be bound exactly once
+        template<class Origin, class T>
+        static void publishFrom(const T& msg) noexcept
+        {
+            static_assert(detail::countOf<Origin, detail::receiver_t<std::remove_pointer_t<decltype(Bound)>>...> == 1,
+                          "publishFrom<Origin>: Origin must be bound exactly once; pass the origin object instead");
+            (detail::deliverExceptType<Origin>(detail::receiver(*Bound), msg), ...);
         }
 
         /// Alt 1 (bool return): stops delivering to later bound receivers (bound order) as soon as one
@@ -330,7 +419,7 @@ namespace sub0x
         void publish(const T& msg) const noexcept { out_.publish(msg); }
 
     private:
-        const Out& out_;
+        Out out_; // by value: a Wiring is a tuple of receiver references (one hop), a StaticWiring is empty
     };
 
     /** Typed transport endpoint binding for a transport with static storage: no RAM, fixed target */
@@ -350,10 +439,15 @@ namespace sub0x
     class Forward
     {
     public:
+        using sub0x_by_value = void; // refers to the transport only: a Wiring holds it by value (one hop)
+
         constexpr explicit Forward(Transport& transport) noexcept : transport_(transport) {}
 
+        /// Split-horizon identity: the transport it forwards to
+        constexpr const void* sub0x_identity() const noexcept { return &transport_; }
+
         template<class T>
-        auto receive(const T& msg) noexcept -> decltype(std::declval<Transport&>().send(msg), void())
+        auto receive(const T& msg) const noexcept -> decltype(std::declval<Transport&>().send(msg), void())
         {
             transport_.send(msg);
         }

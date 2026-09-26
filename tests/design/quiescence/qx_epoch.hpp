@@ -35,6 +35,7 @@ template<class Data>
 struct Table : SpinLock
 {
     uint32_t count = 0;
+    std::atomic<uint32_t> live{0}; // relaxed mirror of count for the empty-table fast path
     Subscribe<Data>* entries[kCapacity] = {};
     std::atomic<uint64_t> epoch{1};
     std::array<ReaderSlot<Data>, kMaxReaders> readers{};
@@ -54,6 +55,7 @@ public:
         LockGuard lk(t);
         if (t.count >= kCapacity) return false;
         t.entries[t.count++] = s;
+        t.live.store(t.count, std::memory_order_relaxed);
         return true;
     }
 
@@ -67,6 +69,7 @@ public:
                 {
                     std::move(t.entries + i + 1, t.entries + t.count, t.entries + i);
                     --t.count;
+                    t.live.store(t.count, std::memory_order_relaxed);
                     break;
                 }
         }
@@ -93,6 +96,8 @@ public:
     static void publish(const Data& data) noexcept
     {
         Table<Data>& t = table();
+        if (t.live.load(std::memory_order_relaxed) == 0)
+            return; // fast path, same in every mechanism: no subscriber to deliver to or protect
         ReaderSlot<Data>* const my = myClaimedSlot(t.readers);
         if (my == nullptr)
         {

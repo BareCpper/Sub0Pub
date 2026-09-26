@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_runtime
 /** Publisher ergonomics face-off (issue #9), alternative 4: composition-point argument. `Sensor` is an
  *  ordinary, non-template class; the output is not stored at all, just passed to the one method that needs
  *  it: `sensor.send(v, bus)`. Nothing about Out appears in the publisher's declaration; the call site chooses

@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_erased
 /** Publisher ergonomics face-off (issue #9), alternative 5: type-erased publication port (pattern B3,
  *  sub0x::Sink<T>). `Sensor` is a non-template class holding `sub0x::Sink<Sample>`; construction erases the
  *  concrete wiring behind one indirect call. This is the only alternative here where the publisher's own type

@@ -1,7 +1,7 @@
-/** Case: static/dynamic bridge (issue #9 open item). A sensor publishes Sample to two static receivers
- *  (controller gain 3, logger) and to a runtime registry holding one dynamic subscriber (Probe), subscribed
- *  during setup. Order: controller, logger, then dynamic subscribers. Reference: direct calls to controller
- *  and logger, plus a minimal hand-written dynamic registry (fixed array + virtual receive) for the probe. */
+/** Case: static/dynamic bridge, empty dynamic side. Equal-work reference: a hand-written program that can accept
+ *  dynamic subscribers at run time (the same 8-slot, add/remove registry as static_dynamic_bridge/handwritten)
+ *  but has none in this scenario, so its publish still walks an empty registry. The bridge variants select it
+ *  with `// SUB0X_REFERENCE: handwritten_registry`; `handwritten` (no registry at all) prices the capability. */
 #include "collapse_case.hpp"
 
 namespace {
@@ -35,24 +35,13 @@ struct Registry { // equal work to the bridges' dynamic side: 8 slots, add order
     }
     void publish(const Sample& s) const noexcept { for (uint32_t i = 0; i < count; ++i) entries[i]->receive(s); }
 };
-struct Probe final : DynReceiver {
-    void receive(const Sample& s) noexcept override { COLLAPSE_WORK(s.value + 11U); }
-};
 
 collapse::Slot<Controller> controller;
 collapse::Slot<Logger> logger;
-collapse::Slot<Registry> registry;
-collapse::Slot<Probe> probe;
+collapse::Slot<Registry> registry; // dynamic subscribers can join at run time; none has in this scenario
 }
 
-COLLAPSE_ENTRY void collapse_setup()
-{
-    controller.emplace();
-    logger.emplace();
-    registry.emplace();
-    probe.emplace();
-    registry->add(&probe.get());
-}
+COLLAPSE_ENTRY void collapse_setup() { controller.emplace(); logger.emplace(); registry.emplace(); }
 COLLAPSE_ENTRY void collapse_publish(uint32_t v)
 {
     const Sample s{collapse::arg(v)};
@@ -60,11 +49,4 @@ COLLAPSE_ENTRY void collapse_publish(uint32_t v)
     logger->receive(s);
     registry->publish(s);
 }
-COLLAPSE_ENTRY void collapse_teardown()
-{
-    registry->remove(&probe.get());
-    probe.reset();
-    registry.reset();
-    logger.reset();
-    controller.reset();
-}
+COLLAPSE_ENTRY void collapse_teardown() { registry.reset(); logger.reset(); controller.reset(); }

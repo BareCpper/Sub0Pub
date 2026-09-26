@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_erased
 /** Case: multiple receivers including a repeated type (bound order = delivery order).
  *  Pattern B3: non-template publisher holding a type-erased Sink<Sample> into typed wiring (tests/collapse/sandbox/sub0x_static.hpp). */
 #include "collapse_case.hpp"

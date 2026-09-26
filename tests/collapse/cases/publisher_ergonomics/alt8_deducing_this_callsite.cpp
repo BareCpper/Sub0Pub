@@ -1,5 +1,6 @@
 // SUB0X_STD: c++23
 // SUB0X_REQUIRES: deducing-this
+// SUB0X_REFERENCE: handwritten_runtime
 /** Publisher ergonomics face-off (issue #9), C++23 alternative 8: an attempt to get a genuinely
  *  non-template `Sensor` class to zero-cost-publish typed messages using deducing this, to answer the
  *  face-off question directly (docs/design/spikes/cxx23_upgrade.md face-off 1).

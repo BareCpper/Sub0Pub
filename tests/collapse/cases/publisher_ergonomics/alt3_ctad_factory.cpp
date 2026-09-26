@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_runtime
 /** Publisher ergonomics face-off (issue #9), alternative 3: CTAD via a factory function. `Sensor` is still a
  *  template over Out, but the *user* never spells `Out` or `Sensor<...>` anywhere: `make_sensor(bus)` deduces
  *  it. Where the application needs a named type (e.g. static storage, as here), it asks the compiler for one
@@ -23,21 +24,20 @@ template<class Out>
 struct Sensor {
     explicit Sensor(const Out& o) noexcept : out(o) {}
     void send(uint32_t v) noexcept { out.publish(Sample{v}); }
-    const Out& out;
+    Out out; // held by value, as in alt1
 };
 template<class Out>
 auto make_sensor(const Out& out) noexcept { return Sensor<Out>(out); }
-// call site: auto sensor = make_sensor(bus);
+// call site: auto sensor = make_sensor(wire(a, b, log));
 // ---
 
 using Bus = sub0x::Wiring<Controller, Controller, Logger>;
 collapse::Slot<Controller> controllerA;
 collapse::Slot<Controller> controllerB;
 collapse::Slot<Logger> logger;
-collapse::Slot<Bus> bus;
 collapse::Slot<decltype(make_sensor(std::declval<Bus&>()))> sensor;
 }
 
-COLLAPSE_ENTRY void collapse_setup() { controllerA.emplace(3U); controllerB.emplace(5U); logger.emplace(); bus.emplace(controllerA.get(), controllerB.get(), logger.get()); sensor.emplace(make_sensor(bus.get())); }
+COLLAPSE_ENTRY void collapse_setup() { controllerA.emplace(3U); controllerB.emplace(5U); logger.emplace(); sensor.emplace(make_sensor(Bus(controllerA.get(), controllerB.get(), logger.get()))); }
 COLLAPSE_ENTRY void collapse_publish(uint32_t v) { sensor->send(collapse::arg(v)); }
-COLLAPSE_ENTRY void collapse_teardown() { sensor.reset(); bus.reset(); logger.reset(); controllerB.reset(); controllerA.reset(); }
+COLLAPSE_ENTRY void collapse_teardown() { sensor.reset(); logger.reset(); controllerB.reset(); controllerA.reset(); }

@@ -10,13 +10,12 @@ template<class Out>
 struct Sensor {
     explicit Sensor(const Out& o) noexcept : out(o) {}
     void send(uint32_t v) noexcept { out.publish(Sample{v}); }
-    const Out& out;
+    Out out; // the wiring held by value: a tuple of receiver references, one hop to each receiver
 };
 using Bus = sub0x::Wiring<>;
-collapse::Slot<Bus> bus;
 collapse::Slot<Sensor<Bus>> sensor;
 }
 
-COLLAPSE_ENTRY void collapse_setup() { bus.emplace(); sensor.emplace(bus.get()); }
+COLLAPSE_ENTRY void collapse_setup() { sensor.emplace(Bus()); }
 COLLAPSE_ENTRY void collapse_publish(uint32_t v) { sensor->send(collapse::arg(v)); }
-COLLAPSE_ENTRY void collapse_teardown() { sensor.reset(); bus.reset(); }
+COLLAPSE_ENTRY void collapse_teardown() { sensor.reset(); }

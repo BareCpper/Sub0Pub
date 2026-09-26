@@ -38,6 +38,7 @@ template<class Data>
 struct Table : SpinLock
 {
     uint32_t count = 0;
+    std::atomic<uint32_t> live{0}; // relaxed mirror of count for the empty-table fast path
     std::atomic<Subscribe<Data>*> entries[kCapacity] = {};
     std::array<HazardSlot<Data>, kMaxReaders> hazard{};
     std::atomic<uint32_t> refusedFull{0};    // report: publish() calls refused, registry had no free slot
@@ -60,6 +61,7 @@ public:
             {
                 e.store(s, std::memory_order_release);
                 ++t.count;
+                t.live.store(t.count, std::memory_order_relaxed);
                 return true;
             }
         return false;
@@ -100,6 +102,7 @@ void Broker<Data>::disconnect(Subscribe<Data>* s) noexcept
             {
                 e.store(nullptr, std::memory_order_seq_cst); // publish removal before scanning hazard slots
                 --t.count;
+                t.live.store(t.count, std::memory_order_relaxed);
             }
     }
 #if !QX_MUTATE_SKIP_WAIT
@@ -130,6 +133,8 @@ template<class Data>
 void Broker<Data>::publish(const Data& data) noexcept
 {
     Table<Data>& t = table();
+    if (t.live.load(std::memory_order_relaxed) == 0)
+        return; // fast path, same in every mechanism: no subscriber to deliver to or protect
     HazardSlot<Data>* const mySlot = myClaimedSlot(t.hazard);
     if (mySlot == nullptr)
     {

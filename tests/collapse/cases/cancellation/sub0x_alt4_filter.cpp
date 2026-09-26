@@ -10,32 +10,27 @@
 namespace {
 struct Sample { uint32_t value; };
 struct Stopped { bool value = false; };
+collapse::Slot<Stopped> stopped; // one statically placed flag, read directly (no per-receiver reference)
 
 struct Gate {
-    explicit Gate(Stopped& s) noexcept : stopped(s) {}
     void receive(const Sample& s) noexcept
     {
         COLLAPSE_WORK(s.value);
-        stopped.value = ((s.value % 3U) == 0U);
+        stopped->value = ((s.value % 3U) == 0U);
     }
-    Stopped& stopped;
 };
 struct Controller {
-    Controller(uint32_t g, const Stopped& s) noexcept : gain(g), stopped(s) {}
-    bool filter(const Sample&) const noexcept { return !stopped.value; }
+    explicit Controller(uint32_t g) noexcept : gain(g) {}
+    bool filter(const Sample&) const noexcept { return !stopped->value; }
     void receive(const Sample& s) noexcept { COLLAPSE_WORK(s.value * gain); }
     uint32_t gain;
-    const Stopped& stopped;
 };
 struct Logger {
-    explicit Logger(const Stopped& s) noexcept : stopped(s) {}
-    bool filter(const Sample&) const noexcept { return !stopped.value; }
+    bool filter(const Sample&) const noexcept { return !stopped->value; }
     void receive(const Sample& s) noexcept { ++count; COLLAPSE_WORK(s.value ^ count); }
     uint32_t count = 0;
-    const Stopped& stopped;
 };
 
-collapse::Slot<Stopped> stopped;
 collapse::Slot<Gate> gate;
 collapse::Slot<Controller> controller;
 collapse::Slot<Logger> logger;
@@ -50,9 +45,9 @@ collapse::Slot<Sensor<Bus>> sensor;
 COLLAPSE_ENTRY void collapse_setup()
 {
     stopped.emplace();
-    gate.emplace(stopped.get());
-    controller.emplace(3U, stopped.get());
-    logger.emplace(stopped.get());
+    gate.emplace();
+    controller.emplace(3U);
+    logger.emplace();
     sensor.emplace();
 }
 COLLAPSE_ENTRY void collapse_publish(uint32_t v) { sensor->send(collapse::arg(v)); }

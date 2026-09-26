@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_registry
 /** Static/dynamic bridge, alternative A, empty dynamic side: the BrokerPort and its Domain are still bound
  *  and constructed, but no dynamic subscriber is ever added. Checks whether an unused #8 registry collapses. */
 #include "collapse_case.hpp"
@@ -5,7 +6,7 @@
 #include "sandbox/sub0x_bridge.hpp"
 
 namespace {
-struct Sample { uint32_t value; using sub0_config = sub0x::config<sub0x::Scoped>; };
+struct Sample { uint32_t value; using sub0_config = sub0x::config<sub0x::Scoped, sub0x::Direct, sub0x::NoContext, sub0x::NoFilter>; }; // lean registry: only the features the hand-written registry has
 struct Controller {
     void receive(const Sample& s) noexcept { COLLAPSE_WORK(s.value * 3U); }
 };

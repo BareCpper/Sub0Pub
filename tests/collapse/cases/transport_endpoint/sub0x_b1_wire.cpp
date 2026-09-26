@@ -1,3 +1,4 @@
+// SUB0X_REFERENCE: handwritten_runtime
 /** Case: concrete transport endpoint. Pattern B1: typed wiring with a typed Forward<Radio> endpoint binding;
  *  ingress via publishFrom(endpoint) skips the endpoint (split horizon). */
 #include "collapse_case.hpp"
@@ -15,19 +16,19 @@ using Uplink = sub0x::Forward<Radio>;
 using Bus = sub0x::Wiring<Controller, Uplink>;
 collapse::Slot<Controller> controller;
 collapse::Slot<Radio> radio;
-collapse::Slot<Uplink> uplink;
 collapse::Slot<Bus> bus;
 }
 
 COLLAPSE_ENTRY void collapse_setup()
 {
-    controller.emplace(); radio.emplace(); uplink.emplace(radio.get());
-    bus.emplace(controller.get(), uplink.get());
+    controller.emplace(); radio.emplace();
+    Uplink uplink(radio.get()); // an adapter: the wiring holds it by value
+    bus.emplace(controller.get(), uplink);
 }
 COLLAPSE_ENTRY void collapse_publish(uint32_t v)
 {
     const Sample out{collapse::arg(v)};
     bus->publish(out);
-    bus->publishFrom(uplink.get(), Sample{out.value ^ 0x55U});
+    bus->publishFrom<Uplink>(Sample{out.value ^ 0x55U}); // ingress: origin identified by its (unique) type
 }
-COLLAPSE_ENTRY void collapse_teardown() { bus.reset(); uplink.reset(); radio.reset(); controller.reset(); }
+COLLAPSE_ENTRY void collapse_teardown() { bus.reset(); radio.reset(); controller.reset(); }

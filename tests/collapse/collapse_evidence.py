@@ -97,8 +97,10 @@ def discover_cases(only=None):
         variants += sorted(f for f in os.listdir(d) if os.path.isdir(os.path.join(d, f)))
         if REFERENCE not in variants:
             sys.exit(f"case {name}: missing {REFERENCE}")
-        variants.remove(REFERENCE)
-        cases[name] = [REFERENCE] + variants
+        # Extra equal-work references (handwritten_<kind>, e.g. handwritten_runtime) are listed first; each is
+        # itself compared with `handwritten`, and a variant selects one with `// SUB0X_REFERENCE: <name>`
+        refs = [REFERENCE] + [v for v in variants if v.startswith(REFERENCE + "_")]
+        cases[name] = refs + [v for v in variants if v not in refs]
     return cases
 
 
@@ -125,6 +127,27 @@ def variant_std(sources):
         if m:
             return m.group(1)
     return None
+
+
+REF_MARKER = re.compile(r"^//\s*SUB0X_REFERENCE:\s*(\w+)\s*$")
+
+
+def variant_reference(case, variant):
+    """The equal-work reference a variant is judged against: `handwritten` unless one of its sources' leading
+    comment lines names another reference of the same case (`// SUB0X_REFERENCE: handwritten_runtime`)."""
+    if variant == REFERENCE:
+        return None
+    for src in variant_sources(case, variant):
+        try:
+            with open(src) as fh:
+                head = [fh.readline() for _ in range(4)]
+        except OSError:
+            continue
+        for line in head:
+            m = REF_MARKER.match(line.strip())
+            if m:
+                return m.group(1)
+    return REFERENCE
 
 
 def multi_tu(case, variants):
@@ -339,7 +362,9 @@ def main():
 
     print("# Collapse evidence (issue #9)\n")
     print("Final-link evidence per case, build and form; every variant is compared with `handwritten` "
-          "(equal-work reference, same build and form). Deltas in parentheses. "
+          "(equal-work reference, same build and form), or with the extra reference it names, shown as "
+          "`variant (vs handwritten_<kind>)`: e.g. `handwritten_runtime`, hand-written code that reaches its "
+          "receivers through addresses stored at setup. Deltas in parentheses. "
           f"instr = callgrind instructions (publish: per publication of {PUBLISHES}). "
           "path = static instructions of `collapse_publish` plus directly reachable functions.\n")
     for build_name, build_cfg in builds.items():
@@ -367,6 +392,12 @@ def main():
                     if "error" in r:
                         print(f"| {variant} | build error: `{r['error']}` |" + " |" * (len(cols) - 2))
                         continue
+                    ref_name = variant_reference(case, variant)
+                    ref = results[(build_name, case, form, ref_name or REFERENCE)]
+                    if "error" in ref:
+                        print(f"| {variant} | reference {ref_name} failed to build |" + " |" * (len(cols) - 2))
+                        continue
+                    shown = variant if ref_name in (None, REFERENCE) else f"{variant} (vs {ref_name})"
                     v, extra = verdicts(r, ref) if variant != REFERENCE else (OrderedDict(), [])
                     if variant != REFERENCE and v.get("same behaviour") is False:
                         broken.append((build_name, case, form, variant))
@@ -378,9 +409,11 @@ def main():
                     rram = ref["sections"]["data"] + ref["sections"]["bss"]
                     failed = [k for k, ok in v.items() if ok is False]
                     verdict = "reference" if variant == REFERENCE else ("PASS" if not failed else "FAIL: " + ", ".join(failed))
+                    if variant.startswith(REFERENCE + "_"):
+                        verdict = "reference; " + verdict
                     same = "-" if "checksum" not in r else ("ok" if variant == REFERENCE or r["checksum"] == ref.get("checksum") else "**DIFFERS**")
                     print("| " + " | ".join([
-                        variant, same, phase("publish", 1), phase("setup", 0), phase("teardown", 0),
+                        shown, same, phase("publish", 1), phase("setup", 0), phase("teardown", 0),
                         fmt_delta(r["path"]["instructions"], ref["path"]["instructions"]),
                         f"{r['path']['direct_calls']}/{r['path']['indirect_calls']}",
                         fmt_delta(r["sections"]["text"], ref["sections"]["text"]),
@@ -390,8 +423,8 @@ def main():
                         verdict]) + " |")
                 print()
             # Where the extra image comes from: largest symbols a variant adds over the reference (observable form)
-            ref = results[(build_name, case, "observable", REFERENCE)]
             for variant in variants[1:]:
+                ref = results[(build_name, case, "observable", variant_reference(case, variant))]
                 r = results[(build_name, case, "observable", variant)]
                 if "error" in r or "error" in ref:
                     continue

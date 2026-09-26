@@ -23,6 +23,7 @@ template<class Data>
 struct Table : SpinLock
 {
     uint32_t count = 0;
+    std::atomic<uint32_t> live{0}; // relaxed mirror of count for the empty-table fast path
     Subscribe<Data>* entries[kCapacity] = {};
     ActiveDispatch<Data>* activeHead = nullptr;
 
@@ -48,6 +49,7 @@ public:
         LockGuard lk(t);
         if (t.count >= kCapacity) return false;
         t.entries[t.count++] = s;
+        t.live.store(t.count, std::memory_order_relaxed);
         return true;
     }
 
@@ -62,6 +64,7 @@ public:
             {
                 std::move(it + 1, t.entries + t.count, it);
                 --t.count;
+                t.live.store(t.count, std::memory_order_relaxed);
             }
             // Forget s in every in-flight snapshot (mutation point M1: skip this -> stale snapshot entries)
             for (ActiveDispatch<Data>* a = t.activeHead; a; a = a->next)
@@ -93,11 +96,15 @@ public:
     static void publish(const Data& data) noexcept
     {
         Table<Data>& t = table();
+        if (t.live.load(std::memory_order_relaxed) == 0)
+            return; // fast path, same in every mechanism: no subscriber to deliver to or protect
         ActiveDispatch<Data> active;
         active.snapshot[0].store(nullptr, std::memory_order_relaxed); // silence unused warnings on empty tables
         {
             LockGuard lk(t);
             active.count = t.count;
+            if (active.count == 0)
+                return; // nothing to deliver, nothing to protect: no frame to link, no second lock
             for (uint32_t i = 0; i < active.count; ++i)
                 active.snapshot[i].store(t.entries[i], std::memory_order_relaxed);
             active.thread = std::this_thread::get_id();
