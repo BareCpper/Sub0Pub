@@ -35,7 +35,7 @@ function(sub0pub_config_compile_fail name regex)
 endfunction()
 
 sub0pub_config_compile_fail(cf_config_two_places          "configured in exactly one place")
-sub0pub_config_compile_fail(cf_config_filter_disabled     "override")
+sub0pub_config_compile_fail(cf_config_filter_disabled     "override|overriding|conflicting return type|different return type|C2555|C3248")
 sub0pub_config_compile_fail(cf_config_cancel_no_context   "cancel\\(\\) needs a publish context")
 sub0pub_config_compile_fail(cf_config_lock_direct         "a Lock requires Snapshot dispatch")
 sub0pub_config_compile_fail(cf_config_lock_static_context "a Lock requires ThreadLocalContext")
