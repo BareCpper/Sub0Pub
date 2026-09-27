@@ -10,34 +10,34 @@ Full reports:
 
 ## Phase 2: the current bar
 
-Phase 2 replaced the broker in `sub0pub.hpp` with the per-type broker from the design study and added static wiring.
-The tables further down are the header **before** Phase 2 (`9e04143`). These are the numbers new changes are measured
+Phase 2 replaced the broker in `sub0pub.hpp` with the per-type broker from the design study, made the default the
+cheapest dispatch, and made every costly feature opt-in (MIGRATION.md, "The default is the cheapest dispatch"). The
+tables further down are the header **before** Phase 2 (`9e04143`). These are the numbers new changes are measured
 against (`tests/bench/run_baseline.py --no-timing`, GCC 13, `-O2`):
 
-| Scenario | Snapshot (default) | Direct unchecked | Direct + check | ThreadSafe |
+| Scenario | Direct (default) | Direct + check | Full (snapshot, cancel, filter) | ThreadSafe (+ filter) |
 |---|---:|---:|---:|---:|
-| publish, 0 subscribers | 28 (38) | 41 (39) | 43 (38) | 232 (123) |
-| publish, 1 subscriber | 77 (72) | 65 (60) | 67 (59) | 273 (157) |
-| publish, 8 subscribers | 287 (247) | 233 (207) | 235 (206) | 553 (333) |
-| 8 subscribers, first cancels | 99 (87) | 71 (59) | 73 (58) | 314 (173) |
-| re-entrant publish, depth 1 | 158 (147) | n/a | n/a | 546 (312) |
-| create + destroy subscriber | 78 (61) | 78 (61) | 90 (66) | 310 (218) |
-| unsubscribe first of 8 + resubscribe | 103 (88) | 103 (88) | 117 (92) | 328 (237) |
-| `trySubscribe()`, table full | 15 (12) | 15 (12) | 20 (14) | 98 (90) |
+| publish, 0 subscribers | 24 | 37 | 28 | 232 |
+| publish, 1 subscriber | 38 | 48 | 77 | 273 |
+| publish, 8 subscribers | 101 | 125 | 287 | 553 |
+| 8 subscribers, first cancels | n/a | n/a | 99 | 314 |
+| re-entrant publish, depth 1 | 74 | 100 | 158 | 546 |
+| create + destroy subscriber | 46 | 62 | 57 | 297 |
+| unsubscribe first of 8 + resubscribe | 85 | 101 | 96 | 324 |
+| `trySubscribe()`, table full | 14 | 17 | 14 | 98 |
 
-In brackets: before Phase 2. **This breaks the zero-cost rule below for the macro policies, knowingly.** Each increase
-pays for a correctness fix the old broker lacked, and each is a known issue with a route back to zero cost in
-[BROKER_CUSTOMISATION.md section 8](design/BROKER_CUSTOMISATION.md):
-- K1, create + destroy: a subscriber disconnected or destroyed during a dispatch is no longer called by it.
-- K2, the dispatch frame: `cancel()` is isolated per table, which routes and domains need.
-- The re-check after `filter()`: a `filter()` that disconnects its own subscriber no longer gets `receive()`.
-- K3, ThreadSafe: `disconnect()` waits out a callback running on another thread, so teardown during concurrent
-  delivery is safe.
+Before Phase 2, the default (Snapshot, with cancel and filter always present) measured 72 and 247 for 1 and 8
+subscribers, and 61 for create + destroy. The default is now well below that. The zero-cost rule below holds for it:
+- **Direct + check** is what a debug build runs by default, to detect table changes during dispatch.
+- **Full** is the earlier default's feature set, opted into explicitly. It costs more than before for the lifetime
+  fixes: subscribers disconnected or destroyed during a dispatch, or inside `filter()`, are not called afterwards,
+  and `cancel()` applies only to its own table (known issues K1 and K2).
+- **ThreadSafe** pays for teardown that is safe during concurrent delivery (K3).
 
-The per-type options go below the old bar: Lean (`Direct, NoContext, NoFilter`) publishes to 1 and 8 subscribers in
-34 and 104 instructions, and static wiring equals hand-written calls
-([perf/compare-v1-v2-2026-09.md](perf/compare-v1-v2-2026-09.md)). On Cortex-M33 the default one-type image went from
-566 to 526 bytes of text, and `operator delete` is no longer linked.
+Each is a known issue with a route back to zero cost in
+[BROKER_CUSTOMISATION.md section 8](design/BROKER_CUSTOMISATION.md). On Cortex-M33 the default one-type image is
+228 bytes of text (566 before Phase 2), with no thread-local storage and no `operator delete`
+([perf/compare-v1-v2-2026-09.md](perf/compare-v1-v2-2026-09.md)).
 
 ## How it is measured
 

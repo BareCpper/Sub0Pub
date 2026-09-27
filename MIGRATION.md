@@ -352,11 +352,11 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | publish, 1 subscriber | publish, 8 subscribers | 8, first cancels | create + destroy |
 |---|---:|---:|---:|---:|
 | **v1.0** | 60 (60) | 221 (214) | 60 (57) | 48 (31) |
-| v2 default (Snapshot) | 80 (73) | 290 (262) | 102 (91) | 80 (72) |
-| v2 `SUB0PUB_REENTRANT_SAFE=false` (Direct) | 67 (61) | 242 (229) | 73 (64) | 80 (72) |
+| v2 default | 34 (31) | 104 (101) | n/a (opt-in) | 47 (36) |
+| v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 95 (80) |
+| v2 Full (`SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`) | 80 (73) | 290 (262) | 102 (91) | 54 (41) |
 | v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
-| v2 ThreadSafe | 260 (266) | 554 (516) | 301 (281) | 310 (301) |
-| v2 per-type config, Lean (`Direct, NoContext, NoFilter`) | 34 (29) | 104 (99) | n/a | 67 (61) |
+| v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 297 (292) |
 | v2 static wiring (`StaticWiring`, `wire()`) | 8–9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
 | hand-written direct calls | 9 (7) | 37 (37) | 15 (8) | n/a |
 
@@ -365,39 +365,32 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | text / data / bss (bytes) | Needs thread-local storage | Other link-time dependencies |
 |---|---|---|---|
 | **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
-| v2 default (Snapshot) | 526 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
-| v2 `SUB0PUB_REENTRANT_SAFE=false` (Direct) | 494 / 4 / 62 | yes | `memmove`, `__cxa_pure_virtual` |
-| v2 per-type config, Lean | 350 / 4 / 49 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 default | 228 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 Full | 394 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
 | v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 
 ### What this means when migrating
 
-- **v2's default costs more than v1.0 at runtime.** Publishing to subscribers costs 20 to 69 instructions more on gcc
-  (13 to 48 on clang); publishing to none is cheaper. Creating and destroying a subscriber costs 32 more on gcc (41 on
-  clang). What that buys:
-  - re-entrant publish, subscribe and unsubscribe (the snapshot);
-  - capacity reported to the caller;
-  - order-preserving unsubscription;
-  - disconnect and destruction during a dispatch, and inside `filter()`, without use-after-free;
-  - `cancel()` isolated per table.
-
-  v1.0 had none of these.
-- **The embedded image is 108 bytes larger than v1.0, and no longer needs `operator delete`.** That is 40 bytes
-  smaller than v2 before the per-type broker, because `Subscribe`/`Publish` lost their virtual destructors.
-- **`SUB0PUB_REENTRANT_SAFE=false` does not reach v1.0's cost any more.** It still saves 13 to 48 instructions per
-  publish against v2's default on gcc.
-- **For v1.0's cost or less, configure the type.**
-  - A type configured `Direct, NoContext, NoFilter` publishes to 8 subscribers in under half v1.0's instructions,
-    needs no thread-local storage, and is 68 bytes smaller than v1.0. It gives up `cancel()` and `filter()`.
-  - Where the receivers are known when the application is composed, static wiring costs exactly what hand-written
-    calls cost: about 6 times fewer instructions than v1.0 for 8 subscribers, and 12 bytes of code.
-- **`SUB0PUB_THREAD_SAFE` now costs about twice v1.0's.** v1.0 is 130 and 291 instructions for 1 and 8 subscribers;
-  v2 is 260 and 554.
-  - That buys teardown that is safe during concurrent delivery. v1.0's and the earlier v2's ThreadSafe mode could
-    call a subscriber after it was destroyed.
-  - The cost is a handshake per subscriber per publish and a second lock acquisition per publish (known issue K3 in
-    [docs/design/BROKER_CUSTOMISATION.md](docs/design/BROKER_CUSTOMISATION.md)).
-  - A lighter lock than `std::mutex`, through `LockWith<L>`, closes most of the gap. A spin lock measures 134 and
-    421 instructions, against v1.0's 130 and 291.
+- **The default costs less than v1.0.** It publishes to 1 and 8 subscribers in 34 and 104 instructions, against
+  v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (36 against 31 on clang). The
+  embedded image is 228 bytes against 418, and needs neither thread-local storage nor `operator delete`.
+- **What you give up by default, you get back by opting in.** The default has no snapshot, no `cancel()`, no
+  `filter()` and no lock. v1.0 had cancel and filter always on. Code that needs one of them is told:
+  - `filter()` or `cancel()` without the opt-in does not compile;
+  - subscribing or unsubscribing a type from its own `receive()`, or using a type from two threads at once, is
+    reported in a debug build.
+- **Opting in costs what the feature costs.** Full mode is snapshot dispatch, `cancel()` and `filter()`, v1.0's
+  feature set plus the lifetime fixes below. It publishes to 1 and 8 subscribers in 80 and 290 instructions (v1.0: 60
+  and 221), and it lets a subscriber unsubscribe or destroy itself, or another subscriber of its type, during a
+  delivery without a use-after-free. v1.0 had no such guarantee.
+- **Debug builds pay for detection.** Their checks cost a frame per publish and an atomic per operation, which is
+  about 26 to 40 instructions per publish on gcc. Release builds (`NDEBUG`) have none.
+- **`SUB0PUB_THREAD_SAFE` costs about twice v1.0's.** v1.0 is 130 and 291 instructions for 1 and 8 subscribers; v2 is
+  260 and 554.
+  - It buys teardown that is safe during concurrent delivery. v1.0's ThreadSafe mode could call a subscriber after it
+    was destroyed.
+  - A lighter lock than `std::mutex`, through `LockWith<L>`, closes most of the gap: a spin lock measures 134 and 421.
   - `SUB0PUB_THREAD_SAFE` still does not build on `arm-none-eabi`, which has no `std::mutex`. Use `LockWith<L>` with
     the RTOS lock.
+- **Where the receivers are known when the application is composed, static wiring costs exactly what hand-written
+  calls cost.** That is about 6 times fewer instructions than v1.0 for 8 subscribers, and 12 bytes of code.
