@@ -14,6 +14,7 @@ Benchmarks are built alongside tests but not run by ctest:
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
 python3 tests/bench/run_baseline.py   # all policies + IPC, with callgrind instr/op (Linux)
 python3 tests/footprint/measure_footprint.py  # code size / RAM, host + Cortex-M33
+python3 tests/compare/compare_versions.py     # v1.0 vs v2 vs prototypes (MIGRATION.md evidence)
 ```
 Compare against `docs/PERFORMANCE_BASELINE.md`: instr/op is the regression bar; ns/op is noisy.
 
