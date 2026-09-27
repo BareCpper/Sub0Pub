@@ -335,7 +335,7 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
 | v2 default (Snapshot) | 526 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
 | v2 `SUB0PUB_REENTRANT_SAFE=false` (Direct) | 494 / 4 / 62 | yes | `memmove`, `__cxa_pure_virtual` |
-| v2 per-type config, Lean | 394 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 per-type config, Lean | 350 / 4 / 49 | no | `memmove`, `__cxa_pure_virtual` |
 | v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 
 ### What this means when migrating
@@ -356,7 +356,7 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
   publish against v2's default on gcc.
 - **For v1.0's cost or less, configure the type.**
   - A type configured `Direct, NoContext, NoFilter` publishes to 8 subscribers in under half v1.0's instructions,
-    needs no thread-local storage, and is 24 bytes smaller than v1.0. It gives up `cancel()` and `filter()`.
+    needs no thread-local storage, and is 68 bytes smaller than v1.0. It gives up `cancel()` and `filter()`.
   - Where the receivers are known when the application is composed, static wiring costs exactly what hand-written
     calls cost: about 6 times fewer instructions than v1.0 for 8 subscribers, and 12 bytes of code.
 - **`SUB0PUB_THREAD_SAFE` now costs about twice v1.0's.** v1.0 is 130 and 291 instructions for 1 and 8 subscribers;
