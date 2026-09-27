@@ -56,7 +56,7 @@ TEST_CASE("Thread-safe: a subscriber is inactive until trySubscribe()") {
 
 TEST_CASE("Thread-safe: concurrent publishers with subscriber churn lose nothing for a stable subscriber") {
     TsCounter stable;
-    constexpr int cN = 5000;
+    static constexpr int cN = 5000; // static: used by a capture-less lambda (MSVC requires capturing a local)
     std::atomic<bool> publishing{true};
     std::thread churn([&] {
         while (publishing.load(std::memory_order_relaxed))
