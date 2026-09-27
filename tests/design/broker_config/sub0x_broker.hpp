@@ -505,9 +505,17 @@ namespace sub0x
             FrameT frame_;
         };
 
-        /// Call one subscriber: filter() (when configured) then receive()
+        /// Call one subscriber: filter() (when configured) then receive(). Prefer deliverAt() in a dispatch loop.
         template<class Data>
         void deliver(Subscribe<Data>* s, const Data& data) noexcept;
+
+        /** Call the subscriber held in a dispatch-owned slot (a snapshot entry, or a table entry for Direct dispatch):
+         * filter() when configured, then receive() only if the slot still holds that subscriber. A filter() that
+         * disconnects (or destroys) its own subscriber clears the slot, so receive() is not called. Only the slot is
+         * re-read, never the subscriber. Without a filter this is exactly one load and one call.
+         */
+        template<class Data, bool MayBeCleared = true, class Slot>
+        void deliverAt(Slot& slot, const Data& data) noexcept;
 
         /// Innermost dispatch in progress on this thread for Data, or nullptr
         template<class Data>
@@ -598,6 +606,9 @@ namespace sub0x
             static_assert(Config::capacity > 0, "sub0x: Capacity must be at least 1");
             static_assert(!(Config::dispatch == Dispatch::DirectChecked && Config::context == Context::None),
                           "sub0x: DirectChecked needs a publish context (ThreadLocalContext or StaticContext)");
+            static_assert(!(Config::dispatch == Dispatch::Snapshot && Config::context == Context::None),
+                          "sub0x: Snapshot needs a publish context (StaticContext or ThreadLocalContext): a subscriber "
+                          "disconnected during a dispatch is removed from that dispatch's snapshot through its frame");
             static_assert(!cConcurrent<Config> || Config::dispatch == Dispatch::Snapshot,
                           "sub0x: a Lock requires Snapshot dispatch (receivers are called outside the lock)");
             static_assert(!cConcurrent<Config> || Config::context == Context::ThreadLocal,
@@ -684,8 +695,7 @@ namespace sub0x
                             if (s == nullptr)
                                 continue;
                             active.current.store(s, std::memory_order_seq_cst);
-                            if (snapshot[i].load(std::memory_order_seq_cst) == s) // not disconnected meanwhile
-                                kit::deliver(s, data);
+                            kit::deliverAt<Data>(snapshot[i], data); // re-checks the slot: not disconnected meanwhile
                             active.current.store(nullptr, std::memory_order_seq_cst);
                         }
                     }
@@ -703,15 +713,14 @@ namespace sub0x
                     std::copy_n(t.entries, count, snapshot);
                     kit::DispatchScope<Data> scope(&t, origin, report, snapshot, count);
                     for (uint32_t i = 0; !scope.canceled() && i < count; ++i)
-                        if (Subscribe<Data>* const s = snapshot[i])
-                            kit::deliver(s, data);
+                        kit::deliverAt<Data>(snapshot[i], data);
                 }
                 else
                 {
                     checkNotDispatching(t);
                     kit::DispatchScope<Data> scope(&t, origin, report, nullptr, 0);
                     for (uint32_t i = 0; !scope.canceled() && i < t.count; ++i)
-                        kit::deliver(t.entries[i], data);
+                        kit::deliverAt<Data, false>(t.entries[i], data);
                 }
             }
 
@@ -888,6 +897,31 @@ namespace sub0x
             if constexpr (config_t<Data>::filter)
                 if (!s->filter(data))
                     return;
+            s->receive(data);
+        }
+
+        namespace slot
+        {
+            template<class Data> Subscribe<Data>* load(Subscribe<Data>* const& p) noexcept { return p; }
+            template<class Data> Subscribe<Data>* load(const std::atomic<Subscribe<Data>*>& p) noexcept { return p.load(std::memory_order_seq_cst); }
+        }
+
+        /// MayBeCleared: the slot can hold nullptr (a snapshot entry whose subscriber was disconnected); a live Direct
+        /// table entry cannot, so Direct dispatch skips that check and costs exactly a load and a call
+        template<class Data, bool MayBeCleared, class Slot>
+        void deliverAt(Slot& slot, const Data& data) noexcept
+        {
+            Subscribe<Data>* const s = slot::load<Data>(slot);
+            if constexpr (MayBeCleared)
+                if (s == nullptr)
+                    return;
+            if constexpr (config_t<Data>::filter)
+            {
+                if (!s->filter(data))
+                    return;
+                if (slot::load<Data>(slot) != s) // disconnected (or destroyed) inside its own filter()
+                    return;
+            }
             s->receive(data);
         }
     }

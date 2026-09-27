@@ -35,65 +35,65 @@ choices by the compiler (for example GCC unrolls the Scoped publish loop and not
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| Snapshot | 31 / 74 / 228 / 78 / 154 | **2** (×1.16) | 23 / 44 / 136 / 64 | **1** (×1.48) | 566 / 66, TLS | **3** |
-| Direct | 46 / 61 / 166 / 72 / 128 | **2** (×1.10) | 9 / 33 / 96 / 64 | **3** (×1.00) | 530 / 66, TLS | **3** |
-| DirectChecked | 48 / 63 / 168 / 90 / – | **2** (×1.19) | 43 / 54 / 131 / 90 | **1** (×1.97) | 594 / 66, TLS | **2** |
+| Snapshot | 31 / 73 / 220 / 72 / 152 | **2** (×1.12) | 27 / 64 / 183 / 72 | **1** (×1.88) | 570 / 66, TLS | **3** |
+| Direct | 46 / 61 / 166 / 72 / 128 | **2** (×1.10) | 9 / 33 / 96 / 64 | **3** (×1.00) | 538 / 66, TLS | **3** |
+| DirectChecked | 48 / 63 / 168 / 90 / – | **2** (×1.19) | 43 / 54 / 131 / 90 | **1** (×1.97) | 598 / 66, TLS | **3** |
 
 ### Context
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| ThreadLocal | 31 / 74 / 228 / 78 / 154 | **2** (×1.27) | 41 / 52 / 129 / 72 | **1** (×1.81) | 566 / 66, TLS | **2** |
-| Static | 31 / 74 / 228 / 72 / 154 | **2** (×1.25) | 41 / 52 / 129 / 78 | **1** (×1.85) | 554 / 66 | **2** |
-| None | 27 / 52 / 173 / 64 / 110 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.00) | 450 / 62 | **3** |
+| ThreadLocal | 31 / 73 / 220 / 72 / 152 | **3** (×1.00) | 41 / 52 / 129 / 72 | **1** (×1.81) | 570 / 66, TLS | **3** |
+| Static | 31 / 73 / 220 / 72 / 152 | **3** (×1.00) | 41 / 52 / 129 / 72 | **1** (×1.81) | 558 / 66 | **3** |
+| None | invalid from Default (Snapshot needs a publish context) | – | 9 / 33 / 96 / 64 | **3** (×1.00) | rejected at compile time | – |
 
 ### Filter
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| on | 31 / 74 / 228 / 78 / 154 | **2** (×1.16) | 9 / 42 / 133 / 64 | **2** (×1.15) | 566 / 66, TLS | **3** |
+| on | 31 / 73 / 220 / 72 / 152 | **2** (×1.13) | 9 / 42 / 133 / 64 | **2** (×1.15) | 570 / 66, TLS | **3** |
 | off (NoFilter) | 27 / 63 / 182 / 72 / 132 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.00) | 530 / 66, TLS | **3** |
 
 ### Lock
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| none | 31 / 74 / 228 / 78 / 154 | **3** (×1.00) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | 566 / 66, TLS | **3** |
-| spin (LockWith) | 95 / 128 / 352 / 168 / 264 | **0** (×2.05) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | 758 / 74, TLS | **2** |
-| std::mutex (LockWith) | 223 / 256 / 480 / 499 / 520 | **0** (×4.28) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | does not build on newlib (no `std::mutex`) | – |
+| none | 31 / 73 / 220 / 72 / 152 | **3** (×1.00) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | 570 / 66, TLS | **3** |
+| spin (LockWith) | 97 / 133 / 378 / 168 / 274 | **0** (×2.19) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | 762 / 74, TLS | **2** |
+| std::mutex (LockWith) | 223 / 259 / 504 / 499 / 526 | **0** (×4.49) | invalid from Lean (a Lock needs Snapshot + ThreadLocalContext) | – | does not build on newlib (no `std::mutex`) | – |
 
 ### Storage
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| Global | 31 / 74 / 228 / 78 / 154 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.09) | 566 / 66, TLS | **3** |
-| Scoped (Domain) | 37 / 79 / 233 / 88 / 162 | **2** (×1.10) | 19 / 27 / 83 / 77 | **2** (×1.26) | 840 / 132, TLS | **1** |
+| Global | 31 / 73 / 220 / 72 / 152 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.09) | 570 / 66, TLS | **3** |
+| Scoped (Domain) | 37 / 78 / 225 / 88 / 160 | **2** (×1.12) | 19 / 27 / 83 / 77 | **2** (×1.26) | 844 / 132, TLS | **1** |
 
 ### Capacity
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| 8 | 31 / 74 / 228 / 78 / 154 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.00) | 566 / 66, TLS | **3** |
-| 64 | 34 / 79 / 233 / 78 / 164 | **3** (×1.05) | 9 / 33 / 96 / 64 | **3** (×1.00) | 586 / 290, TLS | **1** |
+| 8 | 31 / 73 / 220 / 72 / 152 | **3** (×1.00) | 9 / 33 / 96 / 64 | **3** (×1.00) | 570 / 66, TLS | **3** |
+| 64 | 34 / 78 / 225 / 72 / 162 | **3** (×1.05) | 9 / 33 / 96 / 64 | **3** (×1.00) | 606 / 290, TLS | **1** |
 
 ### Implementation
 
 | Option | Default base: pub 0 / pub 1 / pub 8 / create+destroy / re-entrant | score | Lean base: pub 0 / pub 1 / pub 8 / create+destroy | score | Cortex-M33 text / RAM (B), TLS | score |
 |---|---|---:|---|---:|---|---:|
-| library broker | 31 / 74 / 228 / 78 / 154 | **2** (×1.33) | not measured | – | 566 / 66, TLS | **1** |
-| SingleSubscriberBroker (Implementation<>) | 35 / 47 / – / 39 / 100 | **3** (×1.04) | not measured | – | 378 / 34, TLS | **3** |
+| library broker | 31 / 73 / 220 / 72 / 152 | **2** (×1.30) | not measured | – | 570 / 66, TLS | **1** |
+| SingleSubscriberBroker (Implementation<>) | 35 / 47 / – / 39 / 100 | **3** (×1.04) | not measured | – | 382 / 34, TLS | **3** |
 
 ### Route (a transport endpoint bound to the type)
 
 | | Default base: publish, 1 route | publish, 1 subscriber + 1 route | vs 1 subscriber alone | Cortex-M33 text / RAM (B) |
 |---|---:|---:|---:|---|
-| 1 `Route<Data, Transport>` | 82 | 115 | 74 (a route costs about what one subscriber costs, +8 for split-horizon lookup) | 754 / 94, TLS (+188 B text, +28 B RAM over Default) |
+| 1 `Route<Data, Transport>` | 81 | 113 | 73 (a route costs about what one subscriber costs, +8 for split-horizon lookup) | 758 / 94, TLS (+188 B text, +28 B RAM over Default) |
 
 ### Cost of a second `Data` type (per-type code)
 
 | Cortex-M33 | 1 type | 2 types | marginal type |
 |---|---:|---:|---:|
-| Default | 566 / 66 | 1120 / 119 | **+554 B text, +53 B RAM** |
+| Default | 570 / 66 | 1128 / 119 | **+558 B text, +53 B RAM** |
 | Lean | 394 / 62 | 776 / 111 | **+382 B text, +49 B RAM** |
 
 Nothing is shared between `Data` types: each type instantiates its own table, dispatch loop and handle code. See
@@ -114,13 +114,13 @@ target measurement.
 
 | Axis / option | Re-entrant publish (same type, same thread) | Table changed during its own dispatch (same thread) | Concurrent publishers | Teardown during delivery from another thread | `cancel()` | Other | Evidence |
 |---|---|---|---|---|---|---|---|
-| **Dispatch = Snapshot** | ✓ delivered nested | ✓ a subscriber added is called from the next publish; one removed is not called again | with a Lock | with a Lock | with a context | – | `test_axes`: 3 Snapshot tests; `test_endpoints`: same-thread teardown |
+| **Dispatch = Snapshot** | ✓ delivered nested | ✓ a subscriber added is called from the next publish; one removed (or destroyed) is not called again | with a Lock | with a Lock | with a context | requires a publish context (compile error otherwise: `cf_snapshot_no_context`) | `test_axes`: 4 Snapshot tests incl. destruction under ASan; `test_endpoints`: same-thread teardown |
 | **Dispatch = Direct** | ✓ delivered nested | ✗ unsupported and undetected | ✗ (a Lock requires Snapshot: `cf_lock_direct`) | ✗ | with a context | fastest dispatch | `test_axes`: Direct re-entrant test |
 | **Dispatch = DirectChecked** | ✗ reported | ✗ reported | ✗ | ✗ | ✓ (context required) | needs a context (compile error otherwise) | `test_axes`, `test_binding` (per-domain) |
 | **Context = ThreadLocal** | – | – | ✓ each thread's `cancel()` and dispatch frames are its own | ✓ | ✓ | needs TLS (`__aeabi_read_tp` on Cortex-M) | `test_axes`: cancel isolation under a Lock; `test_binding` cancel |
 | **Context = Static** | – | – | ✗ **compile error with a Lock** (new: `cf_lock_static_context`) | ✗ | ✓ single-threaded | no TLS | `test_axes`: StaticContext cancel |
-| **Context = None** | – | – | ✗ (a Lock requires a context) | ✗ | ✗ compile error (`cf_cancel_no_context`) | no routes, no reports, no DirectChecked | compile errors |
-| **Filter = on** | – | – | – | – | – | `filter()` skips a subscriber per message | `test_binding` filter |
+| **Context = None** | – | – | ✗ (a Lock requires a context) | ✗ | ✗ compile error (`cf_cancel_no_context`) | Direct dispatch only (no Snapshot, no DirectChecked), no routes, no reports | compile errors |
+| **Filter = on** | – | – | – | – | – | `filter()` skips a subscriber per message; a `filter()` that disconnects or destroys its subscriber, or closes its domain, prevents `receive()` | `test_binding` filter; `test_axes`: 3 filter lifetime tests (ASan) |
 | **Filter = off** | – | – | – | – | – | overriding `filter()` is a compile error (`cf_filter_disabled`) | compile error |
 | **Lock = none** | – | – | ✗ not supported | ✗ | – | subscribers activate at construction | – |
 | **Lock = `LockWith<L>`** | ✓ | ✓ | ✓ publishers and churn on other threads lose nothing | ✓ `disconnect()` waits only for a callback running elsewhere | ✓ per thread | explicit `trySubscribe()` after construction (K5); blocking disconnect (K4) | `test_axes`: churn and cancel isolation; `test_endpoints` cross-thread teardown; TSan in CI |
@@ -134,14 +134,14 @@ target measurement.
 
 - **Pay for what you use holds per option.** Every option that adds a guarantee has a measured price, and every
   option that removes one scores 3 on cost: Direct, Context None, Filter off, Global, the smallest capacity.
-- **The expensive options are the guarantees for threads and time:** a Lock (×2 uncontended with a spin lock, ×4 with
-  `std::mutex`) and a publish context (×1.8 from Lean, because it pushes a dispatch frame). Snapshot costs ×1.5 from
-  Lean and buys safe table changes during dispatch.
+- **The expensive options are the guarantees for threads and time:** a Lock (×2.2 uncontended with a spin lock, ×4.5
+  with `std::mutex`) and a publish context (×1.8 from Lean, because it pushes a dispatch frame). Snapshot costs ×1.9
+  from Lean, including the publish context it requires, and buys safe table changes during dispatch.
 - **Capacity costs RAM only** (64 slots: +224 B on Cortex-M33, publish unchanged): size it per type.
 - **Scoped storage** costs +5 to +13 instructions on an empty publish and on create/destroy and, on Cortex-M33, +274 B text and +66 B RAM for the domain
   machinery.
 - **A custom broker through `Implementation<>`** is the cheapest way to express a special case (one subscriber:
-  create+destroy 39 vs 78, 378 B vs 566 B).
+  create+destroy 39 vs 72, 382 B vs 570 B).
 
 ## Are the use cases exhaustive? (coverage review)
 
@@ -156,13 +156,27 @@ Each option's merits and limitations need a use case that exercises them. Before
 | lock contention | none (uncontended only) | spin vs `std::mutex`, 4 threads |
 | `DirectChecked`, `ThreadLocal` alone, Scoped, Capacity, `Implementation<>`, Route | functional tests only, no cost | cost and footprint for each |
 | footprint per option (Cortex-M33) | 4 configurations | every option, plus the cost of a second type |
-| invalid option combinations | 6 compile-fail checks | 7 (Lock + StaticContext added) |
+| invalid option combinations | 6 compile-fail checks | 8 (Lock + StaticContext, Snapshot + NoContext added) |
+| lifetime during dispatch: a receiver or `filter()` destroying subscribers, closing the domain | receiver disconnect only | destruction and domain close, from `receive()` and `filter()`, under ASan |
 
 **Defect found by the review:** a Lock with `StaticContext` compiled, but `StaticContext` keeps one frame stack for the
 process. With concurrent publishers, one thread's `cancel()` stopped another thread's publication and the frame list
 raced. A reproduction lost 3 to 10 of 200 000 deliveries per release run, and TSan reported data races. **Fixed:** a
 Lock now requires `ThreadLocalContext` (compile error, `cf_lock_static_context`); `test_axes` shows the
 ThreadLocal combination is correct. The price (a Lock needs TLS) is known issue K16.
+
+**Defects found by the independent review (2026-09), fixed:**
+- **Snapshot + NoContext use-after-free.** `forgetInOwnDispatches` finds a dispatch's snapshot through its frame, and
+  `NoContext` has no frame: a receiver destroying a later subscriber left a dangling pointer in the snapshot (ASan:
+  heap-use-after-free). Snapshot's guarantee depended on the Context axis without saying so. **Fixed:** Snapshot
+  requires a publish context (compile error, `cf_snapshot_no_context`); the cheapest sound Snapshot is `+StaticContext`.
+  From the Default base, Context = None is therefore invalid, and the Lean-base Snapshot row includes StaticContext.
+- **Delivery after a disconnect inside `filter()`.** Delivery called `filter()` then `receive()` without looking
+  again, so a `filter()` that disconnected its subscriber and returned true still got `receive()`, and one that destroyed
+  it made a call on a freed object. **Fixed:** `kit::deliverAt` re-reads the dispatch-owned slot (never the subscriber)
+  after `filter()`; Direct dispatch skips the null check its live entries never need. Measured cost: none (Lean 9/33/96
+  and Direct 61/166 unchanged; Snapshot 73/220 from 74/228). `test_axes` covers disconnect, self-destruction and domain
+  close from `filter()`, and ASan catches the self-destruction case when the re-check is removed.
 
 **Still not covered (open):**
 - Publishing from an interrupt (ISR) with `StaticContext`, and a deferred-dispatch (queue) policy: the prototype has no

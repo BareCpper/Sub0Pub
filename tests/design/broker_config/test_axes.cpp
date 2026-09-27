@@ -185,3 +185,76 @@ TEST_CASE("axes: Lock, concurrent publishers with subscribe/unsubscribe churn: s
     churn.join();
     CHECK(stableCount.load() == 3 * cN);
 }
+
+// --- Lifetime during dispatch (review findings on #8/#10, 2026-09) ---
+// Snapshot + NoContext is rejected at compile time (compile_fail/cf_snapshot_no_context.cpp): without a dispatch frame a
+// subscriber destroyed during a Snapshot dispatch stayed in that dispatch's snapshot (ASan: heap-use-after-free).
+
+namespace {
+using SnapStaticMsg = Msg<7, sub0x::Snapshot, sub0x::StaticContext, sub0x::NoFilter, sub0x::Capacity<8>>;
+using FilterMsg     = Msg<8, sub0x::Snapshot, sub0x::ThreadLocalContext, sub0x::Capacity<8>>; // filter enabled
+struct ScopedFilterMsg { int value; using sub0_config = sub0x::config<sub0x::Scoped, sub0x::Capacity<8>>; };
+
+template<class Data>
+struct Filtering : sub0x::Subscribe<Data>
+{
+    using sub0x::Subscribe<Data>::Subscribe;
+    std::function<void()> inFilter;
+    int* received = nullptr;
+    bool filter(const Data&) noexcept override
+    {
+        if (inFilter)
+            inFilter(); // may disconnect or destroy *this
+        return true;
+    }
+    void receive(const Data&) noexcept override { ++*received; }
+};
+} // namespace
+
+TEST_CASE("axes: Snapshot, a later subscriber destroyed by an earlier receiver is not called (run under ASan)") {
+    Source<SnapStaticMsg> pub;
+    Probe<SnapStaticMsg> first;
+    auto second = std::make_unique<Probe<SnapStaticMsg>>();
+    first.action = [&](const SnapStaticMsg&) { second.reset(); };
+    pub.send(SnapStaticMsg{1});
+    CHECK(first.received == 1);
+    CHECK_FALSE(second);
+}
+
+TEST_CASE("axes: filter() that disconnects its own subscriber prevents receive()") {
+    int received = 0;
+    Filtering<FilterMsg> s;
+    s.received = &received;
+    s.inFilter = [&] { s.disconnect(); };
+    Source<FilterMsg> pub;
+    pub.send(FilterMsg{1});
+    CHECK(received == 0);
+}
+
+TEST_CASE("axes: filter() that destroys its own subscriber prevents receive() (run under ASan)") {
+    int received = 0;
+    auto s = std::make_unique<Filtering<FilterMsg>>();
+    s->received = &received;
+    s->inFilter = [&] { s.reset(); };
+    Source<FilterMsg> pub;
+    pub.send(FilterMsg{1});
+    CHECK(received == 0);
+    CHECK_FALSE(s);
+}
+
+TEST_CASE("axes: filter() that closes its domain prevents receive() for itself and later subscribers") {
+    int received = 0;
+    sub0x::Domain<ScopedFilterMsg> domain;
+    Filtering<ScopedFilterMsg> first(domain);
+    Filtering<ScopedFilterMsg> second(domain);
+    first.received = &received;
+    second.received = &received;
+    first.inFilter = [&] { domain.close(); };
+    struct Pub : sub0x::Publish<ScopedFilterMsg>
+    {
+        using Publish::Publish;
+        void send(const ScopedFilterMsg& d) noexcept { sub0x::publish(*this, d); }
+    } pub(domain);
+    pub.send(ScopedFilterMsg{1});
+    CHECK(received == 0);
+}

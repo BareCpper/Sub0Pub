@@ -110,10 +110,10 @@ void Broker<Data>::disconnect(Subscribe<Data>* s) noexcept
     // for s (a self-disconnect), no other thread can ever clear that frame, so waiting on it deadlocks.
     // Mechanism 1's active-dispatch list gets this for free (`a->thread != me`); the per-thread slot model
     // must check it explicitly.
-    const std::thread::id me = std::this_thread::get_id();
+    const std::uintptr_t me = myOwnerToken();
     for (auto& h : t.hazard)
     {
-        if (!h.claimed.load(std::memory_order_acquire) || h.ownerId == me)
+        if (!h.claimedByOther(me))
             continue;
         // P2 fix: scan every nesting frame, not just one cell -- a nested publish on another thread must
         // not let disconnect() return while an outer frame still names s just because an inner frame does not.

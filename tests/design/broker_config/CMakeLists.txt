@@ -41,6 +41,7 @@ sub0x_compile_fail(cf_filter_disabled     "override")
 sub0x_compile_fail(cf_cancel_no_context   "cancel\\(\\) needs a publish context")
 sub0x_compile_fail(cf_lock_direct         "a Lock requires Snapshot dispatch")
 sub0x_compile_fail(cf_lock_static_context "a Lock requires ThreadLocalContext")
+sub0x_compile_fail(cf_snapshot_no_context "Snapshot needs a publish context")
 sub0x_compile_fail(cf_domain_global       "requires a Data type configured with sub0x::Scoped")
 sub0x_compile_fail(cf_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
 

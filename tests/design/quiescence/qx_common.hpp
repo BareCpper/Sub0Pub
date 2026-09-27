@@ -46,15 +46,31 @@ constexpr uint32_t kMaxReaders = 8;
 /// registry.
 constexpr uint32_t kMaxNesting = 4;
 
+/// This thread's owner token: the address of a thread-local object, unique among live threads and never 0
+inline std::uintptr_t myOwnerToken() noexcept
+{
+    thread_local const char anchor = 0;
+    return reinterpret_cast<std::uintptr_t>(&anchor);
+}
+
 /// Base for a hazard/reader slot that mechanisms 2 and 3 claim per (table, thread) instead of being
-/// handed one by an ever-incrementing counter. `ownerId` is valid exactly while `claimed` is true: it is
-/// written before the claiming `compare_exchange` publishes `claimed = true` (release), and read by other
-/// threads only after they observe `claimed == true` (acquire) -- a standard publish/subscribe pattern, so
-/// no separate synchronization on `ownerId` itself is needed.
+/// handed one by an ever-incrementing counter. Ownership is ONE atomic word: 0 = free, otherwise the owning
+/// thread's token (myOwnerToken()). Claim is a CAS from 0 to the token, release stores 0, and a reader's single
+/// acquire load answers both "claimed?" and "mine?".
+/// (Review fix, 2026-09: the first version kept a `claimed` flag plus a separate non-atomic `ownerId`
+/// written AFTER the claiming CAS, so a reader could see claimed == true with a stale owner, and slot reuse
+/// raced; TSan reported four races in the quiescence tests. Writing the id before the CAS would instead race
+/// between competing claimants.)
 struct ClaimableSlot
 {
-    std::atomic<bool> claimed{false};
-    std::thread::id ownerId{};
+    std::atomic<std::uintptr_t> owner{0};
+
+    bool claimedByOther(std::uintptr_t me) const noexcept
+    {
+        const std::uintptr_t o = owner.load(std::memory_order_acquire);
+        return o != 0 && o != me;
+    }
+    bool claimed() const noexcept { return owner.load(std::memory_order_acquire) != 0; }
 };
 
 /// RAII lease: releases the claimed slot when the owning thread is done with this array, either because
@@ -68,7 +84,7 @@ struct SlotLease
     ~SlotLease()
     {
         if (slot)
-            slot->claimed.store(false, std::memory_order_release);
+            slot->owner.store(0, std::memory_order_release);
     }
 };
 
@@ -83,15 +99,14 @@ inline Slot* myClaimedSlot(std::array<Slot, N>& slots) noexcept
     if (lease.slot != nullptr && lease.forArray == static_cast<const void*>(&slots))
         return lease.slot;
     if (lease.slot != nullptr) // this thread is switching to a different table's array: release the old one
-        lease.slot->claimed.store(false, std::memory_order_release);
+        lease.slot->owner.store(0, std::memory_order_release);
     lease.slot = nullptr;
     lease.forArray = &slots;
     for (auto& s : slots)
     {
-        bool expected = false;
-        if (s.claimed.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
+        std::uintptr_t expected = 0;
+        if (s.owner.compare_exchange_strong(expected, myOwnerToken(), std::memory_order_acq_rel))
         {
-            s.ownerId = std::this_thread::get_id(); // published by the compare_exchange's release above
             lease.slot = &s;
             break;
         }

@@ -87,10 +87,10 @@ public:
 #if !QX_MUTATE_SKIP_WAIT
         // C++20: block (no spin, no allocation) on each OTHER thread's hazard frames until none names s.
         // P1 fix: skip this thread's own claimed slot (see qx_refcount.hpp).
-        const std::thread::id me = std::this_thread::get_id();
+        const std::uintptr_t me = myOwnerToken();
         for (auto& h : t.hazard)
         {
-            if (!h.claimed.load(std::memory_order_acquire) || h.ownerId == me)
+            if (!h.claimedByOther(me))
                 continue;
             for (auto& f : h.frame)
                 for (Subscribe<Data>* v; (v = f.load(std::memory_order_seq_cst)) == s;)

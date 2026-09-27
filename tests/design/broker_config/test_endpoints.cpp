@@ -372,8 +372,7 @@ public:
     {
         sub0x::Subscribe<Data>* snapshot[1] = { slot() };
         sub0x::kit::DispatchScope<Data> scope(&slot(), origin, report, snapshot, 1);
-        if (snapshot[0] != nullptr)
-            sub0x::kit::deliver(snapshot[0], data);
+        sub0x::kit::deliverAt<Data>(snapshot[0], data);
     }
 
     void cancel() const noexcept { sub0x::kit::cancel<Data>(&slot()); }

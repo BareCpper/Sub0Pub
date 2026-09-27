@@ -79,10 +79,10 @@ public:
         // past removal). P1 fix: skip this thread's OWN slot -- a self-disconnect from inside receive()
         // would otherwise wait for its own depth to reach 0, which only the same call could do, deadlock.
         const uint64_t target = t.epoch.fetch_add(1, std::memory_order_acq_rel) + 1;
-        const std::thread::id me = std::this_thread::get_id();
+        const std::uintptr_t me = myOwnerToken();
         for (auto& r : t.readers)
         {
-            if (!r.claimed.load(std::memory_order_acquire) || r.ownerId == me)
+            if (!r.claimedByOther(me))
                 continue;
             while (r.depth.load(std::memory_order_acquire) != 0 && r.epoch.load(std::memory_order_acquire) < target)
             {

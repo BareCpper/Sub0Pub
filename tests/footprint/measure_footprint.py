@@ -48,7 +48,7 @@ PROTO_SCENARIOS = OrderedDict([
     # One option changed from Default at a time (docs/design/AXIS_SCORES.md)
     ("fp_axis_checked", "Default, Dispatch=DirectChecked"),
     ("fp_axis_snapstatic", "Default, Context=Static"),
-    ("fp_axis_nocontext", "Default, Context=None"),
+    ("fp_axis_nocontext", "Default, Context=None (must be rejected: Snapshot needs a context)"),
     ("fp_axis_nofilter", "Default, Filter=off"),
     ("fp_axis_lock", "Default, Lock=spin (RTOS-style yield hook)"),
     ("fp_axis_lockstatic", "Default, Lock=spin + StaticContext (must be rejected)"),

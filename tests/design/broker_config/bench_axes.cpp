@@ -68,8 +68,7 @@ public:
     {
         sub0x::Subscribe<Data>* snapshot[1] = { slot() };
         sub0x::kit::DispatchScope<Data> scope(&slot(), origin, report, snapshot, 1);
-        if (snapshot[0] != nullptr)
-            sub0x::kit::deliver(snapshot[0], data);
+        sub0x::kit::deliverAt<Data>(snapshot[0], data);
     }
     void cancel() const noexcept { sub0x::kit::cancel<Data>(&slot()); }
 private:
@@ -96,7 +95,7 @@ using D          = Msg<0>;
 using D_Direct   = Msg<1, Direct>;
 using D_Checked  = Msg<2, DirectChecked>;
 using D_Static   = Msg<3, StaticContext>;
-using D_NoCtx    = Msg<4, NoContext>;
+// Context=None from Default is invalid: Snapshot needs a publish context (compile_fail/cf_snapshot_no_context.cpp)
 using D_NoFilter = Msg<5, NoFilter>;
 using D_Spin     = Msg<6, LockWith<SpinLock>>;
 using D_Mutex    = Msg<7, LockWith<MutexLock>>;
@@ -106,7 +105,7 @@ using D_Impl     = Msg<10, Implementation<SingleSubscriberBroker>>;
 using D_Route    = Msg<11>; // same configuration as D; used with a Route bound
 // Lean base, one option changed at a time
 using L          = Msg<20, Direct, NoContext, NoFilter>;
-using L_Snapshot = Msg<21, Snapshot, NoContext, NoFilter>;
+using L_Snapshot = Msg<21, Snapshot, StaticContext, NoFilter>; // Snapshot needs a context (cheapest: Static)
 using L_Checked  = Msg<22, DirectChecked, StaticContext, NoFilter>; // DirectChecked needs a context: the cheaper one
 using L_Static   = Msg<23, Direct, StaticContext, NoFilter>;
 using L_TLS      = Msg<24, Direct, ThreadLocalContext, NoFilter>;
@@ -278,7 +277,6 @@ int main()
     runAxis<D_Direct>(h, "D Dispatch=Direct");
     runAxis<D_Checked>(h, "D Dispatch=DirectChecked", true, false);
     runAxis<D_Static>(h, "D Context=Static");
-    runAxis<D_NoCtx>(h, "D Context=None");
     runAxis<D_NoFilter>(h, "D Filter=off");
     runAxis<D_Spin>(h, "D Lock=spin");
     runAxis<D_Mutex>(h, "D Lock=std::mutex");
@@ -288,7 +286,7 @@ int main()
     runRoute<D_Route>(h, "D Route=1 (NullTransport)");
 
     runAxis<L>(h, "L Lean (Direct, NoContext, NoFilter, no lock, Global, capacity 8)");
-    runAxis<L_Snapshot>(h, "L Dispatch=Snapshot");
+    runAxis<L_Snapshot>(h, "L Dispatch=Snapshot (+StaticContext, required)");
     runAxis<L_Checked>(h, "L Dispatch=DirectChecked (+StaticContext, required)", true, false);
     runAxis<L_Static>(h, "L Context=Static");
     runAxis<L_TLS>(h, "L Context=ThreadLocal");

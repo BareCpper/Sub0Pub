@@ -1,4 +1,4 @@
-/** sub0x footprint: 1 type, 1 publisher, 1 subscriber, 1 publish site (Default, Context=None; docs/design/AXIS_SCORES.md) */
+/** sub0x footprint: 1 type, 1 publisher, 1 subscriber, 1 publish site (Default, Context=None, must be rejected: Snapshot needs a publish context; docs/design/AXIS_SCORES.md) */
 #include "sub0x_broker.hpp"
 
 struct MsgA { int value; using sub0_config = sub0x::config<sub0x::NoContext>; };

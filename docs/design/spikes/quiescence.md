@@ -470,3 +470,34 @@ variant pass, clean under ASan and TSan.
 epoch keeps the cheapest non-empty publish at the price recorded in section 10 (bounded threads and nesting,
 lossy overflow in release builds, 4.3x the table RAM, a wait tail up to three orders of magnitude worse).
 The same empty fast path is a candidate for the #8 prototype's handshake (known issue K3).
+
+## 12. Review fix: slot ownership (2026-09)
+
+An independent review found a data race in the claimed-slot protocol shared by mechanisms 2 and 3 (and 2b). A slot
+kept a `claimed` flag and a separate non-atomic `ownerId`, and the claiming thread wrote `ownerId` *after* the CAS
+that published `claimed = true`. So `disconnect()` on another thread could see `claimed == true` next to a stale
+owner, and slot reuse raced too. Writing the id before the CAS would instead race between competing claimants.
+Reproduced here: the previous code exits 66 under TSan (GCC 13) with races at `qx_refcount.hpp:116` and
+`qx_epoch.hpp:85`, although every functional test passed.
+
+**Fix:** ownership is one atomic word (`ClaimableSlot::owner`): 0 = free, otherwise the owning thread's token (the
+address of a thread-local, unique among live threads). Claim is a CAS from 0 to the token, release stores 0, and a
+reader's single acquire load answers both "claimed?" and "mine?". There is no second field to race on. The quiescence
+tests and lifetime probes pass, and TSan is clean in 5 of 5 runs.
+
+Re-measured (GCC 13, callgrind, instr/op, 0 / 1 / 8 subscribers, create + destroy):
+
+| Mechanism | Before (section 11) | After |
+|---|---|---|
+| 1 Handshake | 25 / 99 / 260 / 121 | 25 / 99 / 260 / 108 |
+| 2 Hazard pointer | 36 / 115 / 192 / 204 | 12 / 105 / 182 / 193 |
+| 3 Epoch | 30 / 88 / 134 / 166 | 25 / 84 / 130 / 155 |
+
+Both columns are deterministic: rebuilding the previous commit reproduces "Before" exactly. Mechanisms 2 and 3 get
+cheaper because the owner check is now one load compared with a thread-local address, where it used to call
+`std::this_thread::get_id()` (`pthread_self`). The handshake's code did not change: its create+destroy moving from
+121 to 108 is a layout or inlining effect of rebuilding the shared benchmark binary, not a property of the handshake.
+
+**Outcome unchanged:** mechanism 1 stays the design. The fixed hazard pointer is now the cheapest at 0 subscribers,
+and epoch keeps the cheapest non-empty publish, but both still bound threads and nesting and drop publications past
+those bounds in release builds (section 10.7).
