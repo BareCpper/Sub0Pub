@@ -1,4 +1,4 @@
-/** Prototype tests: configuration resolution, per-type policies, scoped domains */
+/** Configuration resolution, per-type policies, scoped domains */
 #include "doctest.h"
 #include "app_types.hpp"
 
@@ -21,7 +21,9 @@ struct Source : sub0::Publish<Data> {
 };
 
 template<class Data, class = void> struct has_filter : std::false_type {};
-template<class Data> struct has_filter<Data, std::void_t<decltype(&sub0::Subscribe<Data>::filter)>> : std::true_type {};
+// A usable filter() returns bool; without the filter option only a never-called void guard exists
+template<class Data> struct has_filter<Data, std::enable_if_t<std::is_same_v<bool,
+    decltype(std::declval<sub0::Subscribe<Data>&>().filter(std::declval<const Data&>()))>>> : std::true_type {};
 
 } // namespace
 
@@ -158,27 +160,45 @@ TEST_CASE("config: cancel() still stops its own domain's dispatch") {
     CHECK(second.received == 0);
 }
 
-TEST_CASE("config: DirectChecked reports re-entry into the same domain only") {
+TEST_CASE("config: DirectChecked reports a table change during its own dispatch, per domain") {
     sub0::Domain<SessionChecked> a, b;
-    Sink<SessionChecked> sinkB(b);
-    Source<SessionChecked> pubA(a), pubB(b);
+    Source<SessionChecked> pubA(a);
 
-    struct Forward : sub0::Subscribe<SessionChecked> {
+    struct Joiner : sub0::Subscribe<SessionChecked> {
+        using sub0::Subscribe<SessionChecked>::Subscribe;
+        sub0::Domain<SessionChecked>* join = nullptr;
+        std::optional<Sink<SessionChecked>> late;
+        void receive(const SessionChecked&) noexcept override { if (!late) late.emplace(*join); }
+    };
+    Joiner joiner(a);
+
+    gViolations = 0;
+    joiner.join = &b;                // A's dispatch subscribes into B: independent table, allowed
+    pubA.send(SessionChecked{1});
+    CHECK(gViolations == 0);
+
+    joiner.late.reset();
+    joiner.join = &a;                // A's dispatch subscribes into A: its own table, reported
+    pubA.send(SessionChecked{1});
+    CHECK(gViolations == 1);
+    joiner.late.reset();
+}
+
+TEST_CASE("config: DirectChecked allows a nested publish (the table does not change)") {
+    sub0::Domain<SessionChecked> a;
+    Sink<SessionChecked> sink(a);
+    Source<SessionChecked> pubA(a);
+    struct Echo : sub0::Subscribe<SessionChecked> {
         using sub0::Subscribe<SessionChecked>::Subscribe;
         Source<SessionChecked>* target = nullptr;
         void receive(const SessionChecked& m) noexcept override { if (m.value > 0) target->send(SessionChecked{m.value - 1}); }
     };
-    Forward forward(a);
-
+    Echo echo(a);
+    echo.target = &pubA;
     gViolations = 0;
-    forward.target = &pubB;          // A's dispatch publishes into B: independent table, allowed
     pubA.send(SessionChecked{1});
     CHECK(gViolations == 0);
-    CHECK(sinkB.received == 1);
-
-    forward.target = &pubA;          // A's dispatch publishes into A: re-entry, reported
-    pubA.send(SessionChecked{1});
-    CHECK(gViolations == 1);
+    CHECK(sink.received == 2);
 }
 
 TEST_CASE("config: tagged payloads are distinct channels configured by tag") {

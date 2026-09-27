@@ -125,8 +125,8 @@ The options are:
 - `Capacity<N>`;
 - `Snapshot`, `Direct` or `DirectChecked`;
 - `ThreadLocalContext`, `StaticContext` (no TLS) or `NoContext`;
-- `LockWith<L>`;
-- `NoFilter`, which removes `filter()`;
+- `LockWith<L>`, which also selects `Snapshot` and `ThreadLocalContext`;
+- `Filter` or `NoFilter`;
 - `Scoped`, with `Domain<Data>` sessions;
 - `Implementation<Broker>`, for an application-defined broker.
 
@@ -134,7 +134,7 @@ The options are:
 
 Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes.
 
-**Action:** None. Types without a configuration behave as before. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
+**Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
 
 ### Static wiring (new)
 
@@ -176,9 +176,33 @@ The member function `Publish<Data>::publish(data)` is no longer public. Use the 
 
 **Action:** Replace `myPublisher.publish(data)` with `sub0::publish(myPublisher, data)`, or call `publish(data)` from within the derived class (protected access).
 
-### Re-entrant publish safety is now snapshot-based
+### The default is the cheapest dispatch; costly features are opt-in and detected
 
-`Broker::publish()` snapshot-copies the subscriber list before dispatching, preventing deadlock when a subscriber publishes the same type from within `receive()`. This adds ~1.5ns overhead per publish. Disable with `#define SUB0PUB_REENTRANT_SAFE false` if re-entrant publish is guaranteed not to occur.
+A type without its own configuration dispatches with the cheapest correct loop: direct iteration over the table, no
+publish context, no `filter()`, no lock. Each feature that costs something is opt-in, per type or for every type.
+Using one without opting in is caught at compile time or by a debug-build check:
+
+| Feature | Opt in for every type | Per type | Without it |
+|---|---|---|---|
+| Subscribe or unsubscribe a type from its own `receive()` (including destroying the subscriber) | `SUB0PUB_REENTRANT_SAFE` | `sub0::Snapshot` | Reported in debug builds (`SUB0PUB_REENTRANT_CHECK`) |
+| `cancel()`, `Route`, publish reports | `SUB0PUB_CANCEL` | `sub0::ThreadLocalContext` (or `StaticContext`) | Compile error naming the opt-in |
+| `filter()` | `SUB0PUB_FILTER` | `sub0::Filter` | Compile error: a subscriber declaring `filter()` does not compile, even without `override` |
+| Publishing or subscribing from several threads at once | `SUB0PUB_THREAD_SAFE` | `sub0::LockWith<L>` | Reported in debug builds (`SUB0PUB_THREAD_CHECK`) |
+
+Earlier v2 builds defaulted to snapshot dispatch with `cancel()` and `filter()` always available.
+
+A nested publish of the same type from `receive()` is supported under every dispatch. `SUB0PUB_REENTRANT_CHECK` no
+longer reports it; it reports only a change to the table being dispatched.
+
+**Action:** Build in debug and fix what is reported:
+- add `SUB0PUB_FILTER` or `sub0::Filter` where `filter()` is overridden;
+- add `SUB0PUB_CANCEL` or `sub0::ThreadLocalContext` where `cancel()` is called;
+- add `SUB0PUB_REENTRANT_SAFE` or `sub0::Snapshot` where a subscriber of a type is created or destroyed from that
+  type's `receive()`;
+- add `SUB0PUB_THREAD_SAFE` or `sub0::LockWith<L>` where a type is used from several threads at once.
+
+To restore the earlier v2 behaviour for every type, define `SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL` and
+`SUB0PUB_FILTER` as `true`.
 
 ### Disconnecting during a dispatch is safe with Snapshot dispatch
 
@@ -234,13 +258,21 @@ Define `SUB0PUB_THREAD_SAFE true` to enable mutex-guarded subscribe/unsubscribe/
 
 ### `SUB0PUB_REENTRANT_SAFE` (new in v2)
 
-Default `true`. Controls whether `publish()` snapshot-copies the subscriber list before dispatching. Set `false` to skip the snapshot for ~1.5ns faster publish if you guarantee no subscriber will re-entrantly publish the same type from within `receive()`.
+Default `false`. With `true`, `publish()` snapshot-copies the subscriber list before dispatching, so a subscriber may subscribe or unsubscribe (or destroy) a subscriber of the same type from within `receive()`. It also gives every type a publish context (`cancel()`).
+
+### `SUB0PUB_CANCEL`, `SUB0PUB_FILTER` (new in v2)
+
+Default `false`. `SUB0PUB_CANCEL` gives every type a publish context: `cancel()`, `Route` and publish reports. `SUB0PUB_FILTER` gives every subscriber a `filter()`. Per type: `sub0::ThreadLocalContext`, `sub0::Filter`.
+
+### `SUB0PUB_THREAD_CHECK` and `SUB0PUB_THREAD_VIOLATION` (new in v2)
+
+Without a lock, a `Data` type must not be published, subscribed or unsubscribed from two threads at once. `SUB0PUB_THREAD_CHECK` (default: on without `NDEBUG`) detects such an overlap and calls `SUB0PUB_THREAD_VIOLATION(what)`, which by default asserts, then aborts. It uses a `thread_local`; define it `false` on a target without thread-local storage.
 
 ### `SUB0PUB_REENTRANT_CHECK` and `SUB0PUB_REENTRANT_VIOLATION` (new in v2)
 
-With `SUB0PUB_REENTRANT_SAFE false`, a `receive()` that publishes, subscribes or unsubscribes its own `Data` type on the same thread was silently unsupported. `SUB0PUB_REENTRANT_CHECK` now detects it and calls `SUB0PUB_REENTRANT_VIOLATION(what)`, which by default asserts and then aborts. The check defaults to on in debug builds (`SUB0PUB_ASSERT` without `NDEBUG`) and off in release builds. Define `SUB0PUB_REENTRANT_CHECK true` to keep it in release. The check has no effect when the snapshot is active (`SUB0PUB_REENTRANT_SAFE` or `SUB0PUB_THREAD_SAFE`).
+Without snapshot dispatch, a `receive()` that subscribes or unsubscribes (or destroys) a subscriber of its own `Data` type on the same thread is unsupported. `SUB0PUB_REENTRANT_CHECK` detects it and calls `SUB0PUB_REENTRANT_VIOLATION(what)`, which by default asserts and then aborts. A nested publish is supported and not reported. The check defaults to on in debug builds (`SUB0PUB_ASSERT` without `NDEBUG`) and off in release builds; it costs a `thread_local` frame per publish. Define `SUB0PUB_REENTRANT_CHECK true` to keep it in release. It has no effect with snapshot dispatch.
 
-**Action:** Only affects `SUB0PUB_REENTRANT_SAFE false` builds. A debug build that hits the new abort was already relying on unsupported behaviour. Either enable `SUB0PUB_REENTRANT_SAFE` or restructure the subscriber.
+**Action:** A debug build that hits the abort relies on unsupported behaviour. Enable `SUB0PUB_REENTRANT_SAFE` (or `sub0::Snapshot` for the type) or restructure the subscriber.
 
 ### Configuration macros for per-type configuration (new in v2)
 

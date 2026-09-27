@@ -8,7 +8,8 @@
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>
 
-struct Command { int id; };
+// cancel() needs a publish context: opt in per type (or SUB0PUB_CANCEL for every type)
+struct Command { int id; using sub0_config = sub0::config<sub0::ThreadLocalContext>; };
 
 class CommandSource : public sub0::Publish<Command> {
 public:

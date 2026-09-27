@@ -25,6 +25,12 @@
 #include <thread>
 #include <type_traits>
 
+/// The prototype was measured with snapshot dispatch as its default; the public header's default changed later, so the
+/// prototype keeps its own copy of that setting to stay reproducible
+#ifndef SUB0X_REENTRANT_SAFE
+#define SUB0X_REENTRANT_SAFE true
+#endif
+
 namespace sub0x
 {
     // ========================================================================
@@ -78,7 +84,7 @@ namespace sub0x
         template<class Data, class Config> using broker = detail::Broker<Data, Config>;
         static constexpr uint32_t capacity = SUB0PUB_MAX_SUBSCRIPTIONS;
         static constexpr Dispatch dispatch =
-            (SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
+            (SUB0X_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
             : (SUB0PUB_REENTRANT_CHECK ? Dispatch::DirectChecked : Dispatch::Direct);
         static constexpr Context context = Context::ThreadLocal;
         static constexpr Storage storage = Storage::Global;

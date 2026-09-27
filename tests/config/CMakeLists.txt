@@ -43,3 +43,15 @@ sub0pub_config_compile_fail(cf_config_snapshot_no_context "Snapshot needs a publ
 sub0pub_config_compile_fail(cf_config_domain_global       "requires a Data type configured with sub0::Scoped")
 sub0pub_config_compile_fail(cf_config_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
 sub0pub_config_compile_fail(cf_config_delete_via_base     "protected|inaccessible")
+
+# The same, for the Builtin default (no project configuration header): costly features are opt-in and detected
+function(sub0pub_default_compile_fail name regex)
+    add_library(${name} OBJECT EXCLUDE_FROM_ALL compile_fail/${name}.cpp)
+    target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
+    add_test(NAME Sub0Pub_Config_${name}
+             COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
+    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+endfunction()
+
+sub0pub_default_compile_fail(cf_config_filter_not_enabled   "conflicting return type|different return type|overrides a 'final'|return type differs|C2555")
+sub0pub_default_compile_fail(cf_config_cancel_default       "SUB0PUB_CANCEL")

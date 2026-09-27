@@ -1,5 +1,6 @@
-/** Tests for SUB0PUB_REENTRANT_CHECK: detection of re-entrancy in the unguarded
- *  (SUB0PUB_REENTRANT_SAFE=false) direct-iteration dispatch mode.
+/** Tests for SUB0PUB_REENTRANT_CHECK: detection of table changes during a direct-iteration dispatch
+ *  (SUB0PUB_REENTRANT_SAFE=false, the default). A nested publish is supported; subscribing or unsubscribing
+ *  the dispatched type from its own receive() needs Snapshot dispatch.
  *
  * The violation handler is overridden to count instead of abort. Types are unique
  * to this translation unit (anonymous namespace) so their Broker<T> instantiations
@@ -53,18 +54,20 @@ TEST_CASE("Reentrant check: normal publish is not a violation") {
     CHECK(gViolations == 0);
 }
 
-TEST_CASE("Reentrant check: publishing the same type from receive() is detected") {
+TEST_CASE("Reentrant check: publishing the same type from receive() is supported (nested publish)") {
     gViolations = 0;
     struct Echo : sub0::Subscribe<ReMsg>
     {
         RePublisher* pub = nullptr;
-        void receive(const ReMsg& m) noexcept override { if (m.value > 0) pub->send(m.value - 1); }
+        int received = 0;
+        void receive(const ReMsg& m) noexcept override { ++received; if (m.value > 0) pub->send(m.value - 1); }
     };
     RePublisher pub;
     Echo echo;
     echo.pub = &pub;
     pub.send(1);
-    CHECK(gViolations == (cCheckActive ? 1 : 0));
+    CHECK(echo.received == 2); // 1, then nested 0: direct dispatch does not change the table
+    CHECK(gViolations == 0);
 }
 
 TEST_CASE("Reentrant check: publishing a different type from receive() is allowed") {

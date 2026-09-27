@@ -45,14 +45,15 @@ SCENARIOS = [
 SHORT = ["publish 0", "publish 1", "publish 8", "filtered 1", "8, first cancels", "create + destroy"]
 
 V2_OFF = ["-DSUB0PUB_REENTRANT_SAFE=false"]
+V2_FULL = ["-DSUB0PUB_REENTRANT_SAFE=true", "-DSUB0PUB_CANCEL=true", "-DSUB0PUB_FILTER=true"]
 # (label, header, macros): cmp_sub0pub.cpp built once per entry
 HEADER_VARIANTS = [
     ("v1.0", "v1", []),
     ("v1.0 ThreadSafe (mutex)", "v1", ["-DSUB0PUB_THREAD_SAFE=true"]),
-    ("v2 Snapshot (default)", "v2", []),
-    ("v2 Direct unchecked", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=false"]),
-    ("v2 Direct + check", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=true"]),
-    ("v2 ThreadSafe (mutex + snapshot)", "v2", ["-DSUB0PUB_THREAD_SAFE=true"]),
+    ("v2 default (Direct)", "v2", []),
+    ("v2 default + debug checks", "v2", ["-DSUB0PUB_REENTRANT_CHECK=true", "-DSUB0PUB_THREAD_CHECK=true"]),
+    ("v2 Full (snapshot, cancel, filter)", "v2", V2_FULL),
+    ("v2 ThreadSafe (mutex + snapshot, filter)", "v2", ["-DSUB0PUB_THREAD_SAFE=true", "-DSUB0PUB_FILTER=true"]),
 ]
 HOST_COMPILERS = OrderedDict([("gcc", "g++"), ("clang", "clang++")])
 HOST_FLAGS = ["-std=c++17", "-O2", "-DNDEBUG", "-pthread"]
@@ -66,8 +67,8 @@ FP_TARGETS = OrderedDict([
 # (label, source, include set, macros)
 FP_VARIANTS = [
     ("v1.0", "footprint/fp_1type.cpp", "v1", ["-include", "stdexcept"]),
-    ("v2 Snapshot (default)", "footprint/fp_1type.cpp", "v2", []),
-    ("v2 Direct unchecked", "footprint/fp_1type.cpp", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=false"]),
+    ("v2 default (Direct)", "footprint/fp_1type.cpp", "v2", []),
+    ("v2 Full (snapshot, cancel, filter)", "footprint/fp_1type.cpp", "v2", V2_FULL),
     ("v2 config Lean", "compare/fp_config_lean.cpp", "v2", []),
     ("v2 StaticWiring", "compare/fp_static.cpp", "v2", []),
 ]

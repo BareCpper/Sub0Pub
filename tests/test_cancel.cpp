@@ -3,24 +3,27 @@
 
 namespace {
 
-struct CancelPublisher : sub0::Publish<int> {
-    void send(int value) { sub0::publish(this, value); }
+// cancel() needs a publish context: opt-in per type (or SUB0PUB_CANCEL for every type)
+struct Tick { int value; using sub0_config = sub0::config<sub0::ThreadLocalContext>; };
+
+struct CancelPublisher : sub0::Publish<Tick> {
+    void send(int value) { sub0::publish(this, Tick{value}); }
 };
 
-struct CancelAfterN : sub0::Subscribe<int> {
+struct CancelAfterN : sub0::Subscribe<Tick> {
     int callCount = 0;
     int cancelAfter;
     CancelAfterN(int n) : cancelAfter(n) {}
-    void receive(const int& value) noexcept override {
+    void receive(const Tick&) noexcept override {
         ++callCount;
         if (callCount >= cancelAfter)
             cancel();
     }
 };
 
-struct Counter : sub0::Subscribe<int> {
+struct Counter : sub0::Subscribe<Tick> {
     int callCount = 0;
-    void receive(const int& value) noexcept override { ++callCount; }
+    void receive(const Tick&) noexcept override { ++callCount; }
 };
 
 } // namespace
@@ -52,10 +55,10 @@ TEST_CASE("Cancel does not affect subsequent publishes") {
 }
 
 TEST_CASE("sub0::cancel<Data>(publisher) stops the publication from inside receive()") {
-    struct Gate : sub0::Subscribe<int> {
+    struct Gate : sub0::Subscribe<Tick> {
         CancelPublisher* pub = nullptr;
         int callCount = 0;
-        void receive(const int&) noexcept override { ++callCount; sub0::cancel<int>(*pub); }
+        void receive(const Tick&) noexcept override { ++callCount; sub0::cancel<Tick>(*pub); }
     };
     CancelPublisher pub;
     Gate gate;

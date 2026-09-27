@@ -18,11 +18,11 @@ struct SpinLock
     void unlock() noexcept { flag.clear(std::memory_order_release); }
 };
 
-struct MsgDefault { int v; }; // Builtin: Snapshot, ThreadLocalContext, filter (v2 header's default policy)
-struct MsgSnapStatic { int v; using sub0_config = sub0::config<sub0::StaticContext>; };
-struct MsgDirect { int v; using sub0_config = sub0::config<sub0::Direct>; };
+struct MsgDefault { int v; }; // Builtin: Direct, no context, no filter (the default)
+struct MsgSnapStatic { int v; using sub0_config = sub0::config<sub0::Snapshot, sub0::StaticContext, sub0::Filter>; };
+struct MsgFull { int v; using sub0_config = sub0::config<sub0::Snapshot, sub0::ThreadLocalContext, sub0::Filter>; };
 struct MsgLean { int v; using sub0_config = sub0::config<sub0::Direct, sub0::NoContext, sub0::NoFilter>; };
-struct MsgLocked { int v; using sub0_config = sub0::config<sub0::LockWith<SpinLock>>; };
+struct MsgLocked { int v; using sub0_config = sub0::config<sub0::LockWith<SpinLock>, sub0::Filter>; };
 
 namespace cmp_types {
 // Every receiver does the same observable work (one increment), as in cmp_sub0pub.cpp
@@ -105,10 +105,10 @@ int main()
 {
     using namespace cmp_types;
     bench::Harness h;
-    runConfig<MsgDefault>(h, "v2 config Default (Snapshot, ThreadLocal, filter)");
-    runConfig<MsgSnapStatic>(h, "v2 config Snapshot + StaticContext (no TLS)");
-    runConfig<MsgDirect>(h, "v2 config Direct");
+    runConfig<MsgDefault>(h, "v2 config default (Direct, no context, no filter)");
+    runConfig<MsgFull>(h, "v2 config Full (Snapshot, ThreadLocal, filter)");
+    runConfig<MsgSnapStatic>(h, "v2 config Full with StaticContext (no TLS)");
     runConfig<MsgLean>(h, "v2 config Lean (Direct, NoContext, NoFilter)");
-    runConfig<MsgLocked>(h, "v2 config Locked (spin lock, uncontended)");
+    runConfig<MsgLocked>(h, "v2 config Locked (spin lock, filter, uncontended)");
     return 0;
 }

@@ -100,15 +100,16 @@ TEST_CASE("axes: Direct, re-entrant publish of the same type is delivered (no ta
     CHECK(echo.received == 3);
 }
 
-// --- Dispatch = DirectChecked: any use of the table during its own dispatch is reported ---
+// --- Dispatch = DirectChecked: a change to the table during its own dispatch is reported; nesting is not ---
 
-TEST_CASE("axes: DirectChecked, re-entrant publish and subscribe during dispatch are both reported") {
+TEST_CASE("axes: DirectChecked, nested publish is allowed and subscribe during dispatch is reported") {
     Source<CheckedMsg> pub;
     Probe<CheckedMsg> probe;
     gViolations = 0;
     probe.action = [&](const CheckedMsg& m) { if (m.value > 0) pub.send(CheckedMsg{0}); };
     pub.send(CheckedMsg{1});
-    CHECK(gViolations == 1);
+    CHECK(gViolations == 0);
+    CHECK(probe.received == 2);
 
     gViolations = 0;
     std::unique_ptr<Probe<CheckedMsg>> late;
