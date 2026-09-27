@@ -1,5 +1,7 @@
 # #8 policy axes: score matrix and coverage
 
+> Since Phase 2, the per-type configuration (Section 2 of `sub0pub.hpp`, namespace `sub0`) is public API. These scores were measured on the `sub0x` prototypes, which carry the same code.
+
 Every configurable axis of the per-`Data` broker configuration ([BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md)
 section 4, prototype `tests/design/broker_config/`) scored option by option, on measured cost and on the guarantees
 each option gives. The second half asks whether the use cases behind those scores are exhaustive enough to show each

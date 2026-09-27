@@ -1,8 +1,8 @@
 #pragma once
 /** PROTOTYPE: per-Data broker configuration for Sub0Pub v2 (docs/design/BROKER_CUSTOMISATION.md)
  *
- * Experimental namespace sub0x. Not part of the public API and does not modify sub0pub.hpp; it exists
- * to prove the design compiles, is ODR-safe across translation units and costs nothing when unused.
+ * Experimental namespace sub0x, kept as the record the design was measured with. The design is now public API in
+ * sub0pub.hpp (namespace sub0, Phase 2); new code and tests use that. This copy is frozen.
  *
  * Resolution of the configuration used by every Subscribe<Data> / Publish<Data> / publish() of a type:
  *
@@ -24,6 +24,12 @@
 #include <cstdlib>
 #include <thread>
 #include <type_traits>
+
+/// The prototype was measured with snapshot dispatch as its default; the public header's default changed later, so the
+/// prototype keeps its own copy of that setting to stay reproducible
+#ifndef SUB0X_REENTRANT_SAFE
+#define SUB0X_REENTRANT_SAFE true
+#endif
 
 namespace sub0x
 {
@@ -78,7 +84,7 @@ namespace sub0x
         template<class Data, class Config> using broker = detail::Broker<Data, Config>;
         static constexpr uint32_t capacity = SUB0PUB_MAX_SUBSCRIPTIONS;
         static constexpr Dispatch dispatch =
-            (SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
+            (SUB0X_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
             : (SUB0PUB_REENTRANT_CHECK ? Dispatch::DirectChecked : Dispatch::Direct);
         static constexpr Context context = Context::ThreadLocal;
         static constexpr Storage storage = Storage::Global;

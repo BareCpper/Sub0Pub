@@ -33,9 +33,10 @@ SCENARIOS = OrderedDict([
 ])
 
 POLICIES = OrderedDict([
-    ("Snapshot (default)", ["-DNDEBUG"]),
-    ("Direct unchecked", ["-DNDEBUG", "-DSUB0PUB_REENTRANT_SAFE=false"]),
-    ("Direct + check", ["-DNDEBUG", "-DSUB0PUB_REENTRANT_SAFE=false", "-DSUB0PUB_REENTRANT_CHECK=true"]),
+    ("Direct (default)", ["-DNDEBUG"]),
+    ("Direct + check", ["-DNDEBUG", "-DSUB0PUB_REENTRANT_CHECK=true"]),
+    ("Full (snapshot, cancel, filter)", ["-DNDEBUG", "-DSUB0PUB_REENTRANT_SAFE=true", "-DSUB0PUB_CANCEL=true",
+                                         "-DSUB0PUB_FILTER=true"]),
     ("ThreadSafe", ["-DNDEBUG", "-DSUB0PUB_THREAD_SAFE=true"]),
 ])
 
@@ -175,7 +176,7 @@ def main():
         print()
 
         print("### sizeof (bytes)\n")
-        r = results[(tname, "Snapshot (default)", "fp_1type")]
+        r = results[(tname, "Direct (default)", "fp_1type")]
         for size, kind, name in r.get("syms", []):
             if name.startswith("fp_sizeof_"):
                 print(f"- `{name[len('fp_sizeof_'):]}<T>`: {size}")
@@ -195,7 +196,7 @@ def main():
     if os.path.isdir(os.path.join(PROTO_DIR, "footprint")):
         print("## Prototype: sub0x per-type configurations\n")
         print("Same usage as `fp_1type` (1 type, 1 publisher, 1 subscriber, 1 publish site); compare with "
-              "the Snapshot (default) column above.\n")
+              "the Direct (default) column above.\n")
         with tempfile.TemporaryDirectory() as tmp:
             for tname, target in TARGETS.items():
                 print(f"### Target: {tname}\n")

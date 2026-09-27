@@ -22,7 +22,7 @@ namespace {
 
 struct CapMsg { int value; };
 
-struct CapSubscriber : sub0::Subscribe<CapMsg>
+struct CapSubscriber final : sub0::Subscribe<CapMsg>
 {
     int received = -1;
     void receive(const CapMsg& data) noexcept override { received = data.value; }

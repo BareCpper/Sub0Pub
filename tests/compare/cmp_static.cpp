@@ -1,4 +1,4 @@
-/** v1 vs v2 comparison: pattern B static wiring (tests/collapse/sandbox) and hand-written code.
+/** v1 vs v2 comparison: v2 static wiring (sub0pub.hpp Section 4) and hand-written code.
  *
  * Same control conditions as cmp_sub0pub.cpp: the publish entry point and every receive() are out of line,
  * so each variant pays one real call per delivery and the difference is the dispatch around it.
@@ -6,8 +6,7 @@
  * per-subscriber lifetime, so those rows are n/a except for DynamicPort's add/remove.
  */
 #define ANKERL_NANOBENCH_IMPLEMENT
-#include "sandbox/sub0x_static.hpp"
-#include "sandbox/sub0x_bridge.hpp"
+#include "sub0pub/sub0pub.hpp"
 
 #include "cmp_common.hpp"
 
@@ -24,7 +23,7 @@ struct Gate { // stops the rest of a cancellable publication
     int count = 0;
     CMP_NOINLINE bool receive(const Sample&) noexcept;
 };
-struct PortReceiver final : sub0x::DynamicPort<Sample>::Receiver {
+struct PortReceiver final : sub0::DynamicPort<Sample>::Receiver {
     int count = 0;
     void receive(const Sample&) noexcept override;
 };
@@ -44,9 +43,9 @@ NoOp r0, r1, r2, r3, r4, r5, r6, r7;
 Gate gate;
 
 // B2: static addresses, static types
-using Static1 = sub0x::StaticWiring<&r0>;
-using Static8 = sub0x::StaticWiring<&r0, &r1, &r2, &r3, &r4, &r5, &r6, &r7>;
-using StaticCancel8 = sub0x::StaticWiring<&gate, &r1, &r2, &r3, &r4, &r5, &r6, &r7>;
+using Static1 = sub0::StaticWiring<&r0>;
+using Static8 = sub0::StaticWiring<&r0, &r1, &r2, &r3, &r4, &r5, &r6, &r7>;
+using StaticCancel8 = sub0::StaticWiring<&gate, &r1, &r2, &r3, &r4, &r5, &r6, &r7>;
 CMP_NOINLINE void sendStatic1(const Sample& s) noexcept { Static1::publish(s); }
 CMP_NOINLINE void sendStatic8(const Sample& s) noexcept { Static8::publish(s); }
 CMP_NOINLINE void sendStaticCancel8(const Sample& s) noexcept { StaticCancel8::publishCancelable(s); }
@@ -61,13 +60,13 @@ struct Publisher {
 
 // B3: a type-erased Sink<T> at a boundary
 struct SinkPublisher {
-    sub0x::Sink<Sample> out;
+    sub0::Sink<Sample> out;
     CMP_NOINLINE void send(const Sample& s) const noexcept { out.publish(s); }
 };
 
 // DynamicPort: runtime subscribers behind the static wiring
-CMP_NOINLINE void sendPort(const sub0x::DynamicPort<Sample>& port, const Sample& s) noexcept { port.receive(s); }
-CMP_NOINLINE void addRemove(sub0x::DynamicPort<Sample>& port) noexcept
+CMP_NOINLINE void sendPort(const sub0::DynamicPort<Sample>& port, const Sample& s) noexcept { port.receive(s); }
+CMP_NOINLINE void addRemove(sub0::DynamicPort<Sample>& port) noexcept
 {
     PortReceiver r;
     port.add(&r);
@@ -99,36 +98,36 @@ int main()
     const Sample msg{42};
     bench::Harness h;
 
-    h.title("B2 StaticWiring");
+    h.title("v2 StaticWiring");
     h.run(cmp::cPublish1, [&] { sendStatic1(msg); });
     h.run(cmp::cPublish8, [&] { sendStatic8(msg); });
     h.run(cmp::cCancel8, [&] { sendStaticCancel8(msg); });
 
-    h.title("B1 wire()");
+    h.title("v2 wire()");
     {
-        const Publisher<sub0x::Wiring<NoOp>> one{sub0x::wire(r0)};
-        const auto eight = Publisher<sub0x::Wiring<NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp>>{
-            sub0x::wire(r0, r1, r2, r3, r4, r5, r6, r7)};
-        const auto cancel8 = Publisher<sub0x::Wiring<Gate, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp>>{
-            sub0x::wire(gate, r1, r2, r3, r4, r5, r6, r7)};
+        const Publisher<sub0::Wiring<NoOp>> one{sub0::wire(r0)};
+        const auto eight = Publisher<sub0::Wiring<NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp>>{
+            sub0::wire(r0, r1, r2, r3, r4, r5, r6, r7)};
+        const auto cancel8 = Publisher<sub0::Wiring<Gate, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp, NoOp>>{
+            sub0::wire(gate, r1, r2, r3, r4, r5, r6, r7)};
         h.run(cmp::cPublish1, [&] { one.send(msg); });
         h.run(cmp::cPublish8, [&] { eight.send(msg); });
         h.run(cmp::cCancel8, [&] { cancel8.sendCancelable(msg); });
     }
 
-    h.title("B3 Sink<T>");
+    h.title("v2 Sink<T>");
     {
-        const auto bus1 = sub0x::wire(r0);
-        const auto bus8 = sub0x::wire(r0, r1, r2, r3, r4, r5, r6, r7);
-        const SinkPublisher one{sub0x::Sink<Sample>(bus1)};
-        const SinkPublisher eight{sub0x::Sink<Sample>(bus8)};
+        const auto bus1 = sub0::wire(r0);
+        const auto bus8 = sub0::wire(r0, r1, r2, r3, r4, r5, r6, r7);
+        const SinkPublisher one{sub0::Sink<Sample>(bus1)};
+        const SinkPublisher eight{sub0::Sink<Sample>(bus8)};
         h.run(cmp::cPublish1, [&] { one.send(msg); });
         h.run(cmp::cPublish8, [&] { eight.send(msg); });
     }
 
-    h.title("DynamicPort<T, 8>");
+    h.title("v2 DynamicPort<T, 8>");
     {
-        sub0x::DynamicPort<Sample> port;
+        sub0::DynamicPort<Sample> port;
         h.run(cmp::cPublish0, [&] { sendPort(port, msg); });
         PortReceiver subs[8];
         port.add(&subs[0]);

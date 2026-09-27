@@ -1,4 +1,5 @@
 /** Case: default and runtime filters. Pattern A: today's public sub0pub.hpp API (filter() is virtual). */
+#define SUB0PUB_FILTER true // filter() is opt-in; this case measures it (types are local to this TU)
 // Today's API at its leanest settings (fair comparison): direct dispatch, no assertion checks
 #define SUB0PUB_REENTRANT_SAFE false
 #define SUB0PUB_ASSERT false

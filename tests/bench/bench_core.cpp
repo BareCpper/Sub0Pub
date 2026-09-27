@@ -1,11 +1,11 @@
 /** Core publish/subscribe benchmarks
  *
- * Built once per dispatch policy (see tests/CMakeLists.txt) so every policy is measured with
- * identical scenarios:
- *   Sub0Pub_Bench            default: SUB0PUB_REENTRANT_SAFE (snapshot dispatch)
- *   Sub0Pub_Bench_Unchecked  SUB0PUB_REENTRANT_SAFE=false, SUB0PUB_REENTRANT_CHECK=false (direct iteration)
- *   Sub0Pub_Bench_Checked    SUB0PUB_REENTRANT_SAFE=false, SUB0PUB_REENTRANT_CHECK=true
- *   Sub0Pub_Bench_ThreadSafe SUB0PUB_THREAD_SAFE=true (mutex + snapshot, uncontended)
+ * Built once per macro policy (see tests/CMakeLists.txt) so every policy is measured with identical scenarios:
+ *   Sub0Pub_Bench            default: Direct dispatch, no publish context, no filter(), no lock
+ *   Sub0Pub_Bench_Checked    SUB0PUB_REENTRANT_CHECK=true (the debug-build default: re-entrancy detected)
+ *   Sub0Pub_Bench_Full       SUB0PUB_REENTRANT_SAFE, SUB0PUB_CANCEL, SUB0PUB_FILTER (snapshot, cancel(), filter())
+ *   Sub0Pub_Bench_ThreadSafe SUB0PUB_THREAD_SAFE=true, SUB0PUB_FILTER (mutex + snapshot, uncontended)
+ * Scenarios for a feature the policy does not enable (filter, cancel) are left out.
  *
  * "Floor" scenarios are hand-written equivalents without Sub0Pub (virtual call loop, std::function
  * loop) that set the bar for what type-erased dispatch to N receivers can cost on this machine.
@@ -78,34 +78,53 @@ using floor_types::NoOpReceiver;
 /// more than one implementation) so every scenario measures real indirect dispatch, i.e. the
 /// worst case / control. Compiler collapse of dispatch (inlining, devirtualisation) is a follow-up.
 namespace bench_types {
-struct NoOpSubscriber : sub0::Subscribe<int> {
+/// Locked configurations (SUB0PUB_THREAD_SAFE) register explicitly after construction; others in the constructor
+template<class Data>
+struct Active : sub0::Subscribe<Data> {
+    Active() noexcept
+    {
+#if SUB0PUB_THREAD_SAFE
+        this->trySubscribe();
+#endif
+    }
+};
+struct NoOpSubscriber final : Active<int> {
     void receive(const int&) noexcept override;
 };
-struct CountingSubscriber : sub0::Subscribe<int> {
+struct CountingSubscriber : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };
-struct NoOpFloatSub : sub0::Subscribe<float> {
+struct NoOpFloatSub : Active<float> {
     void receive(const float&) noexcept override;
 };
-struct CountingFloatSub : sub0::Subscribe<float> {
+struct CountingFloatSub : Active<float> {
     int count = 0;
     void receive(const float&) noexcept override;
 };
-struct FilteredSubscriber : sub0::Subscribe<int> {
+#if SUB0PUB_FILTER
+struct FilteredSubscriber : Active<int> {
     void receive(const int&) noexcept override;
     bool filter(const int& v) noexcept override;
 };
-struct CancellingSubscriber : sub0::Subscribe<int> {
+#endif
+#if SUB0PUB_CANCEL || SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE
+#define BENCH_CANCEL 1
+struct CancellingSubscriber : Active<int> {
     void receive(const int&) noexcept override;
 };
+#endif
 void NoOpSubscriber::receive(const int&) noexcept {}
 void CountingSubscriber::receive(const int&) noexcept { ++count; }
 void NoOpFloatSub::receive(const float&) noexcept {}
 void CountingFloatSub::receive(const float&) noexcept { ++count; }
+#if SUB0PUB_FILTER
 void FilteredSubscriber::receive(const int&) noexcept {}
 bool FilteredSubscriber::filter(const int& v) noexcept { return (v & 1) == 0; }
+#endif
+#if BENCH_CANCEL
 void CancellingSubscriber::receive(const int&) noexcept { cancel(); }
+#endif
 } // namespace bench_types
 using namespace bench_types;
 
@@ -114,13 +133,13 @@ namespace {
 const char* policyName()
 {
 #if SUB0PUB_THREAD_SAFE
-    return "ThreadSafe (mutex + snapshot)";
+    return "ThreadSafe (mutex + snapshot, filter)";
 #elif SUB0PUB_REENTRANT_SAFE
-    return "Snapshot (default)";
+    return "Full (snapshot, cancel, filter)";
 #elif SUB0PUB_REENTRANT_CHECK
     return "Direct + reentrancy check";
 #else
-    return "Direct (unchecked)";
+    return "Direct (default)";
 #endif
 }
 
@@ -191,12 +210,15 @@ int main()
 
     // --- Filter and cancel ---
     h.title("Filter and cancel");
+#if SUB0PUB_FILTER
     {
         IntPublisher pub;
         FilteredSubscriber sub;
         h.run("1 filtered subscriber (pass)", [&] { pub.send(42); });
         h.run("1 filtered subscriber (reject)", [&] { pub.send(43); });
     }
+#endif
+#if BENCH_CANCEL
     {
         IntPublisher pub;
         CancellingSubscriber first;
@@ -204,6 +226,7 @@ int main()
         (void)rest;
         h.run("8 subscribers, first cancels", [&] { pub.send(42); });
     }
+#endif
 
     // --- Multi-type dispatch ---
     h.title("Multi-type dispatch");
@@ -219,11 +242,10 @@ int main()
         h.run("float publish (2-type publisher)", [&] { pub.sendFloat(3.14f); });
     }
 
-#if SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE
-    // --- Re-entrant publish (only supported with snapshot dispatch) ---
+    // --- Re-entrant publish (nested publish of the same type: every policy supports it) ---
     h.title("Re-entrant publish");
     {
-        struct Echo : sub0::Subscribe<int> {
+        struct Echo : Active<int> {
             IntPublisher* pub = nullptr;
             void receive(const int& v) noexcept override { if (v > 0) pub->send(v - 1); }
         };
@@ -232,7 +254,6 @@ int main()
         echo.pub = &pub;
         h.run("1 subscriber, nested depth 1", [&] { pub.send(1); });
     }
-#endif
 
     // --- Subscription lifetime ---
     h.title("Subscription lifetime");

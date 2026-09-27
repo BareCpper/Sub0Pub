@@ -19,7 +19,7 @@ public:
 
 // Subscribe: inherit and implement receive()
 class Display : public sub0::Subscribe<float> {
-    void receive(const float& value) override {
+    void receive(const float& value) noexcept override {
         // Automatically called when any Publish<float> fires
     }
 };
@@ -43,8 +43,9 @@ int main() {
 - **Header-only** -- Single file (`include/sub0pub/sub0pub.hpp`), drop into any project, link with `Sub0Pub::Sub0Pub` via CMake.
 - **Multi-type subscription** -- `SubscribeAll<A, B, C>` or `SubscribeAll<std::tuple<A, B>>` to subscribe to many types in one class.
 - **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) for inter-process and network messaging out of the box.
-- **Publish cancellation** -- Subscribers can call `cancel()` from within `receive()` to halt further delivery on the current publish cycle.
-- **Message filtering** -- Optional `filter(const Data&)` override for per-subscriber message selection at zero cost when unused.
+- **Pay only for what you use** -- The default is the cheapest dispatch: a loop of virtual calls. Snapshot dispatch, `cancel()`, `filter()` and locking are opt-in, and using one without opting in is caught: at compile time, or by a debug-build check.
+- **Publish cancellation** -- Opt-in: subscribers call `cancel()` from within `receive()` to halt further delivery on the current publish cycle.
+- **Message filtering** -- Opt-in: a `filter(const Data&)` override for per-subscriber message selection.
 
 ### How It Compares
 
@@ -74,18 +75,16 @@ int main() {
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 | Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
+| Per-type configuration | Done -- capacity, dispatch, context, lock, filter and storage chosen per `Data` type; scoped `Domain` sessions; transport `Route`s |
+| Static wiring | Done -- `wire()` / `StaticWiring`: direct calls, measured equal to hand-written code |
 
-### Measured v2 design prototypes
+### Measured design
 
-The next broker design is experimental in `tests/design/broker_config/` and `tests/collapse/sandbox/`;
-these prototypes do not replace the public header yet. They cover per-message policy, scoped domains,
-transport routes, lifetime-safe concurrent teardown, typed static wiring and explicit dynamic bridges.
-
-Start with the [consolidated review](docs/design/REVIEW_RESPONSE_2026-09.md),
-[broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md)
-and [design decisions](docs/design/spikes/README.md). Measurements compare each option with hand-written
-code doing the same work; compiler-specific costs and untested targets remain explicit. Static wiring
-adds no synchronization: concurrent callers must keep bindings stable and use thread-safe receivers.
+Every option of the per-type configuration and the static wiring is measured against hand-written code doing the
+same work: [broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md),
+[design decisions](docs/design/spikes/README.md) and the [v1.0 comparison](MIGRATION.md#performance-v10-compared-with-v2).
+Remaining compromises are listed with their measured cost in
+[BROKER_CUSTOMISATION.md section 8](docs/design/BROKER_CUSTOMISATION.md).
 
 ### Design Decisions
 
@@ -206,12 +205,21 @@ class Listener : public sub0::SubscribeAll<float, int, std::string> {
 };
 ```
 
-### Message Filtering
+### Message Filtering and Cancellation
+
+Both are opt-in, per type or for every type (`SUB0PUB_FILTER`, `SUB0PUB_CANCEL`). Without the opt-in, a subscriber that
+declares `filter()` or calls `cancel()` does not compile, so neither is silently ignored.
 
 ```cpp
-class EvenOnly : public sub0::Subscribe<int> {
-    void receive(const int& value) noexcept override { /* handle even values */ }
-    bool filter(const int& value) noexcept override { return (value % 2) == 0; }
+struct Reading { int value; using sub0_config = sub0::config<sub0::Filter>; };
+class EvenOnly : public sub0::Subscribe<Reading> {
+    void receive(const Reading& r) noexcept override { /* handle even values */ }
+    bool filter(const Reading& r) noexcept override { return (r.value % 2) == 0; }
+};
+
+struct Command { int id; using sub0_config = sub0::config<sub0::ThreadLocalContext>; };
+class Claim : public sub0::Subscribe<Command> {
+    void receive(const Command&) noexcept override { cancel(); } // later subscribers are skipped
 };
 ```
 
@@ -233,15 +241,67 @@ Destroying a subscriber frees its slot. Destroying one that was never registered
 
 ### Re-entrancy Policy
 
-Choose one of three levels per build:
+A nested publish of the same type from `receive()` is always supported. Subscribing or unsubscribing that type from its own `receive()` (including destroying the subscriber) needs snapshot dispatch:
 
-| Configuration | Cost | Same-type publish/subscribe/unsubscribe from `receive()` |
+| Configuration | Cost | Same-type subscribe/unsubscribe from `receive()` |
 |---|---|---|
-| `SUB0PUB_REENTRANT_SAFE true` (default) | ~1.5ns per publish (snapshot) | Supported |
-| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK true` | one `thread_local` load per call | Detected: `SUB0PUB_REENTRANT_VIOLATION` |
-| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK false` | none | Undefined (the caller guarantees it never happens) |
+| default (`SUB0PUB_REENTRANT_SAFE false`), release | none | Not supported |
+| default, debug build (`SUB0PUB_REENTRANT_CHECK`) | a `thread_local` frame per publish | Detected: `SUB0PUB_REENTRANT_VIOLATION` |
+| `SUB0PUB_REENTRANT_SAFE true`, or `sub0::Snapshot` per type | a table copy and a frame per publish | Supported |
 
-`SUB0PUB_REENTRANT_CHECK` defaults to on in debug builds, so a `SUB0PUB_REENTRANT_SAFE false` release build is still checked during development. `SUB0PUB_THREAD_SAFE` always uses the snapshot.
+`SUB0PUB_THREAD_SAFE` always uses the snapshot. Without a lock, a debug build also reports a `Data` type used from two threads at once (`SUB0PUB_THREAD_CHECK`).
+
+### Per-Type Configuration
+
+Each `Data` type can choose its own policy; types that don't use the `SUB0PUB_*` macros below.
+
+```cpp
+// A message whose subscribers come and go from inside receive(): snapshot dispatch, and cancel()
+struct Imu {
+    float accel[3];
+    using sub0_config = sub0::config<sub0::Snapshot, sub0::ThreadLocalContext, sub0::Capacity<2>>;
+};
+
+// A type you cannot modify: configure it next to its declaration
+SUB0PUB_CONFIGURE(int, sub0::Capacity<16>);
+
+// Independent sessions of the same type
+struct Command { int id; using sub0_config = sub0::config<sub0::Scoped>; };
+sub0::Domain<Command> sessionA, sessionB;
+struct Handler : sub0::Subscribe<Command> {
+    using Subscribe::Subscribe;                 // Handler h(sessionA);
+    void receive(const Command&) noexcept override {}
+};
+```
+
+Options: `Capacity<N>`; `Snapshot` (selects `ThreadLocalContext` unless a context is chosen), `Direct` or `DirectChecked`; `ThreadLocalContext`, `StaticContext` (no TLS) or
+`NoContext`; `LockWith<L>` (concurrent publishers; implies `Snapshot` and `ThreadLocalContext`); `Filter` or `NoFilter`;
+`Scoped`; `Implementation<Broker>`. Invalid
+combinations do not compile. A project-wide default can be set with `SUB0PUB_CONFIG_HEADER`. With a lock, call
+`trySubscribe()` at the end of the most-derived constructor and `disconnect()` at the start of its destructor.
+
+### Static Wiring
+
+Where the receivers are known when the application is composed, bind them directly. Receivers are plain classes with
+a non-virtual `receive()`; each delivery is a direct call, as fast as writing the calls by hand.
+
+```cpp
+struct Controller { void receive(const Sample& s) noexcept; };
+struct Logger     { void receive(const Sample& s) noexcept; bool receive(const Fault& f) noexcept; };
+
+Controller controller;
+Logger logger;
+
+using Bus = sub0::StaticWiring<&controller, &logger>;  // static storage: no RAM
+Bus::publish(Sample{1});                                // controller.receive(), then logger.receive()
+Bus::publishCancelable(Fault{});                        // a bool receive() returning false stops delivery
+
+auto bus = sub0::wire(controller, logger);              // runtime addresses, same direct calls
+sub0::Sink<Sample> port(bus);                           // type-erased port for a non-template publisher
+```
+
+`DynamicPort<T, N>` and `BrokerPort<T>` bind runtime subscribers into a static wiring; `Forward<Transport>` binds a
+transport, and `publishFrom(transport, msg)` keeps ingress from echoing back out.
 
 ### Cross-Module / IPC Serialization
 
@@ -275,11 +335,18 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_ASSERT` | `true` | Enable assertion checks |
 | `SUB0PUB_STD` | `false` | Use `std::ostream`/`std::istream` instead of lightweight internal stream types |
 | `SUB0PUB_TYPEIDNAME` | `false` | Enable user-defined type IDs and names for IPC |
-| `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub |
-| `SUB0PUB_REENTRANT_SAFE` | `true` | Snapshot subscribers before dispatch for re-entrant safety. Adds ~1.5ns overhead per publish. Set `false` if you guarantee no subscriber will publish the same type from within `receive()` |
-| `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | With `SUB0PUB_REENTRANT_SAFE false`, detect a `receive()` that publishes, subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)`. Set `true` to keep the check in release builds (one `thread_local` load per call) |
+| `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub (snapshot dispatch; subscribers call `trySubscribe()` after construction) |
+| `SUB0PUB_REENTRANT_SAFE` | `false` | Snapshot dispatch: subscribe or unsubscribe a type from inside its own `receive()`. Costs a table copy and a frame per publish |
+| `SUB0PUB_CANCEL` | `false` | Publish context: `cancel()`, `Route` and publish reports. Costs a `thread_local` frame per publish |
+| `SUB0PUB_FILTER` | `false` | `filter()`: a virtual call per subscriber per publish |
+| `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | Without snapshot dispatch, detect a `receive()` that subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)` |
+| `SUB0PUB_THREAD_CHECK` | debug: `true`, `NDEBUG`: `false` | Without a lock, detect a `Data` type used from two threads at once, and call `SUB0PUB_THREAD_VIOLATION(what)` |
 | `SUB0PUB_REENTRANT_VIOLATION(what)` | `assert` then `std::abort()` | Handler for a detected re-entrancy violation. Override to log or count; if it returns, the call continues unguarded |
 | `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>`. Subscribers beyond this are rejected (see [Subscriber Capacity](#subscriber-capacity)) |
+| `SUB0PUB_CONFIG_HEADER` | unset | Header (set by the build system) that may define the project default configuration as `SUB0PUB_DEFAULT_CONFIG` |
+| `SUB0PUB_CHECK_CONFIG` | debug: `true`, `NDEBUG`: `false` | Report a `Data` type configured differently in two translation units through `SUB0PUB_CONFIG_MISMATCH(what)` |
+
+The policy macros (`SUB0PUB_MAX_SUBSCRIPTIONS`, `SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`, `SUB0PUB_THREAD_SAFE`) are the default configuration of every `Data` type that does not choose its own ([Per-Type Configuration](#per-type-configuration)). They must agree in every translation unit that uses a type.
 
 ---
 

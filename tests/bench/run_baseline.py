@@ -25,9 +25,9 @@ from collections import OrderedDict
 INSTR_ITERATIONS = 10000  # must match bench::cInstrIterations
 
 CORE_VARIANTS = OrderedDict([
-    ("Sub0Pub_Bench", "Snapshot (default)"),
-    ("Sub0Pub_Bench_Unchecked", "Direct unchecked"),
+    ("Sub0Pub_Bench", "Direct (default)"),
     ("Sub0Pub_Bench_Checked", "Direct + check"),
+    ("Sub0Pub_Bench_Full", "Full (snapshot, cancel, filter)"),
     ("Sub0Pub_Bench_ThreadSafe", "ThreadSafe"),
 ])
 IPC_VARIANTS = OrderedDict([("Sub0Pub_Bench_Ipc", "Default")])

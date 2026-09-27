@@ -4,8 +4,8 @@
 Implementations:
   * v1.0          the v1.0 tag's include/sub0pub/sub0pub.hpp (read with `git show`), default and ThreadSafe
   * v2 header     the current include/sub0pub/sub0pub.hpp, each dispatch policy
-  * sub0x         the #8 per-type broker prototype (tests/design/broker_config), selected configurations
-  * pattern B     static wiring from #9/#10 (tests/collapse/sandbox): StaticWiring, wire(), Sink<T>, DynamicPort
+  * v2 config     per-type configurations of the current header (Section 2), selected options
+  * v2 wiring     static wiring of the current header (Section 4): StaticWiring, wire(), Sink<T>, DynamicPort
   * hand-written  direct calls and a virtual loop, the floor
 
 Metrics:
@@ -45,14 +45,15 @@ SCENARIOS = [
 SHORT = ["publish 0", "publish 1", "publish 8", "filtered 1", "8, first cancels", "create + destroy"]
 
 V2_OFF = ["-DSUB0PUB_REENTRANT_SAFE=false"]
+V2_FULL = ["-DSUB0PUB_REENTRANT_SAFE=true", "-DSUB0PUB_CANCEL=true", "-DSUB0PUB_FILTER=true"]
 # (label, header, macros): cmp_sub0pub.cpp built once per entry
 HEADER_VARIANTS = [
     ("v1.0", "v1", []),
     ("v1.0 ThreadSafe (mutex)", "v1", ["-DSUB0PUB_THREAD_SAFE=true"]),
-    ("v2 Snapshot (default)", "v2", []),
-    ("v2 Direct unchecked", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=false"]),
-    ("v2 Direct + check", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=true"]),
-    ("v2 ThreadSafe (mutex + snapshot)", "v2", ["-DSUB0PUB_THREAD_SAFE=true"]),
+    ("v2 default (Direct)", "v2", []),
+    ("v2 default + debug checks", "v2", ["-DSUB0PUB_REENTRANT_CHECK=true", "-DSUB0PUB_THREAD_CHECK=true"]),
+    ("v2 Full (snapshot, cancel, filter)", "v2", V2_FULL),
+    ("v2 ThreadSafe (mutex + snapshot, filter)", "v2", ["-DSUB0PUB_THREAD_SAFE=true", "-DSUB0PUB_FILTER=true"]),
 ]
 HOST_COMPILERS = OrderedDict([("gcc", "g++"), ("clang", "clang++")])
 HOST_FLAGS = ["-std=c++17", "-O2", "-DNDEBUG", "-pthread"]
@@ -66,11 +67,10 @@ FP_TARGETS = OrderedDict([
 # (label, source, include set, macros)
 FP_VARIANTS = [
     ("v1.0", "footprint/fp_1type.cpp", "v1", ["-include", "stdexcept"]),
-    ("v2 Snapshot (default)", "footprint/fp_1type.cpp", "v2", []),
-    ("v2 Direct unchecked", "footprint/fp_1type.cpp", "v2", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=false"]),
-    ("sub0x Default", "design/broker_config/footprint/fp_sub0x_default.cpp", "v2", []),
-    ("sub0x Lean", "design/broker_config/footprint/fp_sub0x_lean.cpp", "v2", []),
-    ("B2 StaticWiring", "compare/fp_static.cpp", "v2", []),
+    ("v2 default (Direct)", "footprint/fp_1type.cpp", "v2", []),
+    ("v2 Full (snapshot, cancel, filter)", "footprint/fp_1type.cpp", "v2", V2_FULL),
+    ("v2 config Lean", "compare/fp_config_lean.cpp", "v2", []),
+    ("v2 StaticWiring", "compare/fp_static.cpp", "v2", []),
 ]
 # Link-time dependencies worth naming: anything else is the translation unit's own code
 DEPENDENCY_HINTS = ("__tls", "__aeabi_read_tp", "tls", "mutex", "pthread", "memcpy", "memmove", "operator delete",
@@ -81,14 +81,22 @@ def git(*args):
     return subprocess.run(["git", "-C", ROOT, *args], capture_output=True, text=True, check=True).stdout
 
 
-def include_sets(tmp, v1_ref):
-    v1 = os.path.join(tmp, "v1", "include")
-    os.makedirs(os.path.join(v1, "sub0pub"))
-    with open(os.path.join(v1, "sub0pub", "sub0pub.hpp"), "w") as f:
-        f.write(git("show", f"{v1_ref}:include/sub0pub/sub0pub.hpp"))
+def header_at(tmp, name, ref):
+    """Write the header at a git ref into its own include directory"""
+    inc = os.path.join(tmp, name, "include")
+    os.makedirs(os.path.join(inc, "sub0pub"))
+    with open(os.path.join(inc, "sub0pub", "sub0pub.hpp"), "w") as f:
+        f.write(git("show", f"{ref}:include/sub0pub/sub0pub.hpp"))
+    return inc
+
+
+def include_sets(tmp, v1_ref, extra_refs):
     common = [os.path.join(TESTS, d) for d in ("vendor", "bench", "compare", "collapse",
                                                  os.path.join("design", "broker_config"))]
-    return {"v1": [v1] + common, "v2": [os.path.join(ROOT, "include")] + common}
+    sets = {"v1": [header_at(tmp, "v1", v1_ref)] + common, "v2": [os.path.join(ROOT, "include")] + common}
+    for i, (_, ref) in enumerate(extra_refs):
+        sets[f"extra{i}"] = [header_at(tmp, f"extra{i}", ref)] + common
+    return sets
 
 
 def build(cxx, src, includes, macros, exe, flags):
@@ -99,7 +107,7 @@ def build(cxx, src, includes, macros, exe, flags):
     return exe
 
 
-def measure(compiler, tmp, incs):
+def measure(compiler, tmp, incs, extra_refs):
     """Return OrderedDict {row label: {scenario: instr/op}} for one host compiler."""
     rows = OrderedDict()
 
@@ -107,11 +115,15 @@ def measure(compiler, tmp, incs):
         for (section, scenario), value in run_baseline.run_callgrind(exe).items():
             rows.setdefault(section, {})[scenario] = value
 
-    for i, (label, header, macros) in enumerate(HEADER_VARIANTS):
+    variants = list(HEADER_VARIANTS)
+    for i, (label, _) in enumerate(extra_refs):
+        variants += [(f"{label} Snapshot (default)", f"extra{i}", []),
+                     (f"{label} Direct unchecked", f"extra{i}", V2_OFF + ["-DSUB0PUB_REENTRANT_CHECK=false"])]
+    for i, (label, header, macros) in enumerate(variants):
         exe = build(compiler, os.path.join(HERE, "cmp_sub0pub.cpp"), incs[header],
                     macros + [f'-DCMP_LABEL="{label}"'], os.path.join(tmp, f"{compiler}_hdr{i}"), HOST_FLAGS)
         collect(exe)
-    for name in ("cmp_sub0x", "cmp_static"):
+    for name in ("cmp_config", "cmp_static"):
         collect(build(compiler, os.path.join(HERE, name + ".cpp"), incs["v2"], [],
                       os.path.join(tmp, f"{compiler}_{name}"), HOST_FLAGS))
     return rows
@@ -143,23 +155,27 @@ def fmt(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--v1-ref", default="v1.0", help="git ref holding the v1 header (default: v1.0)")
+    parser.add_argument("--extra-ref", action="append", default=[], metavar="LABEL=REF",
+                        help="also measure the header at a git ref (default and Direct unchecked), e.g. \"v2 before=9b9d759\"")
     args = parser.parse_args()
+    extra_refs = [tuple(e.split("=", 1)) for e in args.extra_ref]
     if not shutil.which("valgrind"):
         sys.exit("valgrind is required (instruction counts are the comparison metric)")
 
     v1_sha = git("rev-parse", "--short", f"{args.v1_ref}^{{commit}}").strip()
     head_sha = git("rev-parse", "--short", "HEAD").strip()
     print("# v1 vs v2: measured comparison\n")
-    print(f"Generated by `tests/compare/compare_versions.py`. v1 header: `{args.v1_ref}` (`{v1_sha}`); "
+    extras = "".join(f"; {label}: `{ref}`" for label, ref in extra_refs)
+    print(f"Generated by `tests/compare/compare_versions.py`. v1 header: `{args.v1_ref}` (`{v1_sha}`){extras}; "
           f"everything else: `{head_sha}`.\n")
 
     with tempfile.TemporaryDirectory() as tmp:
-        incs = include_sets(tmp, args.v1_ref)
+        incs = include_sets(tmp, args.v1_ref, extra_refs)
         for name, cxx in HOST_COMPILERS.items():
             if not shutil.which(cxx):
                 continue
             version = subprocess.run([cxx, "--version"], capture_output=True, text=True).stdout.splitlines()[0]
-            rows = measure(cxx, tmp, incs)
+            rows = measure(cxx, tmp, incs, extra_refs)
             print(f"## instr/op, {name} (`{version}`, `{' '.join(HOST_FLAGS)}`)\n")
             print("| Implementation | " + " | ".join(SHORT) + " |")
             print("|---|" + "---:|" * len(SHORT))

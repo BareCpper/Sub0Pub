@@ -31,7 +31,8 @@ struct FloatAccumulator : sub0::Subscribe<float> {
     void receive(const float& value) noexcept override { total += value; }
 };
 
-struct OrderTracker : sub0::Subscribe<int> {
+// final: deleted through its own type; Subscribe<T> has no virtual destructor (MIGRATION.md)
+struct OrderTracker final : sub0::Subscribe<int> {
     int id;
     static inline std::vector<int> receiveOrder;
     OrderTracker(int id) : id(id) {}
@@ -123,13 +124,18 @@ TEST_CASE("No subscribers - publish does not crash") {
 }
 
 TEST_CASE("Filter support") {
-    struct EvenOnly : sub0::Subscribe<int> {
+    // filter() is opt-in: the type enables it (or the project defines SUB0PUB_FILTER)
+    struct Reading { int value; using sub0_config = sub0::config<sub0::Filter>; };
+    struct EvenOnly : sub0::Subscribe<Reading> {
         int total = 0;
-        void receive(const int& value) noexcept override { total += value; }
-        bool filter(const int& value) noexcept override { return (value % 2) == 0; }
+        void receive(const Reading& r) noexcept override { total += r.value; }
+        bool filter(const Reading& r) noexcept override { return (r.value % 2) == 0; }
+    };
+    struct ReadingPublisher : sub0::Publish<Reading> {
+        void send(int value) noexcept { sub0::publish(*this, Reading{value}); }
     };
 
-    IntPublisher pub;
+    ReadingPublisher pub;
     EvenOnly sub;
 
     pub.send(1);

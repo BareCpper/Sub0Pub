@@ -10,33 +10,66 @@
 
 #include "cmp_common.hpp"
 
+// filter() and cancel() are opt-in in a header that defines SUB0PUB_CANCEL; v1.0 and v2 before Phase 2 always had them
+#if defined(SUB0PUB_CANCEL)
+#define CMP_FILTER SUB0PUB_FILTER
+#define CMP_CANCEL (SUB0PUB_CANCEL || SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE)
+#else
+#define CMP_FILTER 1
+#define CMP_CANCEL 1
+#endif
+
+#include <type_traits>
+#include <utility>
+
 #ifndef CMP_LABEL
 #define CMP_LABEL "sub0pub.hpp"
 #endif
 
 namespace cmp_types {
+template<class S, class = void> struct has_try_subscribe : std::false_type {};
+template<class S> struct has_try_subscribe<S, std::void_t<decltype(std::declval<S&>().trySubscribe())>> : std::true_type {};
+
+/// v2 locked configurations (SUB0PUB_THREAD_SAFE) register explicitly after construction; v1.0 has no trySubscribe()
+template<class Data>
+struct Active : sub0::Subscribe<Data> {
+    Active() noexcept
+    {
+        if constexpr (SUB0PUB_THREAD_SAFE && has_try_subscribe<sub0::Subscribe<Data>>::value)
+            this->trySubscribe();
+    }
+};
+
 // Every receiver does the same observable work (one increment), so no implementation can drop the call
-struct Counting : sub0::Subscribe<int> {
+struct Counting : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };
-struct NoOp : sub0::Subscribe<int> { // second implementation: receive() stays a real virtual call
+struct NoOp : Active<int> { // second implementation: receive() stays a real virtual call
     void receive(const int&) noexcept override;
 };
-struct Filtered : sub0::Subscribe<int> {
+#if CMP_FILTER
+struct Filtered : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
     bool filter(const int& v) noexcept override;
 };
-struct Cancelling : sub0::Subscribe<int> {
+#endif
+#if CMP_CANCEL
+struct Cancelling : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };
+#endif
 void NoOp::receive(const int&) noexcept {}
 void Counting::receive(const int&) noexcept { ++count; }
+#if CMP_FILTER
 void Filtered::receive(const int&) noexcept { ++count; }
 bool Filtered::filter(const int& v) noexcept { return (v & 1) == 0; }
+#endif
+#if CMP_CANCEL
 void Cancelling::receive(const int&) noexcept { ++count; cancel(); }
+#endif
 
 struct Source : sub0::Publish<int> {
     CMP_NOINLINE void send(int v) noexcept { sub0::publish(*this, v); }
@@ -69,11 +102,14 @@ int main()
         (void)subs;
         h.run(cmp::cPublish8, [&] { pub.send(42); });
     }
+#if CMP_FILTER
     {
         Source pub;
         Filtered sub;
         h.run(cmp::cFiltered, [&] { pub.send(42); });
     }
+#endif
+#if CMP_CANCEL
     {
         Source pub;
         Cancelling first;
@@ -81,6 +117,7 @@ int main()
         (void)rest;
         h.run(cmp::cCancel8, [&] { pub.send(42); });
     }
+#endif
     h.run(cmp::cCreateDestroy, [&] { createDestroy(); });
     NoOp unused; // keeps a second override live, as in tests/bench
     (void)unused;
