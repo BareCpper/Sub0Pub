@@ -10,25 +10,41 @@
 
 #include "cmp_common.hpp"
 
+#include <type_traits>
+#include <utility>
+
 #ifndef CMP_LABEL
 #define CMP_LABEL "sub0pub.hpp"
 #endif
 
 namespace cmp_types {
+template<class S, class = void> struct has_try_subscribe : std::false_type {};
+template<class S> struct has_try_subscribe<S, std::void_t<decltype(std::declval<S&>().trySubscribe())>> : std::true_type {};
+
+/// v2 locked configurations (SUB0PUB_THREAD_SAFE) register explicitly after construction; v1.0 has no trySubscribe()
+template<class Data>
+struct Active : sub0::Subscribe<Data> {
+    Active() noexcept
+    {
+        if constexpr (SUB0PUB_THREAD_SAFE && has_try_subscribe<sub0::Subscribe<Data>>::value)
+            this->trySubscribe();
+    }
+};
+
 // Every receiver does the same observable work (one increment), so no implementation can drop the call
-struct Counting : sub0::Subscribe<int> {
+struct Counting : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };
-struct NoOp : sub0::Subscribe<int> { // second implementation: receive() stays a real virtual call
+struct NoOp : Active<int> { // second implementation: receive() stays a real virtual call
     void receive(const int&) noexcept override;
 };
-struct Filtered : sub0::Subscribe<int> {
+struct Filtered : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
     bool filter(const int& v) noexcept override;
 };
-struct Cancelling : sub0::Subscribe<int> {
+struct Cancelling : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };

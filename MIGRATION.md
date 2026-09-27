@@ -65,6 +65,89 @@ New `sub0::SubscribeResult` enum (`Subscribed`, `CapacityExceeded`). `Subscribe<
 
 **Action:** None required. Check `isSubscribed()` where the number of subscribers per type cannot be bounded ahead of time.
 
+### `Subscribe<Data>` and `Publish<Data>` have no virtual destructor
+
+`Subscribe<Data>::~Subscribe()` is `protected` and non-virtual, and `Publish<Data>` has no destructor of its own: it is no longer polymorphic, and for global storage it is an empty handle. A subscriber is destroyed as its own type. Deleting one through a `Subscribe<Data>*` or `Publish<Data>*` is a compile error.
+
+This removes the deleting-destructor code and the `operator delete` link dependency from small targets.
+
+**Action:**
+- Delete or hold subscribers by their own type.
+- Mark leaf subscriber classes `final` when they are destroyed through a pointer to their own type (`delete`, `std::unique_ptr`) or held in `std::optional`. Otherwise gcc (`-Wdelete-non-virtual-dtor`) and clang (`-Wdelete-non-abstract-non-virtual-dtor`) warn.
+- Remove `override` from subscriber destructors.
+
+### `SUB0PUB_THREAD_SAFE` subscribers register explicitly
+
+With a lock (`SUB0PUB_THREAD_SAFE`, or `sub0::LockWith<L>`), the `Subscribe<Data>` constructor no longer registers the subscriber. Registering there would let another thread call `receive()` before the derived class is constructed. After `disconnect()` returns, `receive()` is not called again on any thread.
+
+**Action:** In the most-derived subscriber:
+- call `trySubscribe()` at the end of the constructor;
+- call `disconnect()` at the start of the destructor.
+
+```cpp
+struct Logger final : sub0::Subscribe<Sample>
+{
+    Logger() noexcept { trySubscribe(); }
+    ~Logger() { disconnect(); }
+    void receive(const Sample&) noexcept override;
+};
+```
+
+Single-threaded configurations are unchanged: they register in the constructor.
+
+### `SubscribeResult::Closed` added
+
+`trySubscribe()` returns `Closed` when a scoped subscriber's `Domain` has been closed (see "Per-type configuration" below).
+
+**Action:** A `switch` over `SubscribeResult` needs the new case.
+
+### `Subscribe<Data>::cancel()` and `sub0::cancel<Data>()` are `noexcept`
+
+`Subscribe<Data>::cancel()` is now `const noexcept`, and the free function `sub0::cancel<Data>(from)` is `noexcept`. `cancel()` outside a publication of that type does nothing; it no longer asserts.
+
+**Action:** None.
+
+### `detail::Broker<Data>` is an alias of the configured broker
+
+`sub0::detail::Broker<Data>` now names the broker implementation that `Data`'s configuration selects; `cMaxSubscriptions` is still available. The broker's `unsubscribe()`, `isSubscribed()`, `active()`, `typeId()` and `typeName()` members are gone: use `Subscribe<Data>` and `Publish<Data>` instead.
+
+**Action:** Remove direct `detail::Broker` use.
+
+### Per-type configuration (new)
+
+Each `Data` type can now choose its own policy. The `SUB0PUB_*` macros are the default for types that don't. The configuration is resolved once per type, from exactly one of:
+- a member alias: `struct Imu { ...; using sub0_config = sub0::config<sub0::Capacity<2>, sub0::NoFilter>; };`
+- an ADL declaration in the type's namespace: `sub0::config<sub0::Direct> sub0_config(Gps*);`
+- `SUB0PUB_CONFIGURE(Type, options...)`, for types you cannot modify;
+- otherwise the project default (`SUB0PUB_CONFIG_HEADER`), otherwise the `SUB0PUB_*` macros.
+
+The options are:
+- `Capacity<N>`;
+- `Snapshot`, `Direct` or `DirectChecked`;
+- `ThreadLocalContext`, `StaticContext` (no TLS) or `NoContext`;
+- `LockWith<L>`;
+- `NoFilter`, which removes `filter()`;
+- `Scoped`, with `Domain<Data>` sessions;
+- `Implementation<Broker>`, for an application-defined broker.
+
+`Route<Data, Transport>` binds a transport endpoint to a table. `sub0::publish(from, data, report)` reports what each route accepted. Invalid combinations are compile errors.
+
+Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes.
+
+**Action:** None. Types without a configuration behave as before. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
+
+### Static wiring (new)
+
+`sub0::wire(a, b, logger)` and `sub0::StaticWiring<&a, &b, &logger>` bind receivers at the application's composition point. Receivers are plain classes with a non-virtual `receive(const T&)`; each delivery is a direct call, measured equal to hand-written code. The rest of the static wiring API:
+- `publishCancelable()` stops at a receiver whose `bool receive()` returns `false`;
+- `Sink<T>` is a type-erased port for non-template publishers;
+- `Publisher<Derived, Out>` is a CRTP mixin;
+- `Forward<Transport>` and `StaticForward<&transport>` are transport endpoints, with split horizon through `publishFrom()`;
+- `DynamicPort<T, N>` and `BrokerPort<T>` bring runtime subscribers into a static wiring;
+- `handles_v<R, T>` asserts that a receiver handles a message.
+
+**Action:** None. Scored forms: [docs/design/COLLAPSE_SCORES.md](docs/design/COLLAPSE_SCORES.md).
+
 ---
 
 ## Behavioral Changes
@@ -96,6 +179,20 @@ The member function `Publish<Data>::publish(data)` is no longer public. Use the 
 ### Re-entrant publish safety is now snapshot-based
 
 `Broker::publish()` snapshot-copies the subscriber list before dispatching, preventing deadlock when a subscriber publishes the same type from within `receive()`. This adds ~1.5ns overhead per publish. Disable with `#define SUB0PUB_REENTRANT_SAFE false` if re-entrant publish is guaranteed not to occur.
+
+### Disconnecting during a dispatch is safe with Snapshot dispatch
+
+A subscriber disconnected or destroyed while its type is being dispatched on the same thread is removed from that dispatch. Before, the dispatch's snapshot still held it and called it afterwards (issue #5). `filter()` may also disconnect or destroy its own subscriber: `receive()` is then not called.
+
+Each publication's `cancel()` and the `DirectChecked` re-entrancy check apply only to the table being dispatched. That is one per type, or one per `Domain`.
+
+**Action:** None.
+
+### `SUB0PUB_TYPEIDNAME` compiles
+
+`SUB0PUB_TYPEIDNAME` did not compile (issue #11). It does now: the identity passed to a `Subscribe`/`Publish` constructor names the type in stream headers. `Publish<Data>::typeName()` and `typeId()` are now public.
+
+**Action:** None.
 
 ### Type ID fallback uses compile-time hash
 
@@ -144,6 +241,17 @@ Default `true`. Controls whether `publish()` snapshot-copies the subscriber list
 With `SUB0PUB_REENTRANT_SAFE false`, a `receive()` that publishes, subscribes or unsubscribes its own `Data` type on the same thread was silently unsupported. `SUB0PUB_REENTRANT_CHECK` now detects it and calls `SUB0PUB_REENTRANT_VIOLATION(what)`, which by default asserts and then aborts. The check defaults to on in debug builds (`SUB0PUB_ASSERT` without `NDEBUG`) and off in release builds. Define `SUB0PUB_REENTRANT_CHECK true` to keep it in release. The check has no effect when the snapshot is active (`SUB0PUB_REENTRANT_SAFE` or `SUB0PUB_THREAD_SAFE`).
 
 **Action:** Only affects `SUB0PUB_REENTRANT_SAFE false` builds. A debug build that hits the new abort was already relying on unsupported behaviour. Either enable `SUB0PUB_REENTRANT_SAFE` or restructure the subscriber.
+
+### Configuration macros for per-type configuration (new in v2)
+
+- `SUB0PUB_CONFIG_HEADER`: a header, named by the build system, that may define the project default configuration as `SUB0PUB_DEFAULT_CONFIG`.
+- `SUB0PUB_DEFAULT_CONFIG`: the project default configuration type, e.g. `struct ProjectDefaults : sub0::with<sub0::Builtin, sub0::Capacity<4>> {};`.
+- `SUB0PUB_CONFIGURE(Type, options...)`: configure a type you cannot modify.
+- `SUB0PUB_CHECK_CONFIG`: the debug check for a type configured differently in two translation units (default: on without `NDEBUG`).
+- `SUB0PUB_CONFIG_MISMATCH(what)`: the action when that check fails (default: assert, then abort).
+- `SUB0PUB_DOMAIN_LIFETIME(what)`: the action when a `Domain` is destroyed while handles are still bound to it (default: assert, then abort).
+
+The `SUB0PUB_*` policy macros must agree in every translation unit that uses a type. Setting them differently in one translation unit is only valid for types local to it.
 
 ### `SUB0_STRINGIFY` renamed to `SUB0PUB_STRINGIFY`
 
@@ -199,29 +307,25 @@ On GCC/Clang, the layout hash captures per-member offset and size via structured
 
 ---
 
-## Performance: v1.0 compared with v2 and the designs under review
+## Performance: v1.0 compared with v2
 
-Measured with `python3 tests/compare/compare_versions.py`, which builds the same scenarios against the v1.0 tag's
-header, the v2 header's policies, the per-type broker prototype (#8) and the static wiring prototypes (#9), with
-hand-written code as the floor. Full tables, both compilers and method notes:
+Measured with `python3 tests/compare/compare_versions.py`. It builds the same scenarios against the v1.0 tag's
+header and the v2 header: each macro policy, selected per-type configurations and the static wiring, with
+hand-written code as the floor. Full tables, both compilers and method notes are in
 [docs/perf/compare-v1-v2-2026-09.md](docs/perf/compare-v1-v2-2026-09.md). The metric is exact instructions per
-operation under callgrind (the repository's regression bar), not wall-clock time.
-
-Rows marked *prototype* are designs under review in `tests/design/` and `tests/collapse/`; they are not part of
-`sub0pub.hpp` yet and their API may change.
+operation under callgrind, the repository's regression bar, not wall-clock time.
 
 ### Runtime (instr/op, gcc 13 -O2; clang 18 in brackets)
 
 | Implementation | publish, 1 subscriber | publish, 8 subscribers | 8, first cancels | create + destroy |
 |---|---:|---:|---:|---:|
 | **v1.0** | 60 (60) | 221 (214) | 60 (57) | 48 (31) |
-| v2 Snapshot (default) | 75 (68) | 257 (228) | 90 (78) | 63 (47) |
-| v2 Direct unchecked | 57 (61) | 211 (215) | 56 (57) | 63 (47) |
+| v2 default (Snapshot) | 80 (73) | 290 (262) | 102 (91) | 80 (72) |
+| v2 `SUB0PUB_REENTRANT_SAFE=false` (Direct) | 67 (61) | 242 (229) | 73 (64) | 80 (72) |
 | v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
-| v2 ThreadSafe | 149 (144) | 332 (305) | 165 (155) | 220 (204) |
-| *prototype* per-type broker, Default | 80 (73) | 290 (262) | 102 (91) | 80 (72) |
-| *prototype* per-type broker, Lean | 34 (29) | 104 (99) | n/a | 67 (61) |
-| *prototype* static wiring (`StaticWiring`, `wire()`) | 9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
+| v2 ThreadSafe | 260 (266) | 554 (516) | 301 (281) | 310 (301) |
+| v2 per-type config, Lean (`Direct, NoContext, NoFilter`) | 34 (29) | 104 (99) | n/a | 67 (61) |
+| v2 static wiring (`StaticWiring`, `wire()`) | 8–9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
 | hand-written direct calls | 9 (7) | 37 (37) | 15 (8) | n/a |
 
 ### Embedded footprint (Cortex-M33, one publisher, one subscriber, one publish site)
@@ -229,27 +333,39 @@ Rows marked *prototype* are designs under review in `tests/design/` and `tests/c
 | Implementation | text / data / bss (bytes) | Needs thread-local storage | Other link-time dependencies |
 |---|---|---|---|
 | **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
-| v2 Snapshot (default) | 566 / 4 / 77 | yes | `memcpy`, `memmove`, `operator delete`, `__cxa_pure_virtual` |
-| v2 Direct unchecked | 526 / 4 / 77 | yes | `memmove`, `operator delete`, `__cxa_pure_virtual` |
-| *prototype* per-type broker, Default | 570 / 4 / 62 | yes | as v2 Snapshot |
-| *prototype* per-type broker, Lean | 394 / 4 / 58 | no | `memmove`, `operator delete`, `__cxa_pure_virtual` |
-| *prototype* `StaticWiring` | 12 / 0 / 4 | no | none |
+| v2 default (Snapshot) | 526 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
+| v2 `SUB0PUB_REENTRANT_SAFE=false` (Direct) | 494 / 4 / 62 | yes | `memmove`, `__cxa_pure_virtual` |
+| v2 per-type config, Lean | 394 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 
 ### What this means when migrating
 
-- **v2's default costs more than v1.0.** Publishing to 1 or 8 subscribers costs 8 to 36 instructions more, and the
-  embedded image is 148 bytes larger. That buys re-entrant-safe dispatch (the snapshot), bounded capacity reported to
-  the caller, and order-preserving unsubscription. v1.0 had none of these.
-- **To keep v1.0's cost** where you never publish, subscribe or unsubscribe a type from inside its own `receive()`,
-  build with `SUB0PUB_REENTRANT_SAFE=false`. Publishing is then at or below v1.0 (gcc 57 vs 60, 211 vs 221). Creating
-  and destroying a subscriber stays about 15 instructions dearer, and the image stays 108 bytes larger than v1.0's.
-  `SUB0PUB_REENTRANT_CHECK` reports misuse in debug builds.
-- **`SUB0PUB_THREAD_SAFE`** costs 19 to 41 instructions more than v1.0's on gcc (11 to 25 on clang), because v2 also takes the snapshot inside the
-  lock. It still does not build on `arm-none-eabi` (no `std::mutex`).
-- **Where v2 is heading.** Both prototypes are measured here to show what the next API steps would cost.
-  - The per-type broker's Lean configuration publishes to 8 subscribers in about half v1.0's instructions. It also
-    drops the thread-local storage requirement and is 24 bytes smaller than v1.0.
-  - Its Default configuration costs slightly more than the v2 header's default. It adds safe teardown during
-    concurrent delivery (known issue K3) and a re-check after `filter()`, which costs 2 instructions per subscriber.
-  - Static wiring costs the same as hand-written direct calls: about 6 times fewer instructions than v1.0 for
-    8 subscribers, and 12 bytes of code.
+- **v2's default costs more than v1.0 at runtime.** Publishing to subscribers costs 20 to 69 instructions more on gcc
+  (13 to 48 on clang); publishing to none is cheaper. Creating and destroying a subscriber costs 32 more on gcc (41 on
+  clang). What that buys:
+  - re-entrant publish, subscribe and unsubscribe (the snapshot);
+  - capacity reported to the caller;
+  - order-preserving unsubscription;
+  - disconnect and destruction during a dispatch, and inside `filter()`, without use-after-free;
+  - `cancel()` isolated per table.
+
+  v1.0 had none of these.
+- **The embedded image is 108 bytes larger than v1.0, and no longer needs `operator delete`.** That is 40 bytes
+  smaller than v2 before the per-type broker, because `Subscribe`/`Publish` lost their virtual destructors.
+- **`SUB0PUB_REENTRANT_SAFE=false` does not reach v1.0's cost any more.** It still saves 13 to 48 instructions per
+  publish against v2's default on gcc.
+- **For v1.0's cost or less, configure the type.**
+  - A type configured `Direct, NoContext, NoFilter` publishes to 8 subscribers in under half v1.0's instructions,
+    needs no thread-local storage, and is 24 bytes smaller than v1.0. It gives up `cancel()` and `filter()`.
+  - Where the receivers are known when the application is composed, static wiring costs exactly what hand-written
+    calls cost: about 6 times fewer instructions than v1.0 for 8 subscribers, and 12 bytes of code.
+- **`SUB0PUB_THREAD_SAFE` now costs about twice v1.0's.** v1.0 is 130 and 291 instructions for 1 and 8 subscribers;
+  v2 is 260 and 554.
+  - That buys teardown that is safe during concurrent delivery. v1.0's and the earlier v2's ThreadSafe mode could
+    call a subscriber after it was destroyed.
+  - The cost is a handshake per subscriber per publish and a second lock acquisition per publish (known issue K3 in
+    [docs/design/BROKER_CUSTOMISATION.md](docs/design/BROKER_CUSTOMISATION.md)).
+  - A lighter lock than `std::mutex`, through `LockWith<L>`, closes most of the gap. A spin lock measures 134 and
+    421 instructions, against v1.0's 130 and 291.
+  - `SUB0PUB_THREAD_SAFE` still does not build on `arm-none-eabi`, which has no `std::mutex`. Use `LockWith<L>` with
+    the RTOS lock.

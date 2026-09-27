@@ -8,6 +8,37 @@ Full reports:
 - [perf/baseline-2026-09-linux-gcc13-bench.md](perf/baseline-2026-09-linux-gcc13-bench.md): every scenario, instr/op and ns/op
 - [perf/baseline-2026-09-footprint.md](perf/baseline-2026-09-footprint.md): code size, RAM, sizeof, link dependencies
 
+## Phase 2: the current bar
+
+Phase 2 replaced the broker in `sub0pub.hpp` with the per-type broker from the design study and added static wiring.
+The tables further down are the header **before** Phase 2 (`9e04143`). These are the numbers new changes are measured
+against (`tests/bench/run_baseline.py --no-timing`, GCC 13, `-O2`):
+
+| Scenario | Snapshot (default) | Direct unchecked | Direct + check | ThreadSafe |
+|---|---:|---:|---:|---:|
+| publish, 0 subscribers | 28 (38) | 41 (39) | 43 (38) | 232 (123) |
+| publish, 1 subscriber | 77 (72) | 65 (60) | 67 (59) | 273 (157) |
+| publish, 8 subscribers | 287 (247) | 233 (207) | 235 (206) | 553 (333) |
+| 8 subscribers, first cancels | 99 (87) | 71 (59) | 73 (58) | 314 (173) |
+| re-entrant publish, depth 1 | 158 (147) | n/a | n/a | 546 (312) |
+| create + destroy subscriber | 78 (61) | 78 (61) | 90 (66) | 310 (218) |
+| unsubscribe first of 8 + resubscribe | 103 (88) | 103 (88) | 117 (92) | 328 (237) |
+| `trySubscribe()`, table full | 15 (12) | 15 (12) | 20 (14) | 98 (90) |
+
+In brackets: before Phase 2. **This breaks the zero-cost rule below for the macro policies, knowingly.** Each increase
+pays for a correctness fix the old broker lacked, and each is a known issue with a route back to zero cost in
+[BROKER_CUSTOMISATION.md section 8](design/BROKER_CUSTOMISATION.md):
+- K1, create + destroy: a subscriber disconnected or destroyed during a dispatch is no longer called by it.
+- K2, the dispatch frame: `cancel()` is isolated per table, which routes and domains need.
+- The re-check after `filter()`: a `filter()` that disconnects its own subscriber no longer gets `receive()`.
+- K3, ThreadSafe: `disconnect()` waits out a callback running on another thread, so teardown during concurrent
+  delivery is safe.
+
+The per-type options go below the old bar: Lean (`Direct, NoContext, NoFilter`) publishes to 1 and 8 subscribers in
+34 and 104 instructions, and static wiring equals hand-written calls
+([perf/compare-v1-v2-2026-09.md](perf/compare-v1-v2-2026-09.md)). On Cortex-M33 the default one-type image went from
+566 to 526 bytes of text, and `operator delete` is no longer linked.
+
 ## How it is measured
 
 | Metric | Tool | Use |

@@ -19,7 +19,7 @@ public:
 
 // Subscribe: inherit and implement receive()
 class Display : public sub0::Subscribe<float> {
-    void receive(const float& value) override {
+    void receive(const float& value) noexcept override {
         // Automatically called when any Publish<float> fires
     }
 };
@@ -74,18 +74,16 @@ int main() {
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 | Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
+| Per-type configuration | Done -- capacity, dispatch, context, lock, filter and storage chosen per `Data` type; scoped `Domain` sessions; transport `Route`s |
+| Static wiring | Done -- `wire()` / `StaticWiring`: direct calls, measured equal to hand-written code |
 
-### Measured v2 design prototypes
+### Measured design
 
-The next broker design is experimental in `tests/design/broker_config/` and `tests/collapse/sandbox/`;
-these prototypes do not replace the public header yet. They cover per-message policy, scoped domains,
-transport routes, lifetime-safe concurrent teardown, typed static wiring and explicit dynamic bridges.
-
-Start with the [consolidated review](docs/design/REVIEW_RESPONSE_2026-09.md),
-[broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md)
-and [design decisions](docs/design/spikes/README.md). Measurements compare each option with hand-written
-code doing the same work; compiler-specific costs and untested targets remain explicit. Static wiring
-adds no synchronization: concurrent callers must keep bindings stable and use thread-safe receivers.
+Every option of the per-type configuration and the static wiring is measured against hand-written code doing the
+same work: [broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md),
+[design decisions](docs/design/spikes/README.md) and the [v1.0 comparison](MIGRATION.md#performance-v10-compared-with-v2).
+Remaining compromises are listed with their measured cost in
+[BROKER_CUSTOMISATION.md section 8](docs/design/BROKER_CUSTOMISATION.md).
 
 ### Design Decisions
 
@@ -243,6 +241,57 @@ Choose one of three levels per build:
 
 `SUB0PUB_REENTRANT_CHECK` defaults to on in debug builds, so a `SUB0PUB_REENTRANT_SAFE false` release build is still checked during development. `SUB0PUB_THREAD_SAFE` always uses the snapshot.
 
+### Per-Type Configuration
+
+Each `Data` type can choose its own policy; types that don't use the `SUB0PUB_*` macros below.
+
+```cpp
+// A hot, single-threaded message: direct iteration, no publish context, no filter() virtual
+struct Imu {
+    float accel[3];
+    using sub0_config = sub0::config<sub0::Direct, sub0::NoContext, sub0::NoFilter, sub0::Capacity<2>>;
+};
+
+// A type you cannot modify: configure it next to its declaration
+SUB0PUB_CONFIGURE(int, sub0::Capacity<16>);
+
+// Independent sessions of the same type
+struct Command { int id; using sub0_config = sub0::config<sub0::Scoped>; };
+sub0::Domain<Command> sessionA, sessionB;
+struct Handler : sub0::Subscribe<Command> {
+    using Subscribe::Subscribe;                 // Handler h(sessionA);
+    void receive(const Command&) noexcept override {}
+};
+```
+
+Options: `Capacity<N>`; `Snapshot`, `Direct` or `DirectChecked`; `ThreadLocalContext`, `StaticContext` (no TLS) or
+`NoContext`; `LockWith<L>` (concurrent publishers); `NoFilter`; `Scoped`; `Implementation<Broker>`. Invalid
+combinations do not compile. A project-wide default can be set with `SUB0PUB_CONFIG_HEADER`. With a lock, call
+`trySubscribe()` at the end of the most-derived constructor and `disconnect()` at the start of its destructor.
+
+### Static Wiring
+
+Where the receivers are known when the application is composed, bind them directly. Receivers are plain classes with
+a non-virtual `receive()`; each delivery is a direct call, as fast as writing the calls by hand.
+
+```cpp
+struct Controller { void receive(const Sample& s) noexcept; };
+struct Logger     { void receive(const Sample& s) noexcept; bool receive(const Fault& f) noexcept; };
+
+Controller controller;
+Logger logger;
+
+using Bus = sub0::StaticWiring<&controller, &logger>;  // static storage: no RAM
+Bus::publish(Sample{1});                                // controller.receive(), then logger.receive()
+Bus::publishCancelable(Fault{});                        // a bool receive() returning false stops delivery
+
+auto bus = sub0::wire(controller, logger);              // runtime addresses, same direct calls
+sub0::Sink<Sample> port(bus);                           // type-erased port for a non-template publisher
+```
+
+`DynamicPort<T, N>` and `BrokerPort<T>` bind runtime subscribers into a static wiring; `Forward<Transport>` binds a
+transport, and `publishFrom(transport, msg)` keeps ingress from echoing back out.
+
 ### Cross-Module / IPC Serialization
 
 ```cpp
@@ -280,6 +329,10 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | With `SUB0PUB_REENTRANT_SAFE false`, detect a `receive()` that publishes, subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)`. Set `true` to keep the check in release builds (one `thread_local` load per call) |
 | `SUB0PUB_REENTRANT_VIOLATION(what)` | `assert` then `std::abort()` | Handler for a detected re-entrancy violation. Override to log or count; if it returns, the call continues unguarded |
 | `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>`. Subscribers beyond this are rejected (see [Subscriber Capacity](#subscriber-capacity)) |
+| `SUB0PUB_CONFIG_HEADER` | unset | Header (set by the build system) that may define the project default configuration as `SUB0PUB_DEFAULT_CONFIG` |
+| `SUB0PUB_CHECK_CONFIG` | debug: `true`, `NDEBUG`: `false` | Report a `Data` type configured differently in two translation units through `SUB0PUB_CONFIG_MISMATCH(what)` |
+
+The policy macros (`SUB0PUB_MAX_SUBSCRIPTIONS`, `SUB0PUB_REENTRANT_*`, `SUB0PUB_THREAD_SAFE`) are the default configuration of every `Data` type that does not choose its own ([Per-Type Configuration](#per-type-configuration)). They must agree in every translation unit that uses a type.
 
 ---
 

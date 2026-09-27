@@ -1,6 +1,9 @@
 #pragma once
 /** PROTOTYPE (issue #9, Phase 1 sandbox): typed bindings at the application's composition point ("pattern B")
  *
+ * The decided forms are now public API in sub0pub.hpp (Section 4, namespace sub0). This sandbox keeps every measured
+ * alternative, including the rejected ones, so the collapse evidence cases stay reproducible.
+ *
  * Receivers are ordinary classes: a non-virtual `receive(const T&)` per message type they handle, and optionally
  * `bool filter(const T&)`. No base class, no registry, no registration at construction.
  *

@@ -50,3 +50,18 @@ TEST_CASE("Cancel does not affect subsequent publishes") {
     CHECK(canceller.callCount == 2);
     CHECK(after.callCount == 1);
 }
+
+TEST_CASE("sub0::cancel<Data>(publisher) stops the publication from inside receive()") {
+    struct Gate : sub0::Subscribe<int> {
+        CancelPublisher* pub = nullptr;
+        int callCount = 0;
+        void receive(const int&) noexcept override { ++callCount; sub0::cancel<int>(*pub); }
+    };
+    CancelPublisher pub;
+    Gate gate;
+    gate.pub = &pub;
+    Counter after;
+    pub.send(1);
+    CHECK(gate.callCount == 1);
+    CHECK(after.callCount == 0);
+}

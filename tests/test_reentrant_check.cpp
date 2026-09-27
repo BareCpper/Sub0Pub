@@ -35,7 +35,7 @@ struct OtherPublisher : sub0::Publish<OtherMsg>
     void send(int value) { sub0::publish(*this, OtherMsg{value}); }
 };
 
-struct PlainSubscriber : sub0::Subscribe<ReMsg>
+struct PlainSubscriber final : sub0::Subscribe<ReMsg>
 {
     int received = 0;
     void receive(const ReMsg&) noexcept override { ++received; }

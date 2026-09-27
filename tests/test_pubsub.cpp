@@ -31,7 +31,8 @@ struct FloatAccumulator : sub0::Subscribe<float> {
     void receive(const float& value) noexcept override { total += value; }
 };
 
-struct OrderTracker : sub0::Subscribe<int> {
+// final: deleted through its own type; Subscribe<T> has no virtual destructor (MIGRATION.md)
+struct OrderTracker final : sub0::Subscribe<int> {
     int id;
     static inline std::vector<int> receiveOrder;
     OrderTracker(int id) : id(id) {}

@@ -23,6 +23,7 @@
 #define CROG_SUB0PUB_HPP
 
 #include <algorithm>
+#include <cstddef>
 #include <atomic>
 #include <array>
 #include <cassert>
@@ -31,8 +32,10 @@
 #include <cstring>
 #include <iosfwd>
 #include <stdexcept>
+#include <thread>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #if SUB0PUB_THREAD_SAFE
 #include <mutex>
@@ -98,6 +101,28 @@
 #define SUB0PUB_REENTRANT_VIOLATION(what) do { assert(!(what)); std::abort(); } while(false)
 #endif
 
+/** Debug diagnostic for a Data type resolving to different configurations in different translation units
+ * Default: enabled in debug builds (SUB0PUB_ASSERT and no NDEBUG). Consistent configuration visibility is a build
+ * contract (see sub0::config_t); this check only reports violations it observes at runtime.
+ */
+#ifndef SUB0PUB_CHECK_CONFIG
+#if SUB0PUB_ASSERT && !defined(NDEBUG)
+#define SUB0PUB_CHECK_CONFIG true
+#else
+#define SUB0PUB_CHECK_CONFIG false
+#endif
+#endif
+
+/** Action on a detected configuration mismatch (see SUB0PUB_CHECK_CONFIG). Default asserts, then aborts. */
+#ifndef SUB0PUB_CONFIG_MISMATCH
+#define SUB0PUB_CONFIG_MISMATCH(what) do { assert(!(what)); std::abort(); } while(false)
+#endif
+
+/** Action when a Domain is destroyed while handles are still bound to it. Default asserts, then aborts. */
+#ifndef SUB0PUB_DOMAIN_LIFETIME
+#define SUB0PUB_DOMAIN_LIFETIME(what) do { assert(!(what)); std::abort(); } while(false)
+#endif
+
 /** Helper macro for stringifying value using compiler preprocessor
  * e.g. SUB0PUB_STRINGIFY_HELPER(123) == "123", SUB0PUB_STRINGIFY_HELPER(FooBar) == "FooBar"
  * @param  x  A value whos value will be converted to string e.g. FooBar == "FooBar", 123 = "123"
@@ -123,561 +148,21 @@
 /** Sub0Pub top-level namespace
  *
  * Header layout:
- *   1. Core API   — Subscribe, Publish, SubscribeAll, publish(), cancel()
- *   2. Internal   — Broker, Check (required by Core API, implementation detail)
- *   3. Utility    — Streams, hashing, arity detection, layout fingerprinting
- *   4. IPC API    — StreamSerializer, StreamDeserializer, ForwardSubscribe/Publish
+ *   1. Utility        - streams, hashing, arity detection, layout fingerprinting
+ *   2. Configuration  - per-Data policy (capacity, dispatch, context, lock, filter, storage) and its resolution
+ *   3. Core API       - Subscribe, Publish, SubscribeAll, Domain, Route, publish(), cancel()
+ *   4. Static wiring  - wire(), StaticWiring, Sink, Publisher, Forward, DynamicPort, BrokerPort
+ *   5. IPC API        - StreamSerializer, StreamDeserializer, ForwardSubscribe/Publish
 */
 namespace sub0
 {
-
-// ============================================================================
-// Forward declarations
-// ============================================================================
-
-    template< typename Data > class Publish;
-    template< typename Data > class Subscribe;
-
-    /** Outcome of a bounded subscription registration
-     * @see Subscribe::trySubscribe, Subscribe::isSubscribed
-     */
-    enum class SubscribeResult : uint8_t
-    {
-        Subscribed,        ///< Registered; subscriber receives subsequent publish() calls
-        CapacityExceeded   ///< Table already held SUB0PUB_MAX_SUBSCRIPTIONS entries; table left unchanged
-    };
-
     namespace detail
     {
-        template< typename Data > class Broker;
         struct Empty {};
     }
 
 // ============================================================================
-// Section 1: Core API — Subscribe, Publish, SubscribeAll, publish(), cancel()
-// ============================================================================
-
-    namespace detail
-    {
-        /** Provides debug assertion/exception checks for Broker<>
-         * @see SUB0PUB_TRACE   Enable logging for broker events
-         * @see SUB0PUB_ASSERT  Enable assertion tests for invalid parameters
-         */
-        struct Check
-        {
-            template<typename Data>
-            inline static void onSubscription( const Broker<Data>& broker, Subscribe<Data>* subscriber, const uint32_t subscriptionCount, const uint32_t subscriptionCapacity )
-            {
-#if SUB0PUB_ASSERT
-                assert( subscriber );
-#endif
-                // Capacity is intentionally not asserted: exceeding it is a reported runtime outcome
-                // (SubscribeResult::CapacityExceeded), identical in debug and release builds.
-                (void)broker; (void)subscriber; (void)subscriptionCount; (void)subscriptionCapacity;
-            }
-
-            template<typename Data>
-            inline static void onPublication( Publish<Data>* publisher, const Broker<Data>& broker, const uint32_t publisherCount, const uint32_t publisherCapacity )
-            {
-#if SUB0PUB_ASSERT
-                assert( publisher );
-                assert( publisherCount < publisherCapacity );
-#endif
-                (void)publisher; (void)broker; (void)publisherCount; (void)publisherCapacity;
-            }
-
-            template<typename Data>
-            inline static void onPublish( const Publish<Data>& publisher, const Data& data )
-            {
-                (void)publisher; (void)data;
-            }
-
-            template<typename Data>
-            static void onReceive( Subscribe<Data>* subscriber, const Data& data )
-            {
-#if SUB0PUB_ASSERT
-                assert(subscriber);
-#endif
-                (void)subscriber; (void)data;
-            }
-        };
-
-    } // END: detail (Check)
-
-
-    /** Base type for an object that subscribes to some strong-typed Data
-     * @tparam  Data  Type that will be received from publishers of corresponding type
-     */
-    template< typename Data >
-    class Subscribe
-    {
-    public:
-        /** Registers the subscriber within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. @warning If not supplied non-portable compiler generated names 'may' be used.
-         */
-        Subscribe( 
-#if SUB0PUB_TYPEIDNAME
-            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/ 
-#endif
-        )
-        : broker_( this
-#if SUB0PUB_TYPEIDNAME
-            , typeId, typeName 
-#endif
-        )
-        {}
-
-        virtual ~Subscribe()
-        {  broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
-        
-        /** Receive published Data
-         * @remark Data is published from Publish<Data>::publish
-         */
-        virtual void receive( const Data& data ) noexcept = 0;
-
-        virtual bool filter(const Data& data) noexcept
-        {  return true; }
-
-        inline void cancel()
-        { broker_.cancel(); }
-
-        /** @return Whether this subscriber is registered and will receive published Data
-         * @remark False only if the fixed per-type subscription table (SUB0PUB_MAX_SUBSCRIPTIONS)
-         *         was already full when registration was attempted. Construction itself never fails,
-         *         but a subscriber that returns false here is inert: receive() is never called until
-         *         a later trySubscribe() succeeds. Behaviour is identical in debug and release builds.
-         */
-        bool isSubscribed() const noexcept
-        { return broker_.isSubscribed(); }
-
-        /** Retry registration after construction reported SubscribeResult::CapacityExceeded
-         * @return SubscribeResult::Subscribed if now (or already) registered, otherwise
-         *         SubscribeResult::CapacityExceeded with the subscription table left unchanged
-         * @remark Use after another subscriber of the same Data has been destroyed to reclaim its slot.
-         */
-        SubscribeResult trySubscribe() noexcept
-        { return broker_.trySubscribe(this); }
-
-#if SUB0PUB_TYPEIDNAME
-        /** Get name identifier of the Data from the broker
-         * @return Broker null-terminated type name
-        */
-        const char* typeName() const
-        { return broker_.typeName(); }
-
-        /** Stream operator for diagnostics reporting
-         * @param stream  Stream to report into
-         * @param subscriber  Subscriber instance to be written into stream
-         * @return Reference to 'stream'
-         */
-        friend OStream& operator<< ( OStream& stream, const Subscribe<Data>& subscriber )
-        { return stream << subscriber.typeName() << '{' << (void*)&subscriber << '}'; }
-#endif
-
-    private:
-        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
-    };
-
-
-    /**  Subscribe to many
-    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
-    */
-    template< typename... Datas >
-    class SubscribeAll : public Subscribe<Datas>... 
-    {
-    public:
-        static constexpr size_t Count = sizeof...(Datas);
-    };
-
-    /**  Subscribe to many defined by std::tuple type list
-    */
-    template<typename... Datas>
-    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
-    {
-    public:
-        static constexpr size_t Count = sizeof...(Datas);
-    };
-
-    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
-    */
-    template<typename... Datas, typename... OtherTuples>
-    class SubscribeAll<std::tuple<Datas...>, OtherTuples...> 
-        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
-    {};
-
-        
-    /** Base type for an object that publishes to some strong-typed Data
-     * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
-     */
-    template< typename Data >
-    class Publish
-    {
-    public:
-        /** Registers the publisher within the broker framework
-         * @param[in] typeName Optional unique data name given to data for inter-process signaling. @warning If not supplied non-portable compiler generated names 'may' be used.
-         */
-        Publish(
-#if SUB0PUB_TYPEIDNAME
-            const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-        : broker_( this
-#if SUB0PUB_TYPEIDNAME
-            , typeId, typeName
-#endif
-        )
-        {}
-
-        virtual ~Publish()
-        { broker_.unsubscribe(this); } ///< @todo Make implicit broker handle
-
-        /** Cancel the active publish cycle, stopping delivery to remaining subscribers
-         * @note Must only be called from within a receive() callback
-         */
-        void cancel() const noexcept
-        {
-            broker_.cancel();
-        }
-
-    protected:
-        /** Publish data to subscribers
-         * @param[in]  data  Data value to publish to subscribers
-         * @remark Data will be received by Subscribe<Data>::receive
-         * @note Protected — use the free function sub0::publish(this, data) from derived classes
-         */
-        void publish( const Data& data ) const noexcept
-        {
-            detail::Check::onPublish( *this, data );
-            broker_.publish(data);
-        }
-
-        // Allow the free function sub0::publish() to access protected publish()
-        template<typename From, typename D>
-        friend void publish(From& from, const D& data) noexcept;
-        template<typename From, typename D>
-        friend void publish(From* from, const D& data) noexcept;
-
-#if SUB0PUB_TYPEIDNAME
-        /** Get name identifier of the Data from the broker
-         * @return Broker null-terminated type name
-        */
-        const char* typeName() const
-        { return broker_.typeName(); }
-
-        /** Get unique identifier of the Data from the broker
-         * @return Broker unique type index
-        */
-        uint32_t typeId() const
-        { return broker_.typeId(); }
-
-        /** Stream operator for diagnostics reporting
-         * @param stream  Stream to report into
-         * @param publisher  Publisher instance to be written into stream
-         * @return Reference to 'stream'
-         */
-        friend OStream& operator<< ( OStream& stream, const Publish<Data>& publisher )
-        { return stream << publisher.typeName() << '{' << (void*)&publisher << '}'; }
-#endif
-
-    private:
-        detail::Broker<Data> broker_; ///< MonoState broker instance to manage publish-subscribe connections
-    };
-
-// ============================================================================
-// Section 2: Internal — Broker implementation (detail)
-// ============================================================================
-
-    namespace detail
-    {
-    template< typename Data >
-    class Broker
-    {
-    public:
-        static const uint32_t cMaxSubscriptions = SUB0PUB_MAX_SUBSCRIPTIONS; ///< Subscription limit in fixed table per broker (override via SUB0PUB_MAX_SUBSCRIPTIONS)
-
-    public:
-        /** Registers subscriber in brokers subscription table
-         * @param[in] typeName Optional unique data name given to data for inter-process signaling.
-         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
-         * @note Construction can fail to register (see trySubscribe()) if the fixed table is already
-         *       full: the object is fully constructed and destructible, but will not receive published
-         *       Data. Call isSubscribed() to check.
-         */
-        Broker( Subscribe<Data>* subscriber
-#if SUB0PUB_TYPEIDNAME
-            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-        {
-#if SUB0PUB_TYPEIDNAME
-            setDataName(typeId, typeName);
-#endif
-            trySubscribe(subscriber);
-        }
-
-        /** Bounded, explicit-error registration: the fixed-capacity counterpart of an unbounded push_back.
-         * @param[in] subscriber  Subscriber to register; must be non-null.
-         * @return SubscribeResult::Subscribed on success, or if already registered. SubscribeResult::CapacityExceeded
-         *         if the table already holds cMaxSubscriptions entries — in that case the table (subscriptions[]
-         *         and subscriptionCount) is left completely unchanged, independent of NDEBUG or SUB0PUB_ASSERT.
-         * @note Thread-safe when SUB0PUB_THREAD_SAFE is enabled (registration is serialized with publish()'s
-         *       snapshot copy and with unsubscribe()).
-         */
-        SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
-        {
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            if (subscribed_)
-                return SubscribeResult::Subscribed;
-
-            checkNotDispatching("sub0pub: subscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
-            Check::onSubscription( *this, subscriber, state_.subscriptionCount, cMaxSubscriptions );
-
-            if (state_.subscriptionCount >= cMaxSubscriptions)
-                return SubscribeResult::CapacityExceeded; ///< Table unchanged — bounded, no OOB write.
-
-            state_.subscriptions[state_.subscriptionCount++] = subscriber;
-            subscribed_ = true;
-            return SubscribeResult::Subscribed;
-        }
-
-        /** @return Whether this Broker's subscriber is currently registered in the subscription table
-         * @remark False when registration hit SubscribeResult::CapacityExceeded, or after unsubscribe().
-         */
-        bool isSubscribed() const noexcept
-        { return subscribed_; }
-
-        /** Validated publication
-         * @remark No record of publishers of data is currently maintained
-         * @param[in] typeName Optional unique data name given to data for inter-process signalling. 
-         * @warning If typeName not supplied compiler generated names 'may' be used which are non-portable between vendors.
-         */
-        Broker ( Publish<Data>* publisher
-#if SUB0PUB_TYPEIDNAME
-            , const uint32_t typeId = 0, const char* typeName = 0/*nullptr*/
-#endif
-        )
-        {
-            Check::onPublication( publisher, *this, 0, 1 );
-#if SUB0PUB_TYPEIDNAME
-            setDataName(typeId, typeName);
-#endif
-            subscribed_ = true; // Publishers are not capacity-limited; isSubscribed() is n/a but kept true.
-        }
-
-        /** Remove subscriber from the subscription table, recovering its slot for a later registration
-         * @note Safe to call for a subscriber that was never actually registered (e.g. its construction
-         *       hit SubscribeResult::CapacityExceeded): this is a no-op rather than an out-of-bounds
-         *       access, independent of NDEBUG/SUB0PUB_ASSERT.
-         */
-        void unsubscribe(Subscribe<Data>* subscriber)
-        {
-#if SUB0PUB_THREAD_SAFE
-            std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-            Subscribe<Data>** const iRemove = std::find(state_.subscriptions, state_.subscriptions + state_.subscriptionCount, subscriber );
-            if (iRemove == state_.subscriptions + state_.subscriptionCount)
-                return; ///< Not registered (never subscribed, or already unsubscribed) — nothing to recover.
-
-            checkNotDispatching("sub0pub: unsubscribing a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
-            subscribed_ = false;
-            --state_.subscriptionCount;
-            std::move(iRemove + 1, state_.subscriptions + state_.subscriptionCount + 1, iRemove);
-        }
-
-        void unsubscribe(Publish<Data>* publisher)
-        {
-            // Do nothing for now...
-        }
-
-#if SUB0PUB_TYPEIDNAME
-        /** Set a unique identifier for the data the broker manages
-         * @remark This name is used during serialisation for inter-process communications
-         * @param[in]  typeName  Null terminated compile-time string constant
-         */
-        void setDataName(const uint32_t typeId, const char* const typeName )
-        {
-            if (typeId)
-            {
-                // Check if assigning a different name or Id is when already set
-#if SUB0PUB_ASSERT
-                assert( !state_.typeId || (state_.typeId==typeId) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
-#endif
-                state_.typeId = typeId; /// @todo sub0::utility::hash(state_.typeName); // Cache hash result @todo Make compile time
-            }
-
-            if (typeName)
-            {
-                // Check if assigning a different name or Id is when already set
-#if SUB0PUB_ASSERT
-                assert( !state_.typeName || (std::strcmp(state_.typeName,typeName)==0) );// @todo use RuntimeCheck and handle if a subscriber uses a different name better
-#endif
-                state_.typeName = typeName;
-            }
-        }
-#endif
-        
-        /**
-         * @return  Get the broker instance on the current thread
-        */
-        const Broker* active() const
-        { return threadCurrent_; }
-
-        /** Cancel the broker publish on the current thread preventing further receive of data
-         * @note Must only be called from within a receive() callback
-         */
-        void cancel() const noexcept
-        {
-            assert( active() != nullptr );
-            threadCanceled_ = true;
-        }
-
-        /** Send data to registered subscribers
-         * @param data  Data sent to subscribers via their 'receive()' function
-         * @remark Thread-safe when SUB0PUB_THREAD_SAFE is enabled: the subscription
-         *         list is snapshot-copied under lock, then the lock is released before
-         *         dispatching. This prevents deadlock on re-entrant publish.
-         */
-        void publish(const Data& data) const noexcept
-        {
-            checkNotDispatching("sub0pub: re-entrant publish() of a Data type from within its own receive() requires SUB0PUB_REENTRANT_SAFE");
-
-            // Save/restore thread-local publish context for re-entrant calls
-            const Broker* previousPublisher = threadCurrent_;
-            const bool previousCanceled = threadCanceled_;
-            threadCurrent_ = this;
-            threadCanceled_ = false;
-
-#if SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE
-            // Snapshot subscribers under lock, dispatch unlocked — prevents
-            // deadlock on re-entrant publish and mutex contention
-            Subscribe<Data>* snapshot[cMaxSubscriptions];
-            uint32_t count = 0;
-            {
-#if SUB0PUB_THREAD_SAFE
-                std::lock_guard<std::mutex> lk{state_.mtx};
-#endif
-                count = state_.subscriptionCount;
-                std::copy_n(state_.subscriptions, count, snapshot);
-            }
-
-            for (uint32_t i = 0U; !threadCanceled_ && i < count; ++i)
-            {
-                Check::onReceive(snapshot[i], data);
-                if (snapshot[i]->filter(data))
-                    snapshot[i]->receive(data);
-            }
-#else
-            // Direct iteration — fastest path, but caller must not re-enter publish
-            for (uint32_t i = 0U; !threadCanceled_ && i < state_.subscriptionCount; ++i)
-            {
-                Check::onReceive(state_.subscriptions[i], data);
-                if (state_.subscriptions[i]->filter(data))
-                    state_.subscriptions[i]->receive(data);
-            }
-#endif
-
-            threadCurrent_ = previousPublisher;
-            threadCanceled_ = previousCanceled;
-        }
-
-#if SUB0PUB_TYPEIDNAME
-        /** @return Unique identifier index for inter-process binary connections
-         */
-        static uint32_t typeId()
-        {
-            return state_.typeId;
-        }
-
-        /** @return Unique identifier name for inter-process text connections
-         */
-        static const char* typeName()
-        {
-            return state_.typeName;
-        }
-#endif
-
-    private:
-        /** Report a re-entrant table access or publish while this thread is dispatching Data
-         * @remark Only active in the unguarded direct-iteration mode with SUB0PUB_REENTRANT_CHECK.
-         *         Reuses threadCurrent_, which is non-null exactly while this thread dispatches Data.
-         */
-        static void checkNotDispatching(const char* what) noexcept
-        {
-#if SUB0PUB_REENTRANT_CHECK && !(SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE)
-            if (threadCurrent_ != nullptr)
-                SUB0PUB_REENTRANT_VIOLATION(what);
-#endif
-            (void)what;
-        }
-
-        /** Object state as monotonic object shared by all instances
-         */
-        struct State
-        {
-#if SUB0PUB_THREAD_SAFE
-            mutable std::mutex mtx; ///< Protects subscriptions[] for multi-threaded pub/sub
-#endif
-            uint32_t subscriptionCount = 0; ///< Count of subscriptions_
-            Subscribe<Data>* subscriptions[cMaxSubscriptions] = {};    ///< Subscription table @todo More flexible count-support
-#if SUB0PUB_TYPEIDNAME
-            uint32_t typeId; ///< Type identifier index or name hash
-            const char* typeName; ///< user defined data name overrides non-portable compiler-generated name
-#endif
-        };
-
-        inline static State state_ = {};
-        inline static thread_local const Broker* threadCurrent_ = nullptr;
-        inline static thread_local bool threadCanceled_ = false;
-
-        bool subscribed_ = false; ///< Per-instance (not shared state_): whether this subscriber is in the table.
-                                   ///< Always true for the Publish<Data>* constructor overload (publishers
-                                   ///< are not capacity-limited).
-    };
-
-    } // END: detail
-
-    /** Publish data, used when inheriting from multiple Publish<> base types
-     * @remark Circumvents C++ Name-Hiding limitations when multiple Publish<> base types are present 
-        i.e. publish( 1.0F) is ambiguous in this case.
-     * @note Compiler error will occur if From does not inherit Publish<Data>
-     *
-     * @param[in] from  Producer object inheriting from one or more Publish<> objects
-     * @param[in] data  Data that will be published using the base Publish<Data> object of From
-     */
-    template<typename From, typename Data>
-    inline void publish(From& from, const Data& data) noexcept
-    {
-        const Publish<Data>& publisher = from;
-        publisher.publish(data);
-    }
-
-    /** Cancel the active publish on a publisher
-     * @param[in] from  Producer object inheriting from Publish<Data>
-     * @note Must only be called from within a receive() callback
-     */
-    template<typename Data, typename From>
-    inline void cancel(From& from)
-    {
-        const Publish<Data>& publisher = from;
-        publisher.cancel();
-    }
-
-
-    /** @see publish(const From&,const Data&)
-    */
-    template<typename From, typename Data>
-    inline void publish(From* const from, const Data& data) noexcept
-    {
-#if SUB0PUB_ASSERT
-        assert(from != nullptr);
-#endif
-        publish(*from, data);
-    }
-
-// ============================================================================
-// Section 3: Utility — Streams, hashing, arity detection, layout fingerprinting
+// Section 1: Utility - Streams, hashing, arity detection, layout fingerprinting
 // ============================================================================
 
     namespace utility
@@ -1153,7 +638,1609 @@ namespace sub0
 #endif
 
 // ============================================================================
-// Section 4: IPC API — Serialization, forwarding, stream protocol
+// Section 2: Configuration — per-Data policy, resolved once per type
+// ============================================================================
+
+    /** Dispatch policy: how publish() walks the subscription table */
+    enum class Dispatch : uint8_t
+    {
+        Snapshot,       ///< Copy the table before dispatch: re-entrant publish/subscribe/unsubscribe are safe
+        Direct,         ///< Iterate the live table: fastest; re-entrant use of the same type's table is not supported
+        DirectChecked   ///< Direct, and report re-entrant use through SUB0PUB_REENTRANT_VIOLATION (needs a context)
+    };
+
+    /** Publish context policy: per-dispatch state for cancel(), nesting, routes and same-thread disconnect */
+    enum class Context : uint8_t
+    {
+        ThreadLocal,    ///< thread_local context: cancel() and nested publish on any thread
+        Static,         ///< plain static context: as ThreadLocal for single-threaded images, without TLS
+        None            ///< no context: no cancel(), no routes; the cheapest dispatch
+    };
+
+    /** Storage policy: where a type's subscription table lives */
+    enum class Storage : uint8_t
+    {
+        Global,         ///< one table per Data type
+        Scoped          ///< tables live in Domain<Data> instances passed at construction (independent sessions)
+    };
+
+    /** Lock policy for single-threaded use: an empty base, costs nothing */
+    struct NoLock
+    {
+        void lock() noexcept {}
+        void unlock() noexcept {}
+    };
+
+#if SUB0PUB_THREAD_SAFE
+    /** Lock policy selected by SUB0PUB_THREAD_SAFE */
+    struct StdMutexLock
+    {
+        void lock() noexcept { m.lock(); }
+        void unlock() noexcept { m.unlock(); }
+        std::mutex m;
+    };
+#endif
+
+    namespace detail
+    {
+        template<class Data, class Config> class BrokerImpl; ///< the library broker (default implementation)
+
+        /// Builtin configuration, named by the macro values it derives from: a translation unit that sets
+        /// different SUB0PUB_* values for its own (TU-local) Data types gets a different type, not a second
+        /// definition of the same one
+        template<uint32_t Capacity, Dispatch D, class LockT>
+        struct BuiltinT
+        {
+            /// Broker implementation (see Implementation<> and the broker concept on detail::BrokerImpl)
+            template<class Data, class Config> using broker = BrokerImpl<Data, Config>;
+            static constexpr uint32_t capacity = Capacity;
+            static constexpr Dispatch dispatch = D;
+            static constexpr Context context = Context::ThreadLocal;
+            static constexpr Storage storage = Storage::Global;
+            static constexpr bool filter = true;
+            using Lock = LockT;
+        };
+    }
+
+    /** Builtin defaults: the configuration the SUB0PUB_* macros describe */
+    using Builtin = detail::BuiltinT<SUB0PUB_MAX_SUBSCRIPTIONS,
+        (SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE) ? Dispatch::Snapshot
+            : (SUB0PUB_REENTRANT_CHECK ? Dispatch::DirectChecked : Dispatch::Direct),
+#if SUB0PUB_THREAD_SAFE
+        StdMutexLock
+#else
+        NoLock
+#endif
+        >;
+
+    // Options: each applies itself on top of a base configuration -----------------------------------------
+
+    /// Fixed subscription table size
+    template<uint32_t N> struct Capacity
+    { template<class B> struct apply : B { static constexpr uint32_t capacity = N; }; };
+
+    template<Dispatch D> struct DispatchWith
+    { template<class B> struct apply : B { static constexpr Dispatch dispatch = D; }; };
+    using Snapshot = DispatchWith<Dispatch::Snapshot>;
+    using Direct = DispatchWith<Dispatch::Direct>;
+    using DirectChecked = DispatchWith<Dispatch::DirectChecked>;
+
+    template<Context C> struct ContextWith
+    { template<class B> struct apply : B { static constexpr Context context = C; }; };
+    using ThreadLocalContext = ContextWith<Context::ThreadLocal>;
+    using StaticContext = ContextWith<Context::Static>;
+    using NoContext = ContextWith<Context::None>;
+
+    /// Any type with lock()/unlock() (and optionally a static yield()) makes the type safe for concurrent use
+    template<class L> struct LockWith
+    { template<class B> struct apply : B { using Lock = L; }; };
+
+    /// Remove filter() from Subscribe<Data>: no per-subscriber filter call; overriding filter() is then a compile error
+    struct NoFilter
+    { template<class B> struct apply : B { static constexpr bool filter = false; }; };
+
+    /// Tables live in Domain<Data> instances passed to Subscribe/Publish at construction
+    struct Scoped
+    { template<class B> struct apply : B { static constexpr Storage storage = Storage::Scoped; }; };
+
+    /// Replace the broker implementation for a Data type with an application-defined one (Global storage)
+    template<template<class, class> class BrokerTemplate> struct Implementation
+    { template<class B> struct apply : B { template<class Data, class Config> using broker = BrokerTemplate<Data, Config>; }; };
+
+    namespace detail
+    {
+        template<class Base, class... Opts> struct fold { using type = Base; };
+        template<class Base, class O, class... Rest>
+        struct fold<Base, O, Rest...> : fold<typename O::template apply<Base>, Rest...> {};
+    }
+
+    /// Base configuration with options applied left to right (later options win)
+    template<class Base, class... Opts>
+    struct with : detail::fold<Base, Opts...>::type {};
+
+} // END: sub0 (configuration vocabulary; the project header below may use it)
+
+/** Project default configuration (resolution step 2)
+ * Name a header with SUB0PUB_CONFIG_HEADER from the build system, so every translation unit agrees. It may
+ * define e.g. `struct ProjectDefaults : sub0::with<sub0::Builtin, sub0::NoFilter> {};` and
+ * `#define SUB0PUB_DEFAULT_CONFIG ProjectDefaults`.
+ */
+#if defined(SUB0PUB_CONFIG_HEADER)
+#include SUB0PUB_CONFIG_HEADER
+#endif
+
+namespace sub0
+{
+#if defined(SUB0PUB_DEFAULT_CONFIG)
+    using GlobalDefault = SUB0PUB_DEFAULT_CONFIG;
+#else
+    using GlobalDefault = Builtin;
+#endif
+
+    /** Per-Data configuration: the project default with options applied. The usual spelling at a Data site:
+     *  `struct Imu { ...; using sub0_config = sub0::config<sub0::Capacity<2>, sub0::NoFilter>; };`
+     */
+    template<class... Opts>
+    struct config : with<GlobalDefault, Opts...> {};
+
+    /** Traits hook (resolution step 1c) for types that cannot carry a member alias or ADL declaration
+     * @see SUB0PUB_CONFIGURE
+     */
+    template<class Data> struct configure {};
+
+    namespace detail
+    {
+        /// Poison pill: ordinary lookup only ever finds this deleted template, so sub0_config is an ADL-only
+        /// customisation point. A user's non-template sub0_config(T*) wins overload resolution against it.
+        template<class T> void sub0_config(T*) = delete;
+
+        /// Overload-based detection (portable to MSVC, which mishandles ADL inside void_t partial specialisations)
+        template<class T> auto adl_probe(int) -> decltype(sub0_config(static_cast<T*>(nullptr)))*;
+        template<class T> void adl_probe(...);
+
+        template<class T, class = void> struct member_config { static constexpr bool found = false; };
+        template<class T> struct member_config<T, std::void_t<typename T::sub0_config>>
+        { static constexpr bool found = true; using type = typename T::sub0_config; };
+
+        template<class T>
+        struct adl_config
+        {
+            using probed = decltype(adl_probe<T>(0));
+            static constexpr bool found = !std::is_void_v<probed>;
+            using type = std::remove_pointer_t<probed>;
+        };
+
+        template<class T, class = void> struct traits_config { static constexpr bool found = false; };
+        template<class T> struct traits_config<T, std::void_t<typename configure<T>::type>>
+        { static constexpr bool found = true; using type = typename configure<T>::type; };
+
+        template<class Data>
+        struct resolve
+        {
+            static_assert(!std::is_reference_v<Data> && !std::is_const_v<Data>, "sub0pub: Data must be an unqualified object type");
+            static constexpr int count = int(member_config<Data>::found) + int(adl_config<Data>::found) + int(traits_config<Data>::found);
+            static_assert(count <= 1, "sub0pub: a Data type must be configured in exactly one place "
+                                      "(member sub0_config, ADL sub0_config(Data*), or sub0::configure<Data>)");
+            using type = std::conditional_t<member_config<Data>::found, member_config<Data>,
+                         std::conditional_t<adl_config<Data>::found, adl_config<Data>,
+                         std::conditional_t<traits_config<Data>::found, traits_config<Data>,
+                         std::enable_if<true, GlobalDefault>>>>;
+        };
+    }
+
+    /** The configuration every use of Data resolves to
+     * Resolution: (1) exactly one of a member alias `Data::sub0_config`, an ADL declaration `sub0_config(Data*)`
+     * or `sub0::configure<Data>` (SUB0PUB_CONFIGURE); else (2) SUB0PUB_DEFAULT_CONFIG; else (3) Builtin.
+     * @warning Every translation unit must resolve the same configuration for a Data type: Subscribe<Data> depends on
+     *          it, so resolving differently is an ODR violation. Member and ADL configuration are part of the type's
+     *          definition and agree by construction; traits and the project header must be visible everywhere.
+     */
+    template<class Data>
+    using config_t = typename detail::resolve<Data>::type::type;
+
+    template<class Data> class Subscribe;
+    template<class Data> class Publish;
+    template<class Data> class Domain;
+
+// ============================================================================
+// Section 3: Core API — results, Subscribe, Publish, Domain, Route, publish(), cancel()
+// ============================================================================
+
+    /** Outcome of a bounded subscription registration
+     * @see Subscribe::trySubscribe, Subscribe::isSubscribed
+     */
+    enum class SubscribeResult : uint8_t
+    {
+        Subscribed,        ///< Registered; the subscriber receives subsequent publishes
+        CapacityExceeded,  ///< The table was full; table left unchanged
+        Closed             ///< The subscriber's Domain has been closed
+    };
+
+    /** Outcome of handing a message to a transport. Acceptance is NOT remote delivery. */
+    enum class SendResult : uint8_t
+    {
+        Accepted,          ///< The transport took the message (copied or serialized it)
+        Full,              ///< Temporary: queue or buffer exhausted
+        Disconnected,      ///< No peer at the moment
+        Closed             ///< The transport is shutting down or shut down
+    };
+
+    /** Opt-in per-publish report of route results: sub0::publish(from, data, report)
+     * @remark Local delivery is not affected by route results: every local subscriber is still called when a route rejects.
+     */
+    struct PublishReport
+    {
+        uint32_t routed = 0;
+        uint32_t accepted = 0;
+        uint32_t rejected = 0;
+        SendResult lastRejection = SendResult::Accepted;
+
+        void record(SendResult r) noexcept
+        {
+            ++routed;
+            if (r == SendResult::Accepted)
+                ++accepted;
+            else
+            {
+                ++rejected;
+                lastRejection = r;
+            }
+        }
+    };
+
+    namespace detail
+    {
+        /** Fingerprint of a configuration's effective values (not its type name) */
+        template<class Config>
+        constexpr uint32_t configFingerprint() noexcept
+        {
+            uint32_t h = 5381U;
+            const uint32_t fields[] = {
+                Config::capacity,
+                static_cast<uint32_t>(Config::dispatch),
+                static_cast<uint32_t>(Config::context),
+                static_cast<uint32_t>(Config::storage),
+                Config::filter ? 1U : 0U,
+                utility::typeHash<typename Config::Lock>()
+            };
+            for (uint32_t f : fields)
+                h = ((h << 5) + h) ^ f;
+            return h | 1U; // never 0, which marks "unregistered"
+        }
+
+        /** Best-effort debug diagnostic for inconsistent configuration visibility across translation units
+         * @warning Resolving a Data type differently in two TUs is an ODR violation and therefore undefined behaviour.
+         *          Consistent visibility is a build contract; this registry only reports violations it observes.
+         * @remark Registry<Data> does not depend on the configuration, so it is shared by all TUs.
+         */
+        template<class Data>
+        struct Registry
+        {
+            inline static std::atomic<uint32_t> fingerprint{0};
+        };
+
+        template<class Data, class Config>
+        void checkConfig() noexcept
+        {
+#if SUB0PUB_CHECK_CONFIG
+            constexpr uint32_t mine = configFingerprint<Config>();
+            uint32_t seen = 0;
+            if (!Registry<Data>::fingerprint.compare_exchange_strong(seen, mine, std::memory_order_relaxed) && seen != mine)
+                SUB0PUB_CONFIG_MISMATCH("sub0pub: Data type resolved to different configurations in different translation units");
+#endif
+        }
+
+#if SUB0PUB_TYPEIDNAME
+        /** User-assigned identity of a Data type for inter-process streams (SUB0PUB_TYPEIDNAME)
+         * @remark Independent of the configuration, so shared by all translation units
+         */
+        template<class Data>
+        struct TypeInfo
+        {
+            inline static uint32_t typeId = 0;
+            inline static const char* typeName = nullptr;
+
+            static void set(const uint32_t id, const char* const name) noexcept
+            {
+                if (id)
+                {
+#if SUB0PUB_ASSERT
+                    assert(!typeId || typeId == id); // a Data type must be given one identifier
+#endif
+                    typeId = id;
+                }
+                if (name)
+                {
+#if SUB0PUB_ASSERT
+                    assert(!typeName || std::strcmp(typeName, name) == 0); // and one name
+#endif
+                    typeName = name;
+                }
+            }
+        };
+#endif
+
+        template<class Config>
+        struct LockGuard
+        {
+            explicit LockGuard(typename Config::Lock& l) noexcept : l_(l) { l_.lock(); }
+            ~LockGuard() { l_.unlock(); }
+            LockGuard(const LockGuard&) = delete;
+            LockGuard& operator=(const LockGuard&) = delete;
+            typename Config::Lock& l_;
+        };
+
+        /// Whether a configuration is for concurrent use (has a Lock)
+        template<class Config>
+        constexpr bool cConcurrent = !std::is_same_v<typename Config::Lock, NoLock>;
+
+        /** One dispatch in progress (concurrent configurations only), linked into its table under the table lock
+         * @remark disconnect()/close() null a removed subscriber out of every active snapshot, then wait only while
+         *         another thread is inside that subscriber's callback (`current`): bounded by one callback, no starvation.
+         *         Dispatcher: store current, re-load entry; writer: store null entry, load current. Both seq_cst, so at
+         *         least one side observes the other: a subscriber is never called after disconnect() returns.
+         */
+        template<class Data>
+        struct ActiveDispatch
+        {
+            std::atomic<Subscribe<Data>*>* snapshot;
+            uint32_t count;
+            std::atomic<Subscribe<Data>*> current{nullptr};
+            std::thread::id thread;
+            ActiveDispatch* next = nullptr;
+            ActiveDispatch* previous = nullptr;
+        };
+
+        template<class Data, bool Concurrent>
+        struct ActiveList {};
+        template<class Data>
+        struct ActiveList<Data, true>
+        {
+            ActiveDispatch<Data>* activeHead = nullptr;
+
+            void link(ActiveDispatch<Data>& d) noexcept
+            {
+                d.next = activeHead;
+                if (activeHead)
+                    activeHead->previous = &d;
+                activeHead = &d;
+            }
+            void unlink(ActiveDispatch<Data>& d) noexcept
+            {
+                (d.previous ? d.previous->next : activeHead) = d.next;
+                if (d.next)
+                    d.next->previous = d.previous;
+            }
+        };
+
+        /// Lifecycle state, only for Scoped storage: closed flag and count of bound handles
+        template<bool Scoped>
+        struct ScopeState {};
+        template<>
+        struct ScopeState<true>
+        {
+            bool closed = false;
+            std::atomic<uint32_t> handles{0};
+        };
+
+        /// Subscription table for one Data type (Global) or one Domain (Scoped). Empty bases cost nothing.
+        template<class Data, class Config>
+        struct Table : Config::Lock, ActiveList<Data, cConcurrent<Config>>, ScopeState<Config::storage == Storage::Scoped>
+        {
+            uint32_t count = 0;
+            Subscribe<Data>* entries[Config::capacity] = {};
+        };
+
+        /** One dispatch in progress on this thread. Frames form a per-thread stack (per Data type).
+         * @remark `table` identifies the subscription table being dispatched, so cancel(), re-entrancy checks and
+         *         disconnect act only on their own table (per Domain for Scoped storage). `origin` is the ingress
+         *         binding that injected the message (split horizon); `report` collects route results (opt-in).
+         */
+        template<class Data>
+        struct Frame
+        {
+            const void* table;
+            const void* origin;
+            PublishReport* report;
+            Subscribe<Data>** snapshot; ///< this dispatch's snapshot (Snapshot dispatch), else nullptr
+            uint32_t count;             ///< entries in snapshot
+            bool canceled;
+            Frame* previous;
+        };
+
+        template<class Data, Context C>
+        struct PublishContext
+        {
+            static constexpr bool enabled = false;
+        };
+        template<class Data>
+        struct PublishContext<Data, Context::ThreadLocal>
+        {
+            static constexpr bool enabled = true;
+            static Frame<Data>*& top() noexcept { return top_; }
+            inline static thread_local Frame<Data>* top_ = nullptr;
+        };
+        template<class Data>
+        struct PublishContext<Data, Context::Static>
+        {
+            static constexpr bool enabled = true;
+            static Frame<Data>*& top() noexcept { return top_; }
+            inline static Frame<Data>* top_ = nullptr;
+        };
+
+        template<class Lock, class = void> struct has_yield : std::false_type {};
+        template<class Lock> struct has_yield<Lock, std::void_t<decltype(Lock::yield())>> : std::true_type {};
+
+        /// Yield while quiescing: Lock::yield() if the lock type provides one (RTOS), else std::this_thread::yield()
+        template<class Config>
+        void yieldThread() noexcept
+        {
+            if constexpr (has_yield<typename Config::Lock>::value)
+                Config::Lock::yield();
+            else
+                std::this_thread::yield();
+        }
+
+        /// Scope handle held by each Subscribe/Publish: empty for Global storage; Scoped counts bound handles
+        template<class TableT, bool Scoped>
+        struct ScopeRef
+        {
+            TableT* get(TableT& global) const noexcept { return &global; }
+        };
+        template<class TableT>
+        struct ScopeRef<TableT, true>
+        {
+            explicit ScopeRef(TableT& t) noexcept : t_(&t) { t_->handles.fetch_add(1, std::memory_order_relaxed); }
+            ~ScopeRef() { t_->handles.fetch_sub(1, std::memory_order_release); }
+            ScopeRef(const ScopeRef&) = delete;
+            ScopeRef& operator=(const ScopeRef&) = delete;
+            TableT* get(TableT&) const noexcept { return t_; }
+            TableT* t_;
+        };
+    }
+
+    /** Broker author kit: what an application-defined broker (Implementation<>) builds on */
+    namespace kit
+    {
+        /** RAII dispatch frame: push while calling receivers so cancel(), routes (origin, report) and same-thread
+         * disconnect work. Zero-size when the Data type's configuration has no publish context.
+         */
+        template<class Data>
+        class DispatchScope
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+        public:
+            DispatchScope(const void* table, const void* origin, PublishReport* report,
+                          Subscribe<Data>** snapshot, uint32_t count) noexcept
+                : frame_(makeFrame(table, origin, report, snapshot, count))
+            {
+                if constexpr (Ctx::enabled)
+                    Ctx::top() = &frame_;
+            }
+            ~DispatchScope()
+            {
+                if constexpr (Ctx::enabled)
+                    Ctx::top() = frame_.previous;
+            }
+            DispatchScope(const DispatchScope&) = delete;
+            DispatchScope& operator=(const DispatchScope&) = delete;
+
+            bool canceled() const noexcept
+            {
+                if constexpr (Ctx::enabled)
+                    return frame_.canceled;
+                else
+                    return false;
+            }
+
+        private:
+            struct NoFrame {};
+            using FrameT = std::conditional_t<Ctx::enabled, detail::Frame<Data>, NoFrame>;
+
+            /// Initialise the frame once, in place (no zero-fill then overwrite: avoids memset on small targets)
+            static FrameT makeFrame(const void* table, const void* origin, PublishReport* report,
+                                    Subscribe<Data>** snapshot, uint32_t count) noexcept
+            {
+                if constexpr (Ctx::enabled)
+                    return FrameT{ table, origin, report, snapshot, count, false, Ctx::top() };
+                else
+                {
+                    (void)table; (void)origin; (void)report; (void)snapshot; (void)count;
+                    return FrameT{};
+                }
+            }
+
+            FrameT frame_;
+        };
+
+        /// Call one subscriber: filter() (when configured) then receive(). Prefer deliverAt() in a dispatch loop.
+        template<class Data>
+        void deliver(Subscribe<Data>* s, const Data& data) noexcept;
+
+        /** Call the subscriber held in a dispatch-owned slot (a snapshot entry, or a table entry for Direct dispatch):
+         * filter() when configured, then receive() only if the slot still holds that subscriber. A filter() that
+         * disconnects (or destroys) its own subscriber clears the slot, so receive() is not called. Only the slot is
+         * re-read, never the subscriber. Without a filter this is exactly one load and one call.
+         * @tparam MayBeCleared  false for a live Direct table entry, which is never null: skips that check
+         */
+        template<class Data, bool MayBeCleared = true, class Slot>
+        void deliverAt(Slot& slot, const Data& data) noexcept;
+
+        /// Innermost dispatch in progress on this thread for Data, or nullptr
+        template<class Data>
+        const detail::Frame<Data>* activeDispatch() noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            if constexpr (Ctx::enabled)
+                return Ctx::top();
+            else
+                return nullptr;
+        }
+
+        /// Number of dispatches of `table` in progress on this thread
+        template<class Data>
+        uint32_t ownDispatches(const void* table) noexcept
+        {
+            uint32_t n = 0;
+            for (const detail::Frame<Data>* f = activeDispatch<Data>(); f; f = f->previous)
+                n += (f->table == table) ? 1U : 0U;
+            return n;
+        }
+
+        /// Cancel the innermost dispatch of `table` on this thread; no-op if that table is not being dispatched
+        template<class Data>
+        void cancel(const void* table) noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            static_assert(Ctx::enabled, "sub0pub: cancel() needs a publish context (ThreadLocalContext or StaticContext)");
+            if constexpr (Ctx::enabled)
+                for (detail::Frame<Data>* f = Ctx::top(); f; f = f->previous)
+                    if (f->table == table)
+                    {
+                        f->canceled = true;
+                        return;
+                    }
+        }
+
+        /// Remove `s` from this thread's in-progress snapshots of `table`, so a subscriber disconnected (and possibly
+        /// destroyed) during a dispatch on this thread is not called afterwards by that dispatch
+        template<class Data>
+        void forgetInOwnDispatches(const void* table, const Subscribe<Data>* s) noexcept
+        {
+            using Ctx = detail::PublishContext<Data, config_t<Data>::context>;
+            if constexpr (Ctx::enabled)
+                for (detail::Frame<Data>* f = Ctx::top(); f; f = f->previous)
+                    if (f->table == table && f->snapshot)
+                        for (uint32_t i = 0; i < f->count; ++i)
+                            if (f->snapshot[i] == s)
+                                f->snapshot[i] = nullptr;
+        }
+    }
+
+    namespace detail
+    {
+        /// Subscriber interface, with filter() only when the configuration asks for it
+        template<class Data, bool Filter>
+        class SubscriberInterface
+        {
+        public:
+            /** Receive published Data */
+            virtual void receive(const Data& data) noexcept = 0;
+        protected:
+            ~SubscriberInterface() = default;
+        };
+        template<class Data>
+        class SubscriberInterface<Data, true>
+        {
+        public:
+            /** Receive published Data */
+            virtual void receive(const Data& data) noexcept = 0;
+            /** @return false to skip receive() for this message */
+            virtual bool filter(const Data&) noexcept { return true; }
+        protected:
+            ~SubscriberInterface() = default;
+        };
+
+        /** The library broker for one Data type with one resolved configuration (the default Implementation)
+         *
+         * Broker concept (what Subscribe/Publish/Route require of any Implementation<>):
+         *   Broker() noexcept                                            Global storage
+         *   SubscribeResult trySubscribe(Subscribe<Data>*) noexcept
+         *   void disconnect(Subscribe<Data>*) noexcept                   after return: no further receive() calls
+         *   void publish(const Data&, const void* origin, PublishReport*) const noexcept
+         *   void cancel() const noexcept
+         * Deliver with kit::deliverAt() inside a kit::DispatchScope.
+         */
+        template<class Data, class Config>
+        class BrokerImpl
+        {
+            static_assert(Config::capacity > 0, "sub0pub: Capacity must be at least 1");
+            static_assert(!(Config::dispatch == Dispatch::DirectChecked && Config::context == Context::None),
+                          "sub0pub: DirectChecked needs a publish context (ThreadLocalContext or StaticContext)");
+            static_assert(!(Config::dispatch == Dispatch::Snapshot && Config::context == Context::None),
+                          "sub0pub: Snapshot needs a publish context (StaticContext or ThreadLocalContext): a subscriber "
+                          "disconnected during a dispatch is removed from that dispatch's snapshot through its frame");
+            static_assert(!cConcurrent<Config> || Config::dispatch == Dispatch::Snapshot,
+                          "sub0pub: a Lock requires Snapshot dispatch (receivers are called outside the lock)");
+            static_assert(!cConcurrent<Config> || Config::context == Context::ThreadLocal,
+                          "sub0pub: a Lock requires ThreadLocalContext (disconnect must not wait on its own dispatch, and a "
+                          "StaticContext frame stack shared by concurrent publishers lets one thread's cancel() and "
+                          "frames act on another thread's dispatch)");
+
+            static constexpr bool cScoped = Config::storage == Storage::Scoped;
+
+        public:
+            using Configuration = Config;
+            using TableT = Table<Data, Config>;
+            static constexpr uint32_t cMaxSubscriptions = Config::capacity; ///< Subscription table size
+
+            template<bool S = cScoped, std::enable_if_t<!S, int> = 0>
+            BrokerImpl() noexcept { checkConfig<Data, Config>(); }
+
+            template<bool S = cScoped, std::enable_if_t<S, int> = 0>
+            explicit BrokerImpl(TableT& table) noexcept : scope_(table) { checkConfig<Data, Config>(); }
+
+            SubscribeResult trySubscribe(Subscribe<Data>* subscriber) noexcept
+            {
+                TableT& t = table();
+                LockGuard<Config> lk(t);
+                checkNotDispatching(t);
+                if constexpr (cScoped)
+                    if (t.closed)
+                        return SubscribeResult::Closed;
+                if (t.count >= Config::capacity)
+                    return SubscribeResult::CapacityExceeded; // table unchanged: bounded, no out-of-bounds write
+                t.entries[t.count++] = subscriber;
+                return SubscribeResult::Subscribed;
+            }
+
+            /** Remove `subscriber`, keeping the order of the others; on return no dispatch (on any thread) calls it again
+             * @remark Dispatches in progress forget it. Concurrent configurations then wait while another thread is
+             *         inside its callback. Safe from within the subscriber's own receive().
+             * @warning Concurrent: do not disconnect, from inside a receive(), a subscriber that another thread's
+             *          receive() is disconnecting you from at the same time (mutual wait). Defer such teardown.
+             */
+            void disconnect(Subscribe<Data>* subscriber) noexcept
+            {
+                TableT& t = table();
+                {
+                    LockGuard<Config> lk(t);
+                    Subscribe<Data>** const it = std::find(t.entries, t.entries + t.count, subscriber);
+                    if (it != t.entries + t.count)
+                    {
+                        checkNotDispatching(t);
+                        std::move(it + 1, t.entries + t.count, it);
+                        --t.count;
+                    }
+                    if constexpr (cConcurrent<Config>)
+                        forgetInActiveDispatches(t, subscriber);
+                }
+                if constexpr (cConcurrent<Config>)
+                    waitWhileCalledElsewhere(t, subscriber);
+                else
+                    kit::forgetInOwnDispatches<Data>(&t, subscriber);
+            }
+
+            void publish(const Data& data, const void* origin = nullptr, PublishReport* report = nullptr) const noexcept
+            {
+                TableT& t = table();
+                if constexpr (cConcurrent<Config>)
+                {
+                    std::atomic<Subscribe<Data>*> snapshot[Config::capacity];
+                    ActiveDispatch<Data> active{snapshot, 0, {nullptr}, std::this_thread::get_id()};
+                    {
+                        LockGuard<Config> lk(t);
+                        if constexpr (cScoped)
+                            if (t.closed)
+                                return;
+                        active.count = t.count;
+                        for (uint32_t i = 0; i < active.count; ++i)
+                            snapshot[i].store(t.entries[i], std::memory_order_relaxed);
+                        t.link(active);
+                    }
+                    {
+                        kit::DispatchScope<Data> scope(&t, origin, report, nullptr, 0);
+                        for (uint32_t i = 0; !scope.canceled() && i < active.count; ++i)
+                        {
+                            Subscribe<Data>* const s = snapshot[i].load(std::memory_order_seq_cst);
+                            if (s == nullptr)
+                                continue;
+                            active.current.store(s, std::memory_order_seq_cst);
+                            kit::deliverAt<Data>(snapshot[i], data); // re-checks the slot: not disconnected meanwhile
+                            active.current.store(nullptr, std::memory_order_seq_cst);
+                        }
+                    }
+                    LockGuard<Config> lk(t);
+                    t.unlink(active);
+                }
+                else if constexpr (Config::dispatch == Dispatch::Snapshot)
+                {
+                    Subscribe<Data>* snapshot[Config::capacity];
+                    if constexpr (cScoped)
+                        if (t.closed)
+                            return;
+                    const uint32_t count = t.count;
+                    std::copy_n(t.entries, count, snapshot);
+                    kit::DispatchScope<Data> scope(&t, origin, report, snapshot, count);
+                    for (uint32_t i = 0; !scope.canceled() && i < count; ++i)
+                        kit::deliverAt<Data>(snapshot[i], data);
+                }
+                else
+                {
+                    checkNotDispatching(t);
+                    kit::DispatchScope<Data> scope(&t, origin, report, nullptr, 0);
+                    for (uint32_t i = 0; !scope.canceled() && i < t.count; ++i)
+                        kit::deliverAt<Data, false>(t.entries[i], data);
+                }
+            }
+
+            void cancel() const noexcept { kit::cancel<Data>(&table()); }
+
+            /// Close a Scoped table: reject subscriptions, drop publishes, detach subscribers, then quiesce
+            /// (a member template, so explicitly instantiating a Global broker does not instantiate it)
+            template<bool S = cScoped, std::enable_if_t<S, int> = 0>
+            static void close(TableT& t) noexcept;
+
+        private:
+            // The concurrent helpers are member templates, so explicitly instantiating a single-threaded broker
+            // (e.g. to export it from a module) does not instantiate them
+
+            /// Concurrent: null `s` (or every entry when s == nullptr) in all active snapshots. Call under the table lock.
+            template<bool C = cConcurrent<Config>, std::enable_if_t<C, int> = 0>
+            static void forgetInActiveDispatches(TableT& t, const Subscribe<Data>* s) noexcept
+            {
+                for (ActiveDispatch<Data>* a = t.activeHead; a; a = a->next)
+                    for (uint32_t i = 0; i < a->count; ++i)
+                        if (s == nullptr || a->snapshot[i].load(std::memory_order_relaxed) == s)
+                            a->snapshot[i].store(nullptr, std::memory_order_seq_cst);
+            }
+
+            /// Concurrent: wait while another thread is inside `s`'s callback (any callback when s == nullptr)
+            template<bool C = cConcurrent<Config>, std::enable_if_t<C, int> = 0>
+            static void waitWhileCalledElsewhere(TableT& t, const Subscribe<Data>* s) noexcept
+            {
+                const std::thread::id me = std::this_thread::get_id();
+                for (;;)
+                {
+                    bool busy = false;
+                    {
+                        LockGuard<Config> lk(t);
+                        for (ActiveDispatch<Data>* a = t.activeHead; a && !busy; a = a->next)
+                        {
+                            Subscribe<Data>* const current = a->current.load(std::memory_order_seq_cst);
+                            busy = a->thread != me && current != nullptr && (s == nullptr || current == s);
+                        }
+                    }
+                    if (!busy)
+                        return;
+                    yieldThread<Config>();
+                }
+            }
+
+            /// DirectChecked: only a use of the table currently being iterated on this thread is a violation
+            static void checkNotDispatching(TableT& t) noexcept
+            {
+                if constexpr (Config::dispatch == Dispatch::DirectChecked)
+                    if (kit::ownDispatches<Data>(&t) != 0)
+                        SUB0PUB_REENTRANT_VIOLATION("sub0pub: re-entrant use of a Data type's table during its own dispatch requires Snapshot dispatch (SUB0PUB_REENTRANT_SAFE)");
+                (void)t;
+            }
+
+            TableT& table() const noexcept { return *scope_.get(global_); }
+
+            ScopeRef<TableT, cScoped> scope_;
+            inline static TableT global_;
+        };
+
+        /// The broker implementation a Data type's configuration selects
+        template<class Data>
+        using BrokerFor = typename config_t<Data>::template broker<Data, config_t<Data>>;
+
+        /// The broker every use of Data goes through
+        template<class Data>
+        using Broker = BrokerFor<Data>;
+    }
+
+    /** Session scope for Scoped types: independent subscription tables for the same Data type
+     * @remark Lifetime contract: a Domain must outlive every Subscribe/Publish/Route bound to it (debug-checked).
+     *         close() ends the session early: subscribe returns Closed, publish is dropped, current subscribers are
+     *         detached, and in-flight dispatches are waited for.
+     */
+    template<class Data>
+    class Domain
+    {
+        using Config = config_t<Data>;
+        using BrokerT = detail::BrokerFor<Data>;
+        static_assert(Config::storage == Storage::Scoped, "sub0pub: Domain<Data> requires a Data type configured with sub0::Scoped");
+        static_assert(std::is_same_v<BrokerT, detail::BrokerImpl<Data, Config>>, "sub0pub: Scoped storage requires the library broker");
+    public:
+        Domain() = default;
+        Domain(const Domain&) = delete;
+        Domain& operator=(const Domain&) = delete;
+
+        ~Domain()
+        {
+            close();
+            if (table_.handles.load(std::memory_order_acquire) != 0)
+                SUB0PUB_DOMAIN_LIFETIME("sub0pub: Domain destroyed while Subscribe/Publish/Route handles are still bound to it");
+        }
+
+        void close() noexcept { BrokerT::close(table_); }
+
+        bool isClosed() const noexcept
+        {
+            detail::LockGuard<Config> lk(const_cast<typename BrokerT::TableT&>(table_));
+            return table_.closed;
+        }
+
+    private:
+        template<class> friend class Subscribe;
+        template<class> friend class Publish;
+        typename BrokerT::TableT table_;
+    };
+
+    /** Base type for an object that subscribes to some strong-typed Data
+     * @tparam  Data  Type that will be received from publishers of corresponding type
+     *
+     * Interface: `void receive(const Data&) noexcept` (pure virtual), and `bool filter(const Data&) noexcept`
+     * unless the type is configured with NoFilter.
+     *
+     * Activation contract: single-threaded configurations register in the constructor. Concurrent configurations
+     * (a Lock, e.g. SUB0PUB_THREAD_SAFE) do not: another thread could otherwise dispatch into the object before the
+     * derived class is constructed. Call trySubscribe() at the end of the most-derived constructor (Route does this).
+     *
+     * Teardown contract: after disconnect() returns, receive() is not called again, on any thread. The destructor
+     * disconnects too, but by then the derived object is already destroyed: when other threads may publish, call
+     * disconnect() from the most-derived destructor (Route does this). Same-thread disconnect during a dispatch,
+     * including from the subscriber's own receive(), is safe with Snapshot dispatch.
+     *
+     * @remark The destructor is protected and non-virtual: a subscriber is destroyed as its own type, never through a
+     *         Subscribe<Data>* (no vtable destructor slots, no operator delete dependency on small targets).
+     */
+    template<class Data>
+    class Subscribe : public detail::SubscriberInterface<Data, config_t<Data>::filter>
+    {
+        using Config = config_t<Data>;
+        using Broker = detail::BrokerFor<Data>;
+        template<class> friend class Domain;
+        template<class, class> friend class detail::BrokerImpl;
+    public:
+        /** Registers the subscriber (single-threaded configurations)
+         * @param[in] typeId, typeName  Optional unique identity of Data for inter-process streams (SUB0PUB_TYPEIDNAME)
+         */
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Global, int> = 0>
+        Subscribe(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = nullptr
+#endif
+        ) noexcept
+        {
+#if SUB0PUB_TYPEIDNAME
+            detail::TypeInfo<Data>::set(typeId, typeName);
+#endif
+            activateIfSingleThreaded();
+        }
+
+        /** Registers the subscriber in `domain` (Scoped types; single-threaded configurations) */
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
+        explicit Subscribe(Domain<Data>& domain) noexcept : broker_(domain.table_) { activateIfSingleThreaded(); }
+
+        Subscribe(const Subscribe&) = delete;
+        Subscribe& operator=(const Subscribe&) = delete;
+
+        /** @return Whether this subscriber is registered and will receive published Data
+         * @remark False if the table was full (or the Domain closed) at registration, after disconnect(), or, for
+         *         concurrent configurations, before trySubscribe().
+         */
+        bool isSubscribed() const noexcept { return subscribed_.load(std::memory_order_relaxed); }
+
+        /** Register, or retry registration after SubscribeResult::CapacityExceeded
+         * @return SubscribeResult::Subscribed if now (or already) registered; CapacityExceeded with the table
+         *         unchanged; Closed if the Domain has been closed
+         */
+        SubscribeResult trySubscribe() noexcept
+        {
+            if (isSubscribed())
+                return SubscribeResult::Subscribed;
+            const SubscribeResult result = broker_.trySubscribe(this);
+            subscribed_.store(result == SubscribeResult::Subscribed, std::memory_order_relaxed);
+            return result;
+        }
+
+        /// Stop receiving. Idempotent; safe from within receive(); see the teardown contract above
+        void disconnect() noexcept
+        {
+            const bool wasSubscribed = subscribed_.exchange(false, std::memory_order_relaxed);
+            // Concurrent: always, so a subscriber already detached by Domain::close() still waits out a callback in
+            // progress on another thread. Single-threaded: close() already made it safe; nothing left to do.
+            if (detail::cConcurrent<Config> || wasSubscribed)
+                broker_.disconnect(this);
+        }
+
+        /** Stop delivery of the current publication to the remaining subscribers
+         * @note Only meaningful from within receive() or filter()
+         */
+        void cancel() const noexcept { broker_.cancel(); }
+
+#if SUB0PUB_TYPEIDNAME
+        /** @return Null-terminated name given to Data, or nullptr */
+        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName; }
+
+        /** Stream operator for diagnostics reporting */
+        friend OStream& operator<< (OStream& stream, const Subscribe<Data>& subscriber)
+        { return stream << subscriber.typeName() << '{' << (const void*)&subscriber << '}'; }
+#endif
+
+    protected:
+        ~Subscribe() { disconnect(); }
+
+        void activateIfSingleThreaded() noexcept
+        {
+            if constexpr (!detail::cConcurrent<Config>)
+                trySubscribe();
+        }
+
+        /// For bindings (Route): publish into this subscriber's table with an ingress origin
+        void injectFrom(const void* origin, const Data& data) const noexcept { broker_.publish(data, origin, nullptr); }
+
+    private:
+        Broker broker_;
+        std::atomic<bool> subscribed_{false};
+    };
+
+    namespace kit
+    {
+        template<class Data>
+        void deliver(Subscribe<Data>* s, const Data& data) noexcept
+        {
+            if constexpr (config_t<Data>::filter)
+                if (!s->filter(data))
+                    return;
+            s->receive(data);
+        }
+
+        namespace slot
+        {
+            template<class Data> Subscribe<Data>* load(Subscribe<Data>* const& p) noexcept { return p; }
+            template<class Data> Subscribe<Data>* load(const std::atomic<Subscribe<Data>*>& p) noexcept { return p.load(std::memory_order_seq_cst); }
+        }
+
+        template<class Data, bool MayBeCleared, class Slot>
+        void deliverAt(Slot& slot, const Data& data) noexcept
+        {
+            Subscribe<Data>* const s = slot::load<Data>(slot);
+            if constexpr (MayBeCleared)
+                if (s == nullptr)
+                    return;
+            if constexpr (config_t<Data>::filter)
+            {
+                if (!s->filter(data))
+                    return;
+                if (slot::load<Data>(slot) != s) // disconnected (or destroyed) inside its own filter()
+                    return;
+            }
+            s->receive(data);
+        }
+    }
+
+    template<class Data, class Config>
+    template<bool S, std::enable_if_t<S, int>>
+    void detail::BrokerImpl<Data, Config>::close(TableT& t) noexcept
+    {
+        uint32_t n;
+        Subscribe<Data>* detached[Config::capacity];
+        {
+            LockGuard<Config> lk(t);
+            t.closed = true;
+            n = t.count;
+            std::copy_n(t.entries, n, detached);
+            for (uint32_t i = 0; i < n; ++i)
+                t.entries[i]->subscribed_.store(false, std::memory_order_relaxed);
+            t.count = 0;
+            if constexpr (cConcurrent<Config>)
+                forgetInActiveDispatches(t, nullptr);
+        }
+        if constexpr (cConcurrent<Config>)
+            waitWhileCalledElsewhere(t, nullptr);
+        else
+            for (uint32_t i = 0; i < n; ++i)
+                kit::forgetInOwnDispatches<Data>(&t, detached[i]);
+    }
+
+    /**  Subscribe to many
+    * @todo Specialisation on std::tuple exists and could cause unexpected expansion if this was a desired type being published!
+    */
+    template< typename... Datas >
+    class SubscribeAll : public Subscribe<Datas>...
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /**  Subscribe to many defined by std::tuple type list
+    */
+    template<typename... Datas>
+    class SubscribeAll<std::tuple<Datas...>> : public Subscribe<Datas>...
+    {
+    public:
+        static constexpr size_t Count = sizeof...(Datas);
+    };
+
+    /** Subscribe to many defined by multiple std::tuple type i.e. SubscribeAll< std::tuple<A,B>, std::tuple<B,C> >
+    */
+    template<typename... Datas, typename... OtherTuples>
+    class SubscribeAll<std::tuple<Datas...>, OtherTuples...>
+        : public SubscribeAll< decltype(std::tuple_cat( std::declval<std::tuple<Datas...>>(), std::declval<OtherTuples>()...)) >
+    {};
+
+    /** Base type for an object that publishes to some strong-typed Data
+     * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
+     * @remark Not polymorphic: no virtual destructor and no vptr. For Global storage it is an empty handle.
+     */
+    template<class Data>
+    class Publish
+    {
+        using Config = config_t<Data>;
+        using Broker = detail::BrokerFor<Data>;
+    public:
+        /** @param[in] typeId, typeName  Optional unique identity of Data for inter-process streams (SUB0PUB_TYPEIDNAME) */
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Global, int> = 0>
+        Publish(
+#if SUB0PUB_TYPEIDNAME
+            const uint32_t typeId = 0, const char* typeName = nullptr
+#endif
+        ) noexcept
+        {
+#if SUB0PUB_TYPEIDNAME
+            detail::TypeInfo<Data>::set(typeId, typeName);
+#endif
+        }
+
+        /** Publish into `domain` (Scoped types) */
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
+        explicit Publish(Domain<Data>& domain) noexcept : broker_(domain.table_) {}
+
+        /** Cancel the active publication of Data, stopping delivery to the remaining subscribers
+         * @note Only meaningful from within a receive() callback
+         */
+        void cancel() const noexcept { broker_.cancel(); }
+
+#if SUB0PUB_TYPEIDNAME
+        /** @return Null-terminated name given to Data, or nullptr */
+        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName; }
+
+        /** @return Unique identifier given to Data, or 0 */
+        uint32_t typeId() const noexcept { return detail::TypeInfo<Data>::typeId; }
+
+        /** Stream operator for diagnostics reporting */
+        friend OStream& operator<< (OStream& stream, const Publish<Data>& publisher)
+        { return stream << publisher.typeName() << '{' << (const void*)&publisher << '}'; }
+#endif
+
+    protected:
+        /** Publish data to subscribers
+         * @note Protected: use the free function sub0::publish(*this, data) from derived classes
+         */
+        void publish(const Data& data, PublishReport* report = nullptr) const noexcept { broker_.publish(data, nullptr, report); }
+
+    private:
+        template<class From, class D> friend void publish(From&, const D&) noexcept;
+        template<class From, class D> friend void publish(From&, const D&, PublishReport&) noexcept;
+        Broker broker_;
+    };
+
+    /** Publish data, used when inheriting from multiple Publish<> base types
+     * @remark Circumvents C++ name hiding when multiple Publish<> bases are present (publish(1.0F) would be ambiguous)
+     * @note Compile error if From does not inherit Publish<Data>
+     * @param[in] from  Producer object inheriting from one or more Publish<> objects
+     * @param[in] data  Data that will be published using the base Publish<Data> object of From
+     */
+    template<class From, class Data>
+    inline void publish(From& from, const Data& data) noexcept
+    {
+        const Publish<Data>& publisher = from;
+        publisher.publish(data);
+    }
+
+    /** Publish and report route results (routed / accepted / rejected). Local delivery is unaffected by rejections. */
+    template<class From, class Data>
+    inline void publish(From& from, const Data& data, PublishReport& report) noexcept
+    {
+        static_assert(config_t<Data>::context != Context::None, "sub0pub: publish reports need a publish context");
+        const Publish<Data>& publisher = from;
+        publisher.publish(data, &report);
+    }
+
+    /** @see publish(From&, const Data&) */
+    template<class From, class Data>
+    inline void publish(From* const from, const Data& data) noexcept
+    {
+#if SUB0PUB_ASSERT
+        assert(from != nullptr);
+#endif
+        publish(*from, data);
+    }
+
+    /** Cancel the active publication of Data on a publisher
+     * @param[in] from  Producer object inheriting from Publish<Data>
+     * @note Only meaningful from within a receive() callback
+     */
+    template<class Data, class From>
+    inline void cancel(From& from) noexcept
+    {
+        const Publish<Data>& publisher = from;
+        publisher.cancel();
+    }
+
+    /** Endpoint binding: connects one application-owned Transport instance to one table (a Domain, or the global
+     * table) for one Data type.
+     *
+     *   Egress:  every message published into the table is handed to transport.send(data) -> SendResult.
+     *            The transport must copy/serialize at acceptance and never retain a reference to `data`.
+     *   Ingress: inject(data) publishes a message received from the transport into the table. That message is
+     *            not sent back out through this route (split horizon), preventing echo loops between peers.
+     *   Teardown: the destructor disconnects first, so after destruction the transport is never called.
+     *
+     * Transport concept: SendResult send(const Data&) noexcept.
+     */
+    template<class Data, class Transport>
+    class Route final : public Subscribe<Data>
+    {
+        using Config = config_t<Data>;
+        static_assert(Config::context != Context::None, "sub0pub: Route needs a publish context (split horizon and reports)");
+    public:
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Global, int> = 0>
+        explicit Route(Transport& transport) noexcept : transport_(transport) { this->trySubscribe(); }
+
+        template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
+        Route(Domain<Data>& domain, Transport& transport) noexcept : Subscribe<Data>(domain), transport_(transport) { this->trySubscribe(); }
+
+        ~Route() { this->disconnect(); }
+
+        /// Ingress: deliver a message received from the transport to this route's table
+        void inject(const Data& data) const noexcept { this->injectFrom(this, data); }
+
+    private:
+        void receive(const Data& data) noexcept override
+        {
+            const detail::Frame<Data>* const frame = kit::activeDispatch<Data>();
+            if (frame != nullptr && frame->origin == this)
+                return; // split horizon: this message arrived through this route
+            const SendResult result = transport_.send(data);
+            if (frame != nullptr && frame->report != nullptr)
+                frame->report->record(result);
+        }
+
+        Transport& transport_;
+    };
+
+    /** A payload type made distinct by a tag, which also carries its configuration:
+     *  `struct Rpm { using sub0_config = sub0::config<sub0::Capacity<2>>; }; using RpmMsg = sub0::Tagged<int, Rpm>;`
+     */
+    template<class Data, class Tag>
+    struct Tagged
+    {
+        Data value;
+    };
+    namespace detail
+    {
+        template<class Tag, class = void> struct tag_config {};
+        template<class Tag> struct tag_config<Tag, std::void_t<typename Tag::sub0_config>> { using type = typename Tag::sub0_config; };
+    }
+    template<class Data, class Tag>
+    struct configure<Tagged<Data, Tag>> : detail::tag_config<Tag> {};
+
+
+// ============================================================================
+// Section 4: Static wiring — typed bindings at the composition point
+// ============================================================================
+//
+// Receivers are ordinary classes: a non-virtual `receive(const T&)` per message type they handle, and optionally
+// `bool filter(const T&)`. No base class, no registry, no registration. The application binds concrete receiver
+// instances where it composes itself; their types are kept all the way to the call, so each delivery is a direct,
+// inlinable call (measured equal to hand-written code: docs/design/COLLAPSE_SCORES.md):
+//
+//   auto bus = sub0::wire(controllerA, controllerB, logger);             // runtime addresses, static types
+//   using Bus = sub0::StaticWiring<&controllerA, &controllerB, &logger>; // static storage: no RAM, fixed targets
+//   struct Sensor { sub0::Sink<Sample> out; ... };                       // non-template publisher: one indirect call
+//
+// Routing is by capability: publish(msg) calls, in bound order, every bound receiver that has receive(const T&).
+// A receiver whose receive() returns bool stops the rest of a publishCancelable() by returning false.
+// Messages never list receivers: per-message policy (Section 2) and application wiring stay separate.
+// Wirings add no synchronisation: concurrent publishers need stable bindings and thread-safe receivers.
+
+    namespace detail
+    {
+    namespace wiring
+    {
+        template<class R, class T, class = void> struct accepts : std::false_type {};
+        template<class R, class T>
+        struct accepts<R, T, std::void_t<decltype(std::declval<R&>().receive(std::declval<const T&>()))>> : std::true_type {};
+
+        template<class R, class T, class = void> struct has_filter : std::false_type {};
+        template<class R, class T>
+        struct has_filter<R, T, std::void_t<decltype(bool(std::declval<R&>().filter(std::declval<const T&>())))>> : std::true_type {};
+
+        /// Bound objects may be the receiver itself or a holder exposing it via get() (e.g. application storage slots)
+        template<class X, class = void> struct has_get : std::false_type {};
+        template<class X> struct has_get<X, std::void_t<decltype(std::declval<X&>().get())>> : std::true_type {};
+
+        template<class X>
+        constexpr decltype(auto) receiver(X& x) noexcept
+        {
+            if constexpr (has_get<X>::value)
+                return x.get();
+            else
+                return (x);
+        }
+
+        template<class R, class T>
+        using receive_result_t = decltype(std::declval<R&>().receive(std::declval<const T&>()));
+
+        template<class R, class T, class = void> struct receive_returns_bool : std::false_type {};
+        template<class R, class T>
+        struct receive_returns_bool<R, T, std::enable_if_t<std::is_same_v<receive_result_t<R, T>, bool>>> : std::true_type {};
+
+        /// Deliver to one receiver: nothing at all if it does not handle T; its filter only if it declares one
+        template<class R, class T>
+        inline void deliver(R& r, const T& msg) noexcept
+        {
+            if constexpr (accepts<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return;
+                r.receive(msg);
+            }
+        }
+
+        /// Deliver to one receiver; returns whether the publication continues. A receiver that does not handle T,
+        /// is filtered out, or returns void always continues; one returning bool stops it with false.
+        template<class R, class T>
+        inline bool deliverContinue(R& r, const T& msg) noexcept
+        {
+            if constexpr (accepts<R, T>::value)
+            {
+                if constexpr (has_filter<R, T>::value)
+                    if (!r.filter(msg))
+                        return true;
+                if constexpr (receive_returns_bool<R, T>::value)
+                    return r.receive(msg);
+                else
+                {
+                    r.receive(msg);
+                    return true;
+                }
+            }
+            else
+                return true;
+        }
+
+        /// A binding adapter that only refers to the real endpoint (e.g. Forward<Transport>) declares
+        /// `using sub0_by_value = void;` so a Wiring holds it by value: one hop to the endpoint, as hand-written
+        template<class B, class = void> struct by_value : std::false_type {};
+        template<class B> struct by_value<B, std::void_t<typename B::sub0_by_value>> : std::true_type {};
+        template<class B> using stored_t = std::conditional_t<by_value<B>::value, B, B&>;
+
+        /// Endpoint identity for split horizon: the bound object, or for an adapter what it refers to
+        template<class X, class = void> struct has_identity : std::false_type {};
+        template<class X> struct has_identity<X, std::void_t<decltype(std::declval<const X&>().sub0_identity())>> : std::true_type {};
+        template<class X>
+        constexpr const void* identity(const X& x) noexcept
+        {
+            if constexpr (has_identity<X>::value)
+                return x.sub0_identity();
+            else
+                return static_cast<const void*>(&x);
+        }
+
+        template<class X> using receiver_t = std::remove_cv_t<std::remove_reference_t<decltype(receiver(std::declval<X&>()))>>;
+
+        /// The endpoint a binding stands for: an adapter that forwards to a transport declares
+        /// `using sub0_endpoint = Transport;`, so ingress may name either the adapter or the transport as its origin
+        template<class X, class = void> struct endpoint_of { using type = X; };
+        template<class X> struct endpoint_of<X, std::void_t<typename X::sub0_endpoint>> { using type = typename X::sub0_endpoint; };
+
+        /// Whether a binding of type R is the endpoint an ingress origin of type Origin refers to
+        template<class R, class Origin>
+        constexpr bool isOrigin = std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>> ||
+                                  std::is_same_v<typename endpoint_of<std::remove_cv_t<R>>::type, std::remove_cv_t<Origin>>;
+
+        template<class Origin, class... R>
+        constexpr std::size_t countOf = (std::size_t(isOrigin<R, Origin>) + ... + std::size_t(0));
+
+        /// Split horizon: do not send a message back to the binding it came from. When the origin's type is bound
+        /// exactly once (OriginUnique), the origin *is* that binding: decided at compile time, no address compare
+        /// (precondition: the origin is one of the bound endpoints, asserted in debug builds).
+        template<bool OriginUnique, class R, class T, class Origin>
+        inline void deliverExcept(R& r, const T& msg, const Origin& origin) noexcept
+        {
+            if constexpr (isOrigin<R, Origin>)
+            {
+                if constexpr (OriginUnique)
+                {
+                    assert(identity(r) == identity(origin) && "publishFrom: origin is not a bound endpoint");
+                    (void)origin;
+                    return;
+                }
+                else if (identity(r) == identity(origin))
+                    return;
+            }
+            deliver(r, msg);
+        }
+
+        /// Origin identified by type alone (publishFrom<Origin>(msg)): the one binding of that type is skipped
+        template<class Origin, class R, class T>
+        inline void deliverExceptType(R& r, const T& msg) noexcept
+        {
+            if constexpr (!isOrigin<R, Origin>)
+                deliver(r, msg);
+        }
+    } // END: wiring
+    } // END: detail
+
+    /** Whether a wiring delivers T to R: a receiver meant to handle T can state it where it is bound, e.g.
+     *      static_assert(sub0::handles_v<Logger, Sample>, "Logger must receive Sample");
+     *  Capability routing is otherwise silent about a signature mismatch (known issue K14). Pass `const R` for a
+     *  receiver bound through a pointer to const.
+     */
+    template<class R, class T>
+    constexpr bool handles_v =
+        detail::wiring::accepts<std::remove_reference_t<decltype(detail::wiring::receiver(std::declval<R&>()))>, T>::value;
+
+    /** Receivers bound by reference at the composition point (runtime addresses, static types)
+     * @see wire()
+     */
+    template<class... Bound>
+    class Wiring
+    {
+    public:
+        constexpr explicit Wiring(Bound&... bound) noexcept : bound_(bound...) {}
+
+        /// Deliver to every bound receiver that handles T, in bound order
+        template<class T>
+        void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
+
+        /// As publish(), stopping at the first receiver whose bool receive() returns false
+        template<class T>
+        void publishCancelable(const T& msg) const noexcept { publishCancelable(msg, Indices{}); }
+
+        /// Ingress from one of the bound receivers (e.g. a transport endpoint): every other receiver gets it
+        template<class T, class Origin>
+        void publishFrom(const Origin& origin, const T& msg) const noexcept { publishFrom(origin, msg, Indices{}); }
+
+        /// Ingress identified by the origin's type, which must be bound exactly once: no origin object needed
+        template<class Origin, class T>
+        void publishFrom(const T& msg) const noexcept
+        {
+            static_assert(detail::wiring::countOf<Origin, detail::wiring::receiver_t<Bound>...> == 1,
+                          "publishFrom<Origin>: Origin must be bound exactly once; pass the origin object instead");
+            publishFromType<Origin>(msg, Indices{});
+        }
+
+    private:
+        // Each binding is read (std::get) right before its own delivery, as hand-written code does. std::apply
+        // would read every binding up front and keep them live across the calls (extra saved registers).
+        using Indices = std::index_sequence_for<Bound...>;
+
+        template<class T, std::size_t... I>
+        void publish(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::wiring::deliver(detail::wiring::receiver(std::get<I>(bound_)), msg), ...);
+        }
+
+        template<class T, std::size_t... I>
+        void publishCancelable(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::wiring::deliverContinue(detail::wiring::receiver(std::get<I>(bound_)), msg) && ...);
+        }
+
+        template<class T, class Origin, std::size_t... I>
+        void publishFrom(const Origin& origin, const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            constexpr bool unique = detail::wiring::countOf<Origin, detail::wiring::receiver_t<Bound>...> == 1;
+            (detail::wiring::deliverExcept<unique>(detail::wiring::receiver(std::get<I>(bound_)), msg, origin), ...);
+        }
+
+        template<class Origin, class T, std::size_t... I>
+        void publishFromType(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::wiring::deliverExceptType<Origin>(detail::wiring::receiver(std::get<I>(bound_)), msg), ...);
+        }
+
+        // mutable: publish() is const, and a by-value adapter must stay callable through it (a const adapter
+        // whose receive() is non-const would silently stop matching the capability check)
+        mutable std::tuple<detail::wiring::stored_t<Bound>...> bound_;
+    };
+
+    /** Bind receivers at the composition point: `auto bus = sub0::wire(a, b, logger); bus.publish(Sample{1});` */
+    template<class... Bound>
+    constexpr Wiring<Bound...> wire(Bound&... bound) noexcept { return Wiring<Bound...>(bound...); }
+
+    /** Static topology for receivers with static storage duration: the targets are template arguments, so the
+     *  wiring needs no storage: `using Bus = sub0::StaticWiring<&a, &b>; Bus::publish(Sample{1});`
+     */
+    template<auto*... Bound>
+    struct StaticWiring
+    {
+        /// Deliver to every bound receiver that handles T, in bound order
+        template<class T>
+        static void publish(const T& msg) noexcept
+        {
+            (detail::wiring::deliver(detail::wiring::receiver(*Bound), msg), ...);
+        }
+
+        /// As publish(), stopping at the first receiver whose bool receive() returns false
+        template<class T>
+        static void publishCancelable(const T& msg) noexcept
+        {
+            (detail::wiring::deliverContinue(detail::wiring::receiver(*Bound), msg) && ...);
+        }
+
+        /// Ingress from one of the bound receivers: every other receiver gets it
+        template<class T, class Origin>
+        static void publishFrom(const Origin& origin, const T& msg) noexcept
+        {
+            constexpr bool unique = detail::wiring::countOf<Origin, detail::wiring::receiver_t<std::remove_pointer_t<decltype(Bound)>>...> == 1;
+            (detail::wiring::deliverExcept<unique>(detail::wiring::receiver(*Bound), msg, origin), ...);
+        }
+
+        /// Ingress identified by the origin's type, which must be bound exactly once
+        template<class Origin, class T>
+        static void publishFrom(const T& msg) noexcept
+        {
+            static_assert(detail::wiring::countOf<Origin, detail::wiring::receiver_t<std::remove_pointer_t<decltype(Bound)>>...> == 1,
+                          "publishFrom<Origin>: Origin must be bound exactly once; pass the origin object instead");
+            (detail::wiring::deliverExceptType<Origin>(detail::wiring::receiver(*Bound), msg), ...);
+        }
+    };
+
+    /** A type-erased publication port for one message type, for publishers that are not templates (a library or
+     *  translation-unit boundary). One indirect call reaches the typed wiring; everything behind it stays static.
+     */
+    template<class T>
+    class Sink
+    {
+    public:
+        /// Wrap a wiring, which must outlive the Sink (constrained: copying a Sink copies it, never wraps it)
+        template<class W, std::enable_if_t<!std::is_same_v<std::remove_cv_t<W>, Sink>, int> = 0>
+        explicit Sink(W& wiring) noexcept
+            : target_(&wiring)
+            , call_([](const void* w, const T& msg) noexcept { static_cast<const W*>(w)->publish(msg); })
+        {}
+
+        void publish(const T& msg) const noexcept { call_(target_, msg); }
+
+    private:
+        const void* target_;
+        void (*call_)(const void*, const T&) noexcept;
+    };
+
+    /** CRTP publisher mixin for dynamic topology: holds the wiring by value and gives the derived publisher
+     *  `this->publish(msg)`: `struct Sensor : sub0::Publisher<Sensor, Bus> { using Publisher::Publisher; ... };`
+     */
+    template<class Derived, class Out>
+    class Publisher
+    {
+    public:
+        constexpr explicit Publisher(const Out& out) noexcept : out_(out) {}
+
+    protected:
+        template<class T>
+        void publish(const T& msg) const noexcept { out_.publish(msg); }
+
+    private:
+        Out out_; // by value: a Wiring is a tuple of receiver references (one hop), a StaticWiring is empty
+    };
+
+    /** Transport endpoint binding: forwards every message type the transport can send.
+     *  Transport concept: send(const T&) for each message type it carries (result handling is the transport's).
+     *  Ingress from the transport: wiring.publishFrom(transport, msg) skips this binding (split horizon).
+     */
+    template<class Transport>
+    class Forward
+    {
+    public:
+        using sub0_by_value = void;       // refers to the transport only: a Wiring holds it by value (one hop)
+        using sub0_endpoint = Transport;  // split horizon: ingress may name this adapter or the transport itself
+
+        constexpr explicit Forward(Transport& transport) noexcept : transport_(transport) {}
+
+        /// Split-horizon identity: the transport it forwards to
+        constexpr const void* sub0_identity() const noexcept { return &transport_; }
+
+        template<class T>
+        auto receive(const T& msg) const noexcept -> decltype(std::declval<Transport&>().send(msg), void())
+        {
+            transport_.send(msg);
+        }
+
+    private:
+        Transport& transport_;
+    };
+
+    /** Transport endpoint binding for a transport with static storage: no RAM, fixed target */
+    template<auto* TransportObject>
+    struct StaticForward
+    {
+        /// Split horizon: ingress may name this binding or the transport itself as its origin
+        using sub0_endpoint = detail::wiring::receiver_t<std::remove_pointer_t<decltype(TransportObject)>>;
+        constexpr const void* sub0_identity() const noexcept { return &detail::wiring::receiver(*TransportObject); }
+
+        template<class T>
+        auto receive(const T& msg) noexcept -> decltype(detail::wiring::receiver(*TransportObject).send(msg), void())
+        {
+            detail::wiring::receiver(*TransportObject).send(msg);
+        }
+    };
+
+    /** Runtime subscribers behind a static wiring: bind the port like any receiver; receivers come and go at runtime.
+     *  A fixed slot array with no policy: no filter, no publish context, no locking. Delivery is in add() order.
+     *  For policy on the dynamic side (capacity, filter, locking, domains, teardown contract) use BrokerPort<T>.
+     *  @warning Not thread-safe: add(), remove() and publishing must not run concurrently.
+     */
+    template<class T, uint32_t N = 8>
+    class DynamicPort
+    {
+    public:
+        /// Implemented by runtime receivers
+        struct Receiver
+        {
+            virtual void receive(const T&) noexcept = 0;
+        protected:
+            ~Receiver() = default;
+        };
+
+        void add(Receiver* r) noexcept { (void)tryAdd(r); }
+
+        /// As add(), but reports whether it fit (capacity exceeded is otherwise silent)
+        bool tryAdd(Receiver* r) noexcept
+        {
+            if (count_ >= N)
+                return false;
+            entries_[count_++] = r;
+            return true;
+        }
+
+        /// Remove r, keeping the order of the others
+        void remove(Receiver* r) noexcept
+        {
+            for (uint32_t i = 0; i < count_; ++i)
+                if (entries_[i] == r)
+                {
+                    for (uint32_t j = i + 1; j < count_; ++j)
+                        entries_[j - 1] = entries_[j];
+                    --count_;
+                    return;
+                }
+        }
+
+        void receive(const T& msg) const noexcept { for (uint32_t i = 0; i < count_; ++i) entries_[i]->receive(msg); }
+
+    private:
+        Receiver* entries_[N] = {};
+        uint32_t count_ = 0;
+    };
+
+    /** Runtime subscribers behind a static wiring, with the full per-type broker (Section 2 policy) on the dynamic
+     *  side: bind the port like any receiver; Subscribe<T> objects receive through it.
+     */
+    template<class T>
+    class BrokerPort : public Publish<T>
+    {
+    public:
+        template<class C = config_t<T>, std::enable_if_t<C::storage == Storage::Global, int> = 0>
+        BrokerPort() noexcept {}
+
+        template<class C = config_t<T>, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
+        explicit BrokerPort(Domain<T>& domain) noexcept : Publish<T>(domain) {}
+
+        void receive(const T& msg) noexcept { this->publish(msg); }
+    };
+
+
+// ============================================================================
+// Section 5: IPC API — Serialization, forwarding, stream protocol
 // ============================================================================
 
     /** Interface for data provider to indicate destination buffer status
@@ -1641,7 +2728,7 @@ namespace sub0
             template<typename Data>
             Header( const Data& data )
 #if SUB0PUB_TYPEIDNAME
-                : typeId(detail::Broker<Data>::typeId() )
+                : typeId(detail::TypeInfo<Data>::typeId)
 #else
                 : typeId(utility::typeHash<Data>())
 #endif
@@ -1885,6 +2972,13 @@ namespace sub0
     template<typename DataProvider, typename... Datas>
     class ForwardPublishAll<DataProvider, std::tuple<Datas...> > : public ForwardPublish<Datas, DataProvider>... {};
 
+
 } // END: sub0
+
+/** Configure a Data type you cannot modify (resolution step 1c). Use at global namespace scope, next to the type:
+ *  `SUB0PUB_CONFIGURE(int, sub0::Capacity<32>);`
+ */
+#define SUB0PUB_CONFIGURE(Type, ...) \
+    template<> struct sub0::configure<Type> { using type = sub0::config<__VA_ARGS__>; }
 
 #endif

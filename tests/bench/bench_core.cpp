@@ -78,25 +78,35 @@ using floor_types::NoOpReceiver;
 /// more than one implementation) so every scenario measures real indirect dispatch, i.e. the
 /// worst case / control. Compiler collapse of dispatch (inlining, devirtualisation) is a follow-up.
 namespace bench_types {
-struct NoOpSubscriber : sub0::Subscribe<int> {
+/// Locked configurations (SUB0PUB_THREAD_SAFE) register explicitly after construction; others in the constructor
+template<class Data>
+struct Active : sub0::Subscribe<Data> {
+    Active() noexcept
+    {
+#if SUB0PUB_THREAD_SAFE
+        this->trySubscribe();
+#endif
+    }
+};
+struct NoOpSubscriber final : Active<int> {
     void receive(const int&) noexcept override;
 };
-struct CountingSubscriber : sub0::Subscribe<int> {
+struct CountingSubscriber : Active<int> {
     int count = 0;
     void receive(const int&) noexcept override;
 };
-struct NoOpFloatSub : sub0::Subscribe<float> {
+struct NoOpFloatSub : Active<float> {
     void receive(const float&) noexcept override;
 };
-struct CountingFloatSub : sub0::Subscribe<float> {
+struct CountingFloatSub : Active<float> {
     int count = 0;
     void receive(const float&) noexcept override;
 };
-struct FilteredSubscriber : sub0::Subscribe<int> {
+struct FilteredSubscriber : Active<int> {
     void receive(const int&) noexcept override;
     bool filter(const int& v) noexcept override;
 };
-struct CancellingSubscriber : sub0::Subscribe<int> {
+struct CancellingSubscriber : Active<int> {
     void receive(const int&) noexcept override;
 };
 void NoOpSubscriber::receive(const int&) noexcept {}
@@ -223,7 +233,7 @@ int main()
     // --- Re-entrant publish (only supported with snapshot dispatch) ---
     h.title("Re-entrant publish");
     {
-        struct Echo : sub0::Subscribe<int> {
+        struct Echo : Active<int> {
             IntPublisher* pub = nullptr;
             void receive(const int& v) noexcept override { if (v > 0) pub->send(v - 1); }
         };

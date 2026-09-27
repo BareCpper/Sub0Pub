@@ -7,9 +7,13 @@ add_executable(Sub0Pub_Tests
     test_fingerprint.cpp
     test_capacity_bounded.cpp
     test_reentrant_check.cpp
+    test_thread_safe.cpp
+    test_typeidname.cpp
+    test_explicit_instantiation.cpp
 )
 
-target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub::Sub0Pub)
+find_package(Threads REQUIRED)
+target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub::Sub0Pub Threads::Threads)
 
 target_include_directories(Sub0Pub_Tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
@@ -31,6 +35,10 @@ sub0pub_add_bench(Sub0Pub_Bench_Unchecked  bench/bench_core.cpp SUB0PUB_REENTRAN
 sub0pub_add_bench(Sub0Pub_Bench_Checked    bench/bench_core.cpp SUB0PUB_REENTRANT_SAFE=false SUB0PUB_REENTRANT_CHECK=true)
 sub0pub_add_bench(Sub0Pub_Bench_ThreadSafe bench/bench_core.cpp SUB0PUB_THREAD_SAFE=true)
 sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
+
+# Per-Data configuration and static wiring (public API, sub0pub.hpp Sections 2 to 4)
+add_subdirectory(config)
+add_subdirectory(wiring)
 
 # Design prototypes (not public API)
 add_subdirectory(design/broker_config)

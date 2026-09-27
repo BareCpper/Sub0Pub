@@ -1,0 +1,45 @@
+# Per-Data configuration (sub0pub.hpp Sections 2 and 3). Built with a project default configuration header,
+# as a project would set it from its build system, so these TUs are a separate executable from Sub0Pub_Tests.
+
+function(sub0pub_config_target name)
+    target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
+    target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../vendor")
+    target_compile_definitions(${name} PRIVATE SUB0PUB_CONFIG_HEADER="project_config.hpp" ${ARGN})
+endfunction()
+
+find_package(Threads REQUIRED)
+add_executable(Sub0Pub_ConfigTests
+    ../test_main.cpp
+    test_binding.cpp
+    test_multi_tu_a.cpp
+    test_multi_tu_b.cpp
+    test_endpoints.cpp
+    test_axes.cpp
+)
+sub0pub_config_target(Sub0Pub_ConfigTests SUB0PUB_TEST_COUNT_MISMATCHES SUB0PUB_CHECK_CONFIG=true)
+target_link_libraries(Sub0Pub_ConfigTests PRIVATE Threads::Threads)
+add_test(NAME Sub0Pub_ConfigTests COMMAND Sub0Pub_ConfigTests)
+
+# Deliberate cross-TU configuration mismatch: passes only if the debug registry detects it
+add_executable(Sub0Pub_ConfigMismatch mismatch_a.cpp mismatch_b.cpp)
+sub0pub_config_target(Sub0Pub_ConfigMismatch SUB0PUB_TEST_COUNT_MISMATCHES SUB0PUB_CHECK_CONFIG=true)
+add_test(NAME Sub0Pub_ConfigMismatchDetected COMMAND Sub0Pub_ConfigMismatch)
+
+# Misuse must be rejected at compile time with the intended diagnostic
+function(sub0pub_config_compile_fail name regex)
+    add_library(${name} OBJECT EXCLUDE_FROM_ALL compile_fail/${name}.cpp)
+    sub0pub_config_target(${name})
+    add_test(NAME Sub0Pub_Config_${name}
+             COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
+    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+endfunction()
+
+sub0pub_config_compile_fail(cf_config_two_places          "configured in exactly one place")
+sub0pub_config_compile_fail(cf_config_filter_disabled     "override")
+sub0pub_config_compile_fail(cf_config_cancel_no_context   "cancel\\(\\) needs a publish context")
+sub0pub_config_compile_fail(cf_config_lock_direct         "a Lock requires Snapshot dispatch")
+sub0pub_config_compile_fail(cf_config_lock_static_context "a Lock requires ThreadLocalContext")
+sub0pub_config_compile_fail(cf_config_snapshot_no_context "Snapshot needs a publish context")
+sub0pub_config_compile_fail(cf_config_domain_global       "requires a Data type configured with sub0::Scoped")
+sub0pub_config_compile_fail(cf_config_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
+sub0pub_config_compile_fail(cf_config_delete_via_base     "protected|inaccessible")

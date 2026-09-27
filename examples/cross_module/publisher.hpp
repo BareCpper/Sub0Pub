@@ -20,13 +20,13 @@
 #endif
 
 // Exporting the broker is critical for the instance to become shared across shared library boundaries
-// Note: thread_local members (threadCurrent_, threadCanceled_) are per-module by design
+// Note: the thread_local dispatch context (detail::PublishContext) is per-module by design
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4492) // thread_local with dllexport
 #endif
-SUB0PUB_EXAMPLE_EXTERN template class SUB0PUB_EXAMPLE_API sub0::detail::Broker<float>;
-SUB0PUB_EXAMPLE_EXTERN template class SUB0PUB_EXAMPLE_API sub0::detail::Broker<int>;
+SUB0PUB_EXAMPLE_EXTERN template class SUB0PUB_EXAMPLE_API sub0::detail::BrokerImpl<float, sub0::config_t<float>>;
+SUB0PUB_EXAMPLE_EXTERN template class SUB0PUB_EXAMPLE_API sub0::detail::BrokerImpl<int, sub0::config_t<int>>;
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif

@@ -28,6 +28,8 @@ Any commit that changes the public API surface in `include/sub0pub/sub0pub.hpp` 
 - Free functions: `sub0::publish()`, `sub0::cancel()`
 - Configuration macros: `SUB0PUB_*`
 - `sub0::IPublish`, `sub0::Buffer`, `sub0::DefaultSerialisation`
+- Per-type configuration: `sub0::config`, `sub0::config_t`, `sub0::configure`, `sub0::with`, `sub0::Builtin`, the options (`Capacity`, `Snapshot`, `Direct`, `DirectChecked`, `ThreadLocalContext`, `StaticContext`, `NoContext`, `LockWith`, `NoFilter`, `Scoped`, `Implementation`), `sub0::Domain`, `sub0::Route`, `sub0::Tagged`, `sub0::SubscribeResult`, `sub0::SendResult`, `sub0::PublishReport`, `sub0::kit`
+- Static wiring: `sub0::wire`, `sub0::Wiring`, `sub0::StaticWiring`, `sub0::Sink`, `sub0::Publisher`, `sub0::Forward`, `sub0::StaticForward`, `sub0::DynamicPort`, `sub0::BrokerPort`, `sub0::handles_v`
 
 ### Style
 Follow `STYLE_GUIDE.md` for all C++ code. Key points:

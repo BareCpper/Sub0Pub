@@ -1,8 +1,8 @@
 #pragma once
 /** PROTOTYPE: per-Data broker configuration for Sub0Pub v2 (docs/design/BROKER_CUSTOMISATION.md)
  *
- * Experimental namespace sub0x. Not part of the public API and does not modify sub0pub.hpp; it exists
- * to prove the design compiles, is ODR-safe across translation units and costs nothing when unused.
+ * Experimental namespace sub0x, kept as the record the design was measured with. The design is now public API in
+ * sub0pub.hpp (namespace sub0, Phase 2); new code and tests use that. This copy is frozen.
  *
  * Resolution of the configuration used by every Subscribe<Data> / Publish<Data> / publish() of a type:
  *
