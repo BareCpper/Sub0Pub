@@ -122,7 +122,7 @@ function(sub0x_collapse_compile_fail name regex)
 endfunction()
 
 sub0x_collapse_compile_fail(cf_static_wiring_local    "static storage duration|not a constant expression|not a valid template argument")
-sub0x_collapse_compile_fail(cf_static_wiring_element  "not a variable or function|subobject|not a valid template argument")
+sub0x_collapse_compile_fail(cf_static_wiring_element  "not a variable or function|subobject|not a valid template argument|invalid template argument")
 sub0x_collapse_compile_fail(cf_publish_from_ambiguous "Origin must be bound exactly once")
 sub0x_collapse_compile_fail(cf_handles_mismatch       "Logger must receive Sample")
 
