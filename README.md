@@ -274,7 +274,7 @@ struct Handler : sub0::Subscribe<Command> {
 };
 ```
 
-Options: `Capacity<N>`; `Snapshot`, `Direct` or `DirectChecked`; `ThreadLocalContext`, `StaticContext` (no TLS) or
+Options: `Capacity<N>`; `Snapshot` (selects `ThreadLocalContext` unless a context is chosen), `Direct` or `DirectChecked`; `ThreadLocalContext`, `StaticContext` (no TLS) or
 `NoContext`; `LockWith<L>` (concurrent publishers; implies `Snapshot` and `ThreadLocalContext`); `Filter` or `NoFilter`;
 `Scoped`; `Implementation<Broker>`. Invalid
 combinations do not compile. A project-wide default can be set with `SUB0PUB_CONFIG_HEADER`. With a lock, call

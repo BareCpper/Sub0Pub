@@ -8,6 +8,7 @@
 namespace { std::atomic<int> gThreadViolations{0}; }
 #define SUB0PUB_THREAD_VIOLATION(what) ((void)(what), gThreadViolations.fetch_add(1))
 
+#include <optional>
 #include <thread>
 
 #include "doctest.h"
@@ -78,4 +79,40 @@ TEST_CASE("Defaults: using an unlocked type from several threads in turn is not 
     }
     CHECK(gThreadViolations.load() == 0);
     CHECK(counter.received.load() == 3);
+}
+
+namespace {
+/// The migration recipe for callback-time subscription changes, on the Builtin default (no project header)
+struct SnapRecipeMsg { int value; using sub0_config = sub0::config<sub0::Snapshot>; };
+static_assert(sub0::config_t<SnapRecipeMsg>::dispatch == sub0::Dispatch::Snapshot, "");
+static_assert(sub0::config_t<SnapRecipeMsg>::context == sub0::Context::ThreadLocal, "Snapshot selects a context");
+static_assert(sub0::config<sub0::StaticContext, sub0::Snapshot>::context == sub0::Context::Static,
+              "Snapshot keeps a context already chosen");
+
+struct SnapRecipeSub final : sub0::Subscribe<SnapRecipeMsg>
+{
+    int received = 0;
+    std::optional<SnapRecipeSub>* late = nullptr;
+    void receive(const SnapRecipeMsg&) noexcept override
+    {
+        ++received;
+        if (late && !*late)
+            late->emplace(); // subscribe the same type from inside its own dispatch
+    }
+};
+} // namespace
+
+TEST_CASE("Defaults: config<Snapshot> alone allows subscribing from receive()") {
+    struct Pub final : sub0::Publish<SnapRecipeMsg> { void send(int v) noexcept { sub0::publish(*this, SnapRecipeMsg{v}); } } pub;
+    std::optional<SnapRecipeSub> late;
+    SnapRecipeSub first;
+    first.late = &late;
+    gThreadViolations = 0;
+    pub.send(1);
+    CHECK(first.received == 1);
+    REQUIRE(late);
+    CHECK(late->received == 0); // added during the dispatch: called from the next publish
+    pub.send(2);
+    CHECK(late->received == 1);
+    CHECK(gThreadViolations.load() == 0);
 }

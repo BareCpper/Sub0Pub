@@ -762,7 +762,18 @@ namespace sub0
 
     template<Dispatch D> struct DispatchWith
     { template<class B> struct apply : B { static constexpr Dispatch dispatch = D; }; };
-    using Snapshot = DispatchWith<Dispatch::Snapshot>;
+
+    /// Snapshot dispatch: subscribe/unsubscribe a type from inside its own receive(). A snapshot needs a publish
+    /// context, so this also selects ThreadLocalContext when the base has none (StaticContext after it selects that
+    /// instead; NoContext after it is a compile error).
+    struct Snapshot
+    {
+        template<class B> struct apply : B
+        {
+            static constexpr Dispatch dispatch = Dispatch::Snapshot;
+            static constexpr Context context = B::context == Context::None ? Context::ThreadLocal : B::context;
+        };
+    };
     using Direct = DispatchWith<Dispatch::Direct>;
     using DirectChecked = DispatchWith<Dispatch::DirectChecked>;
 
@@ -834,8 +845,10 @@ namespace sub0
     /** Per-Data configuration: the project default with options applied. The usual spelling at a Data site:
      *  `struct Imu { ...; using sub0_config = sub0::config<sub0::Capacity<2>, sub0::NoFilter>; };`
      */
+    /// An alias, not a class: `config<Opts...>` names a different type wherever the base (the project default or the
+    /// macro-derived Builtin) differs, so translation units with different SUB0PUB_* values never share its definition
     template<class... Opts>
-    struct config : with<GlobalDefault, Opts...> {};
+    using config = with<GlobalDefault, Opts...>;
 
     /** Traits hook (resolution step 1c) for types that cannot carry a member alias or ADL declaration
      * @see SUB0PUB_CONFIGURE
@@ -991,26 +1004,37 @@ namespace sub0
         template<class Data>
         struct TypeInfo
         {
-            inline static uint32_t typeId = 0;
-            inline static const char* typeName = nullptr;
-
+            /// Set once: publishers and subscribers may be constructed on several threads at once
             static void set(const uint32_t id, const char* const name) noexcept
             {
                 if (id)
                 {
+                    uint32_t seen = 0;
+                    if (!id_.compare_exchange_strong(seen, id, std::memory_order_acq_rel))
+                    {
 #if SUB0PUB_ASSERT
-                    assert(!typeId || typeId == id); // a Data type must be given one identifier
+                        assert(seen == id); // a Data type must be given one identifier
 #endif
-                    typeId = id;
+                    }
                 }
                 if (name)
                 {
+                    const char* seen = nullptr;
+                    if (!name_.compare_exchange_strong(seen, name, std::memory_order_acq_rel))
+                    {
 #if SUB0PUB_ASSERT
-                    assert(!typeName || std::strcmp(typeName, name) == 0); // and one name
+                        assert(std::strcmp(seen, name) == 0); // and one name
 #endif
-                    typeName = name;
+                    }
                 }
             }
+
+            static uint32_t typeId() noexcept { return id_.load(std::memory_order_acquire); }
+            static const char* typeName() noexcept { return name_.load(std::memory_order_acquire); }
+
+        private:
+            inline static std::atomic<uint32_t> id_{0};
+            inline static std::atomic<const char*> name_{nullptr};
         };
 #endif
 
@@ -1429,6 +1453,7 @@ namespace sub0
                 if (t.count >= Config::capacity)
                     return SubscribeResult::CapacityExceeded; // table unchanged: bounded, no out-of-bounds write
                 t.entries[t.count++] = subscriber;
+                subscriber->subscribed_.store(true); // under the table lock, so a concurrent Domain::close() wins
                 return SubscribeResult::Subscribed;
             }
 
@@ -1692,7 +1717,9 @@ namespace sub0
             if (isSubscribed())
                 return SubscribeResult::Subscribed;
             const SubscribeResult result = broker_.trySubscribe(this);
-            subscribed_.store(result == SubscribeResult::Subscribed);
+            // The library broker records the registration under its table lock; an application broker cannot
+            if constexpr (!std::is_same_v<Broker, detail::BrokerImpl<Data, Config>>)
+                subscribed_.store(result == SubscribeResult::Subscribed);
             return result;
         }
 
@@ -1719,7 +1746,7 @@ namespace sub0
 
 #if SUB0PUB_TYPEIDNAME
         /** @return Null-terminated name given to Data, or nullptr */
-        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName; }
+        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName(); }
 
         /** Stream operator for diagnostics reporting */
         friend OStream& operator<< (OStream& stream, const Subscribe<Data>& subscriber)
@@ -1787,11 +1814,15 @@ namespace sub0
         {
             LockGuard<Config> lk(t);
             UseScope<TableT, cThreadCheck<Config>> use(t);
+            checkNotDispatching(t); // closing detaches every subscriber: a table change, like unsubscribing
             t.closed = true;
             n = t.count;
             std::copy_n(t.entries, n, detached);
             for (uint32_t i = 0; i < n; ++i)
+            {
                 t.entries[i]->subscribed_.store(false);
+                t.entries[i] = nullptr; // a Direct dispatch in progress re-reads its slot after filter(): not called
+            }
             t.count = 0;
             if constexpr (cConcurrent<Config>)
                 forgetInActiveDispatches(t, nullptr);
@@ -1831,7 +1862,8 @@ namespace sub0
 
     /** Base type for an object that publishes to some strong-typed Data
      * @tparam  Data  Type that will be published by this object to subscribers of corresponding type
-     * @remark Not polymorphic: no virtual destructor and no vptr. For Global storage it is an empty handle.
+     * @remark Not polymorphic: no virtual destructor and no vptr. The destructor is protected, so a publisher is a class
+     *         derived from Publish<Data> and is never deleted through a Publish<Data>*. For Global storage it is an empty handle.
      */
     template<class Data>
     class Publish
@@ -1856,6 +1888,9 @@ namespace sub0
         template<class C = Config, std::enable_if_t<C::storage == Storage::Scoped, int> = 0>
         explicit Publish(Domain<Data>& domain) noexcept : broker_(domain.table_) {}
 
+        Publish(const Publish&) = default;
+        Publish& operator=(const Publish&) = default;
+
         /** Cancel the active publication of Data, stopping delivery to the remaining subscribers
          * @note Only meaningful from within a receive() callback
          */
@@ -1869,10 +1904,10 @@ namespace sub0
 
 #if SUB0PUB_TYPEIDNAME
         /** @return Null-terminated name given to Data, or nullptr */
-        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName; }
+        const char* typeName() const noexcept { return detail::TypeInfo<Data>::typeName(); }
 
         /** @return Unique identifier given to Data, or 0 */
-        uint32_t typeId() const noexcept { return detail::TypeInfo<Data>::typeId; }
+        uint32_t typeId() const noexcept { return detail::TypeInfo<Data>::typeId(); }
 
         /** Stream operator for diagnostics reporting */
         friend OStream& operator<< (OStream& stream, const Publish<Data>& publisher)
@@ -1880,6 +1915,9 @@ namespace sub0
 #endif
 
     protected:
+        /// Protected and non-virtual: a publisher is destroyed as its own type, never through a Publish<Data>*
+        ~Publish() = default;
+
         /** Publish data to subscribers
          * @note Protected: use the free function sub0::publish(*this, data) from derived classes
          */
@@ -2890,7 +2928,7 @@ namespace sub0
             template<typename Data>
             Header( const Data& data )
 #if SUB0PUB_TYPEIDNAME
-                : typeId(detail::TypeInfo<Data>::typeId)
+                : typeId(detail::TypeInfo<Data>::typeId())
 #else
                 : typeId(utility::typeHash<Data>())
 #endif

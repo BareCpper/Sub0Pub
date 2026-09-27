@@ -6,6 +6,7 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -258,4 +259,50 @@ TEST_CASE("axes: filter() that closes its domain prevents receive() for itself a
     } pub(domain);
     pub.send(ScopedFilterMsg{1});
     CHECK(received == 0);
+}
+
+namespace {
+/// A lock that, once armed on a thread, parks that thread right after its next unlock until released
+struct PausingLock
+{
+    std::mutex mutex;
+    inline static std::atomic<bool> parked{false};
+    inline static std::atomic<bool> resume{false};
+    inline static thread_local bool armed = false;
+    void lock() noexcept { mutex.lock(); }
+    void unlock() noexcept
+    {
+        mutex.unlock();
+        if (armed)
+        {
+            armed = false;
+            parked.store(true);
+            while (!resume.load())
+                std::this_thread::yield();
+        }
+    }
+};
+struct RaceMsg { int value; using sub0_config = sub0::config<sub0::Scoped, sub0::LockWith<PausingLock>>; };
+struct RaceSub final : sub0::Subscribe<RaceMsg>
+{
+    using Subscribe::Subscribe;
+    void receive(const RaceMsg&) noexcept override {}
+};
+} // namespace
+
+TEST_CASE("axes: Lock, a domain closed between registration and its return leaves the subscriber detached") {
+    sub0::Domain<RaceMsg> domain;
+    RaceSub sub(domain);
+    std::thread registering([&] {
+        PausingLock::armed = true;
+        CHECK(sub.trySubscribe() == sub0::SubscribeResult::Subscribed); // inserted, then parked after unlock
+    });
+    while (!PausingLock::parked.load())
+        std::this_thread::yield();
+    domain.close(); // detaches the subscriber registered a moment ago
+    PausingLock::resume.store(true);
+    registering.join();
+    CHECK(domain.isClosed());
+    CHECK_FALSE(sub.isSubscribed());
+    CHECK(sub.trySubscribe() == sub0::SubscribeResult::Closed);
 }

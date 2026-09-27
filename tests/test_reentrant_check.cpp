@@ -117,3 +117,53 @@ TEST_CASE("Reentrant check: subscribing and unsubscribing the same type from rec
     mutator.child.reset();
     CHECK(gViolations == 2);
 }
+
+namespace {
+/// Default dispatch (DirectChecked in this TU), no publish context, with a domain and filter()
+struct ClosingMsg { int value; using sub0_config = sub0::config<sub0::Scoped, sub0::Filter>; };
+
+struct Closer final : sub0::Subscribe<ClosingMsg>
+{
+    sub0::Domain<ClosingMsg>& domain;
+    bool destroy;
+    int* received;
+    Closer(sub0::Domain<ClosingMsg>& d, bool destroySelf, int* count) noexcept
+        : sub0::Subscribe<ClosingMsg>(d), domain(d), destroy(destroySelf), received(count) {}
+    bool filter(const ClosingMsg&) noexcept override
+    {
+        domain.close(); // a table change during its own dispatch
+        if (destroy)
+            delete this;
+        return true;
+    }
+    void receive(const ClosingMsg&) noexcept override { ++*received; }
+};
+
+struct ClosingPub final : sub0::Publish<ClosingMsg>
+{
+    using Publish::Publish;
+    void send(int v) noexcept { sub0::publish(*this, ClosingMsg{v}); }
+};
+} // namespace
+
+TEST_CASE("Reentrant check: closing a domain from filter() under DirectChecked is detected and stops delivery") {
+    for (const bool destroy : {false, true}) // destroying itself after closing: ASan-clean
+    {
+        CAPTURE(destroy);
+        gViolations = 0;
+        int received = 0;
+        sub0::Domain<ClosingMsg> domain;
+        ClosingPub pub(domain);
+        auto* closer = new Closer(domain, destroy, &received);
+        pub.send(1);
+        CHECK(received == 0);
+        CHECK(domain.isClosed());
+        CHECK(gViolations == (cCheckActive ? 1 : 0));
+        if (!destroy)
+        {
+            CHECK_FALSE(closer->isSubscribed());
+            delete closer; // detached: destruction is not a table change
+            CHECK(gViolations == (cCheckActive ? 1 : 0));
+        }
+    }
+}

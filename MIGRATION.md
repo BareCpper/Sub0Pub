@@ -67,12 +67,15 @@ New `sub0::SubscribeResult` enum (`Subscribed`, `CapacityExceeded`). `Subscribe<
 
 ### `Subscribe<Data>` and `Publish<Data>` have no virtual destructor
 
-`Subscribe<Data>::~Subscribe()` is `protected` and non-virtual, and `Publish<Data>` has no destructor of its own: it is no longer polymorphic, and for global storage it is an empty handle. A subscriber is destroyed as its own type. Deleting one through a `Subscribe<Data>*` or `Publish<Data>*` is a compile error.
+`Subscribe<Data>::~Subscribe()` and `Publish<Data>::~Publish()` are `protected` and non-virtual. Neither class is polymorphic any more, and for global storage a `Publish<Data>` is an empty handle. A subscriber or publisher is destroyed as its own type. Deleting one through a `Subscribe<Data>*` or `Publish<Data>*` is a compile error, where v1 destroyed it virtually.
+
+Because its destructor is protected, a `Publish<Data>` is always a base: declare a publisher as a class derived from it, not as a `sub0::Publish<Data>` variable.
 
 This removes the deleting-destructor code and the `operator delete` link dependency from small targets.
 
 **Action:**
-- Delete or hold subscribers by their own type.
+- Delete or hold subscribers and publishers by their own type.
+- Replace a `sub0::Publish<Data>` variable with a derived type, e.g. `struct DataOut final : sub0::Publish<Data> { using Publish::Publish; };`.
 - Mark leaf subscriber classes `final` when they are destroyed through a pointer to their own type (`delete`, `std::unique_ptr`) or held in `std::optional`. Otherwise gcc (`-Wdelete-non-virtual-dtor`) and clang (`-Wdelete-non-abstract-non-virtual-dtor`) warn.
 - Remove `override` from subscriber destructors.
 
@@ -123,7 +126,7 @@ Each `Data` type can now choose its own policy. The `SUB0PUB_*` macros are the d
 
 The options are:
 - `Capacity<N>`;
-- `Snapshot`, `Direct` or `DirectChecked`;
+- `Snapshot` (which also selects `ThreadLocalContext` unless a context is already chosen), `Direct` or `DirectChecked`;
 - `ThreadLocalContext`, `StaticContext` (no TLS) or `NoContext`;
 - `LockWith<L>`, which also selects `Snapshot` and `ThreadLocalContext`;
 - `Filter` or `NoFilter`;
@@ -132,7 +135,7 @@ The options are:
 
 `Route<Data, Transport>` binds a transport endpoint to a table. `sub0::publish(from, data, report)` reports what each route accepted. Invalid combinations are compile errors.
 
-Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes.
+Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes. Types local to one translation unit may use different `SUB0PUB_*` macros in different units: `sub0::config<Opts...>` is an alias of `sub0::with<Default, Opts...>`, so it names a different type wherever the default differs.
 
 **Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
 
@@ -197,8 +200,8 @@ longer reports it; it reports only a change to the table being dispatched.
 **Action:** Build in debug and fix what is reported:
 - add `SUB0PUB_FILTER` or `sub0::Filter` where `filter()` is overridden;
 - add `SUB0PUB_CANCEL` or `sub0::ThreadLocalContext` where `cancel()` is called;
-- add `SUB0PUB_REENTRANT_SAFE` or `sub0::Snapshot` where a subscriber of a type is created or destroyed from that
-  type's `receive()`;
+- add `SUB0PUB_REENTRANT_SAFE` or `sub0::Snapshot` where a subscriber of a type is created or destroyed, or its
+  `Domain` closed, from that type's `receive()` or `filter()`;
 - add `SUB0PUB_THREAD_SAFE` or `sub0::LockWith<L>` where a type is used from several threads at once.
 
 To restore the earlier v2 behaviour for every type, define `SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL` and
@@ -208,13 +211,15 @@ To restore the earlier v2 behaviour for every type, define `SUB0PUB_REENTRANT_SA
 
 A subscriber disconnected or destroyed while its type is being dispatched on the same thread is removed from that dispatch. Before, the dispatch's snapshot still held it and called it afterwards (issue #5). `filter()` may also disconnect or destroy its own subscriber: `receive()` is then not called.
 
+Closing a `Domain` from a dispatch of its own table is a table change too. With Snapshot dispatch it is supported, and no subscriber of that domain receives the rest of the publication. With `DirectChecked` it is reported (a debug build aborts by default); if the handler returns, no subscriber receives the rest of the publication.
+
 Each publication's `cancel()` and the `DirectChecked` re-entrancy check apply only to the table being dispatched. That is one per type, or one per `Domain`.
 
 **Action:** None.
 
 ### `SUB0PUB_TYPEIDNAME` compiles
 
-`SUB0PUB_TYPEIDNAME` did not compile (issue #11). It does now: the identity passed to a `Subscribe`/`Publish` constructor names the type in stream headers. `Publish<Data>::typeName()` and `typeId()` are now public.
+`SUB0PUB_TYPEIDNAME` did not compile (issue #11). It does now: the identity passed to a `Subscribe`/`Publish` constructor names the type in stream headers. `Publish<Data>::typeName()` and `typeId()` are now public. Publishers and subscribers of one type may be constructed on several threads at once.
 
 **Action:** None.
 
@@ -232,9 +237,10 @@ In v1, all types without `SUB0PUB_TYPEIDNAME` received a hardcoded ID of `12345`
 
 The `SUB0_EXPERIMENTAL` flag and `publish_cstatic()` have been removed.
 
-**Action:** If you used `sub0::publish_cstatic(data)`, create a static `Publish<Data>` instance yourself:
+**Action:** If you used `sub0::publish_cstatic(data)`, create a static publisher yourself:
 ```cpp
-static sub0::Publish<Data> publisher;
+struct DataOut final : sub0::Publish<Data> {};
+static DataOut publisher;
 sub0::publish(publisher, data);
 ```
 

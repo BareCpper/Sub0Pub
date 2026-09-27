@@ -4,6 +4,7 @@
 #define SUB0PUB_TYPEIDNAME true
 
 #include <string>
+#include <thread>
 
 #include "doctest.h"
 #include "sub0pub/sub0pub.hpp"
@@ -35,4 +36,28 @@ TEST_CASE("TYPEIDNAME: the assigned identity names the type and its stream heade
     CHECK(sub0::DefaultSerialisation::Header(NamedMsg{1}).typeId == 0x4E414D45U);
     pub.send(1);
     CHECK(sub.received == 1);
+}
+
+namespace {
+struct RacedMsg { int value; };
+struct RacedPublisher final : sub0::Publish<RacedMsg>
+{
+    RacedPublisher() noexcept : sub0::Publish<RacedMsg>(0x52414345U, "RacedMsg") {}
+};
+} // namespace
+
+TEST_CASE("TYPEIDNAME: publishers of one type constructed on several threads at once (run under TSan)") {
+    auto construct = [] {
+        for (int i = 0; i < 1000; ++i)
+        {
+            RacedPublisher p;
+            (void)p;
+        }
+    };
+    std::thread a(construct), b(construct);
+    a.join();
+    b.join();
+    RacedPublisher p;
+    CHECK(p.typeId() == 0x52414345U);
+    CHECK(std::string(p.typeName()) == "RacedMsg");
 }

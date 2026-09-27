@@ -43,6 +43,7 @@ sub0pub_config_compile_fail(cf_config_snapshot_no_context "Snapshot needs a publ
 sub0pub_config_compile_fail(cf_config_domain_global       "requires a Data type configured with sub0::Scoped")
 sub0pub_config_compile_fail(cf_config_scoped_needs_domain "no matching|no appropriate default constructor|deleted|default constructor")
 sub0pub_config_compile_fail(cf_config_delete_via_base     "protected|inaccessible")
+sub0pub_config_compile_fail(cf_config_delete_publish_via_base "protected|inaccessible")
 
 # The same, for the Builtin default (no project configuration header): costly features are opt-in and detected
 function(sub0pub_default_compile_fail name regex)
@@ -55,3 +56,19 @@ endfunction()
 
 sub0pub_default_compile_fail(cf_config_filter_not_enabled   "conflicting return type|different return type|overrides a 'final'|return type differs|C2555")
 sub0pub_default_compile_fail(cf_config_cancel_default       "SUB0PUB_CANCEL")
+
+# config<Opts...> with different SUB0PUB_* macros in different translation units, in both link orders
+foreach(order ab ba)
+    if(order STREQUAL "ab")
+        set(sources identity_a.cpp identity_b.cpp)
+    else()
+        set(sources identity_b.cpp identity_a.cpp)
+    endif()
+    add_executable(Sub0Pub_ConfigIdentity_${order} ${sources} identity_main.cpp)
+    target_link_libraries(Sub0Pub_ConfigIdentity_${order} PRIVATE Sub0Pub::Sub0Pub Threads::Threads)
+    # Out-of-line calls, so the linker's choice between the TUs' definitions of a merged function is observable
+    target_compile_options(Sub0Pub_ConfigIdentity_${order} PRIVATE
+        $<IF:$<CXX_COMPILER_ID:MSVC>,/Od /Ob0,-O0 -fno-inline>)
+    add_test(NAME Sub0Pub_ConfigIdentity_${order} COMMAND Sub0Pub_ConfigIdentity_${order})
+    set_tests_properties(Sub0Pub_ConfigIdentity_${order} PROPERTIES TIMEOUT 30)
+endforeach()
