@@ -66,6 +66,10 @@ namespace sub0x
             }
         }
 
+        /// Cancellation Alt 1 delivery (defined below with the other cancellation alternatives)
+        template<class R, class T>
+        inline bool deliverContinue(R& r, const T& msg) noexcept;
+
         /// A binding adapter that only refers to the real endpoint (e.g. Forward<Transport>) declares
         /// `using sub0x_by_value = void;` so a Wiring holds it by value: one hop to the endpoint, as hand-written
         template<class B, class = void> struct by_value : std::false_type {};
@@ -85,8 +89,20 @@ namespace sub0x
         }
 
         template<class X> using receiver_t = std::remove_cv_t<std::remove_reference_t<decltype(receiver(std::declval<X&>()))>>;
+
+        /// The endpoint a binding stands for: an adapter that forwards to a transport (Forward, StaticForward)
+        /// declares `using sub0x_endpoint = Transport;`, so ingress may name either the adapter or the transport
+        /// itself as its origin (collapse scores review: naming the transport used to echo silently)
+        template<class X, class = void> struct endpoint_of { using type = X; };
+        template<class X> struct endpoint_of<X, std::void_t<typename X::sub0x_endpoint>> { using type = typename X::sub0x_endpoint; };
+
+        /// Whether a binding of type R is the endpoint an ingress origin of type Origin refers to
+        template<class R, class Origin>
+        constexpr bool isOrigin = std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>> ||
+                                  std::is_same_v<typename endpoint_of<std::remove_cv_t<R>>::type, std::remove_cv_t<Origin>>;
+
         template<class Origin, class... R>
-        constexpr std::size_t countOf = (std::size_t(std::is_same_v<std::remove_cv_t<Origin>, R>) + ... + std::size_t(0));
+        constexpr std::size_t countOf = (std::size_t(isOrigin<R, Origin>) + ... + std::size_t(0));
 
         /// Split horizon: do not send a message back to the binding it came from. When the origin's type is bound
         /// exactly once (OriginUnique), the origin *is* that binding: decided at compile time, no address compare
@@ -94,7 +110,7 @@ namespace sub0x
         template<bool OriginUnique, class R, class T, class Origin>
         inline void deliverExcept(R& r, const T& msg, const Origin& origin) noexcept
         {
-            if constexpr (std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>>)
+            if constexpr (isOrigin<R, Origin>)
             {
                 if constexpr (OriginUnique)
                 {
@@ -111,10 +127,19 @@ namespace sub0x
         template<class Origin, class R, class T>
         inline void deliverExceptType(R& r, const T& msg) noexcept
         {
-            if constexpr (!std::is_same_v<std::remove_cv_t<R>, std::remove_cv_t<Origin>>)
+            if constexpr (!isOrigin<R, Origin>)
                 deliver(r, msg);
         }
     }
+
+    /** Opt-in guard against known issue K14 (capability routing is silent on a signature mismatch): a receiver
+     *  written to handle T can state it where it is bound, e.g.
+     *      static_assert(sub0x::handles_v<Logger, Sample>, "Logger must receive Sample");
+     *  It is true exactly when a wiring would deliver T to R (same detection as the routing itself); pass
+     *  `const R` for a receiver bound through a pointer to const. */
+    template<class R, class T>
+    constexpr bool handles_v =
+        detail::accepts<std::remove_reference_t<decltype(detail::receiver(std::declval<R&>()))>, T>::value; // keeps const
 
     /** B1: receivers bound by reference at the composition point (runtime addresses, static types) */
     template<class... Bound>
@@ -143,6 +168,11 @@ namespace sub0x
             publishFromType<Origin>(msg, Indices{});
         }
 
+        /// Cancellation Alt 1 (bool return) for runtime-bound wirings, as StaticWiring::publishCancelable: stops
+        /// delivering to later bound receivers as soon as one receive() returns false
+        template<class T>
+        void publishCancelable(const T& msg) const noexcept { publishCancelable(msg, Indices{}); }
+
     private:
         // Each binding is read (std::get) right before its own delivery, as hand-written code does. std::apply
         // would read every binding up front and keep them live across the calls (extra saved registers).
@@ -165,6 +195,12 @@ namespace sub0x
         void publishFromType(const T& msg, std::index_sequence<I...>) const noexcept
         {
             (detail::deliverExceptType<Origin>(detail::receiver(std::get<I>(bound_)), msg), ...);
+        }
+
+        template<class T, std::size_t... I>
+        void publishCancelable(const T& msg, std::index_sequence<I...>) const noexcept
+        {
+            (detail::deliverContinue(detail::receiver(std::get<I>(bound_)), msg) && ...);
         }
 
         // mutable: publish() is const, and a by-value adapter must stay callable through it (a const adapter
@@ -426,6 +462,10 @@ namespace sub0x
     template<auto* TransportObject>
     struct StaticForward
     {
+        /// Split horizon: ingress may name this binding or the transport itself as its origin
+        using sub0x_endpoint = detail::receiver_t<std::remove_pointer_t<decltype(TransportObject)>>;
+        constexpr const void* sub0x_identity() const noexcept { return &detail::receiver(*TransportObject); }
+
         template<class T>
         auto receive(const T& msg) noexcept -> decltype(detail::receiver(*TransportObject).send(msg), void())
         {
@@ -440,6 +480,7 @@ namespace sub0x
     {
     public:
         using sub0x_by_value = void; // refers to the transport only: a Wiring holds it by value (one hop)
+        using sub0x_endpoint = Transport; // split horizon: ingress may name this adapter or the transport itself
 
         constexpr explicit Forward(Transport& transport) noexcept : transport_(transport) {}
 

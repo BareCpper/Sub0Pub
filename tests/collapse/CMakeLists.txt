@@ -102,3 +102,34 @@ foreach(case_dir ${SUB0PUB_COLLAPSE_CASES})
         endforeach()
     endforeach()
 endforeach()
+
+# Pattern B sandbox guarantees and limitations that a behaviour-equivalent case cannot show
+# (docs/design/COLLAPSE_SCORES.md, "Coverage review")
+add_executable(Sub0Pub_CollapseSandboxTests ../test_main.cpp unit/test_sub0x_sandbox.cpp)
+target_link_libraries(Sub0Pub_CollapseSandboxTests PRIVATE Sub0Pub::Sub0Pub)
+target_include_directories(Sub0Pub_CollapseSandboxTests PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${SUB0PUB_COLLAPSE_PROTOTYPE}" "${CMAKE_CURRENT_SOURCE_DIR}/../vendor")
+add_test(NAME Sub0Pub_CollapseSandboxTests COMMAND Sub0Pub_CollapseSandboxTests)
+
+# Misuse the sandbox must reject at compile time, with the intended diagnostic
+function(sub0x_collapse_compile_fail name regex)
+    add_library(${name} OBJECT EXCLUDE_FROM_ALL unit/compile_fail/${name}.cpp)
+    target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
+    target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${SUB0PUB_COLLAPSE_PROTOTYPE}")
+    add_test(NAME Sub0Pub_Collapse_${name}
+             COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
+    set_tests_properties(Sub0Pub_Collapse_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+endfunction()
+
+sub0x_collapse_compile_fail(cf_static_wiring_local    "static storage duration|not a constant expression|not a valid template argument")
+sub0x_collapse_compile_fail(cf_static_wiring_element  "not a variable or function|subobject|not a valid template argument")
+sub0x_collapse_compile_fail(cf_publish_from_ambiguous "Origin must be bound exactly once")
+sub0x_collapse_compile_fail(cf_handles_mismatch       "Logger must receive Sample")
+
+# The evidence tool's publish-path parser checks itself on synthetic objdump output (nested-template callees,
+# tail calls, PLT stubs); the full evidence run is not part of ctest (it needs valgrind and the Arm toolchain)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME Sub0Pub_CollapseEvidenceSelfTest
+             COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/collapse_evidence.py" --self-test)
+endif()

@@ -4,6 +4,9 @@
 are in place. All eight acceptance cases are measured. The **draft recommendation** is in "Phase 1 results".
 **Gate:** #9 is a v2 acceptance gate. The broker API in [BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md) (#8)
 is not frozen until it can select the structure this evidence shows is needed.
+**Score matrix and coverage review (#10):** every axis these cases compare, scored option by option, the
+guarantees table, the coverage review (eight new cases) and the defects it found are in
+[COLLAPSE_SCORES.md](COLLAPSE_SCORES.md).
 
 The Sub0 intent is **correctness without cost**: wherever an application's topology and behaviour allow
 it, the compiler must be able to remove dispatch, registration, storage and context machinery. This
@@ -45,12 +48,17 @@ measurement, not argued for.
    | publish path | final-ELF disassembly of `collapse_publish` plus directly reachable functions | static instructions within +2; no extra indirect calls |
    | RAM | final-ELF `.data` + `.bss` | no more |
    | static initialisation | `.init_array` size | no more |
-   | retained Sub0Pub code and state | `sub0::` symbols left in the final ELF | none |
+   | retained Sub0Pub code and state | `sub0::` and `sub0x::` symbols left in the final ELF, reported separately (`sub0x::` was not counted before the scores review) | none of `sub0::`; `sub0x::` only if the image is no larger than the reference's |
    | link dependencies | TLS, `operator delete`, `__cxa_pure_virtual`, atexit | none added |
    | where extra bytes come from | largest symbols added over the reference | reported |
 
-   Behaviour mismatches fail the tool. Criterion verdicts are reported without being enforced, because
-   pattern A is expected to fail them. Every link also writes a linker map next to its executable.
+   Behaviour mismatches fail the tool, and so (since the scores review) do build, run and callgrind failures,
+   a declared reference that does not exist, and an empty case or build selection; before, those printed a row
+   and exited 0. A variant marked `// SUB0X_REQUIRES: <feature>` is probed per build, with the same probes as
+   CMake, and reported as skipped where the compiler lacks the feature. Cost criterion verdicts are reported
+   without being enforced, because pattern A is expected to fail them. Every link also writes a linker map next
+   to its executable. Publish-path call targets are resolved by address (`--self-test` checks the parser);
+   before the scores review, templated callees were cut off the path (COLLAPSE_SCORES.md, "Defects found").
 
 Named builds: `gcc-O2` and `clang-O2` (x86-64, run natively and under callgrind), and `cm33-gcc-Os`
 (arm-none-eabi GCC 13, Cortex-M33 as on the nRF54 application core, final ELF only). Still to add: MSVC
@@ -74,7 +82,11 @@ Stored results: [../perf/collapse/](../perf/collapse/). Each phase adds a dated 
 | Two independent domains | `two_domains` | B1, B2, #8 prototype `Domain` (A cannot express two sessions of one type) |
 | Concrete transport endpoint, egress + ingress | `transport_endpoint` | B1, B2, #8 prototype `Route` (A has no split horizon, so ingress would echo) |
 | Dynamic subscriptions | `dynamic_subscriptions` | A, #8 prototype; the reference is a minimal hand-written runtime registry |
-| Cross-file application | `cross_file` | A, B1, B2; receivers in another TU with external linkage; LTO on and off |
+| Cross-file application | `cross_file` | A, B1, B2, B3; receivers in another TU with external linkage; LTO on and off |
+
+Added by the scores review ([COLLAPSE_SCORES.md](COLLAPSE_SCORES.md), "Coverage review"): `many_receivers` (32
+receivers), `multi_types`, `nested_publish`, `large_payload`, `cancellation_filtered`, `static_dynamic_bridge_churn`,
+`transport_two_links`, B3 in `two_domains`/`transport_endpoint`/`cross_file`, and the #8 registry in the core cases.
 
 Variant naming: `sub0pub_virtual` is pattern A (today's API); `sub0x_b1_wire`, `sub0x_b2_static` and
 `sub0x_b3_sink` are pattern B (`tests/collapse/sandbox/sub0x_static.hpp`); `sub0x_dynamic*` is the #8
@@ -197,7 +209,8 @@ With these, **B1 and B3 cost nothing over hand-written code doing the same job**
 4. A receiver that stops the rest of a publication returns `bool` (`false` stops), with `publishCancelable`
    (`=` on every build).
 5. Put genuinely dynamic subscribers behind a `DynamicPort<T, N>` bound into the static wiring (`=` against a
-   hand-written registry with the same features, populated or empty), or behind a `BrokerPort<T>` to the #8
+   hand-written registry with the same features, populated or empty, on publish, setup, teardown, path and RAM;
+   on x86 gcc and clang also keep an out-of-line `receive()`, +48 / +30 B, known issue K21), or behind a `BrokerPort<T>` to the #8
    registry when they need policy (publish `=` on GCC and Clang in its lean configuration; setup, teardown,
    image and RAM cost more).
 
@@ -208,7 +221,7 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   is the "specific Sub0Pub-compliant manner" of coding the issue anticipated.
 - **B2 requires static storage duration** (addresses are template arguments). B1 covers dynamic
   lifetimes at the measured binding cost.
-- **Not yet in pattern B:** B3 rows for the new cases, and MSVC evidence (`dumpbin`). Cancellation and the
+- **Not yet in pattern B:** MSVC evidence (`dumpbin`). B3 rows for the new cases were added by the scores review. Cancellation and the
   static-to-dynamic bridge are done ([spikes/README.md](spikes/README.md)).
 - **Choosing runtime binding or type erasure has a price** (runtime binding: publish up to +8, RAM up to
   +32 B; erasure: up to +22, +40 B, against static code), but it is the price of the choice, identical in
@@ -218,7 +231,9 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   the message (wrong parameter type, or non-const where the wiring is const) is simply not delivered to.
   The fairness review hit exactly this with a by-value adapter. Known issue K14.
 - **The static path metric follows direct calls only.** Work behind an indirect call appears as an
-  indirect-call count, not as instructions (for example pattern A's cross-file path on Cortex-M33).
+  indirect-call count, not as instructions. (Pattern A's cross-file path on Cortex-M33, cited here before as the
+  example, was a parser defect instead: its `Broker::publish` callee was cut off at the first `>`; corrected it is
+  178 instructions, +135, not 14.)
 
 ### Implications for the v2 API (#8)
 - The fastest structure is **not a broker policy**; it is where the application composes itself. v2

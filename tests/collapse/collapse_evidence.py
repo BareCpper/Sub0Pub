@@ -12,14 +12,19 @@ For every case in tests/collapse/cases/<case>/ and every variant file in it, in 
     publish path                instructions of collapse_publish plus every function reachable from it by
                                 direct calls, direct/indirect call counts, and the callees retained
     text / data / bss           of the whole image; deltas against handwritten are reported
-    retained Sub0Pub            code/state symbols from namespace sub0 left in the image
+    retained Sub0Pub            code/state symbols from namespaces sub0 and sub0x left in the image (reported
+                                separately as sub0/sub0x)
     dependencies                TLS, operator delete, __cxa_pure_virtual, static initialisers
   and a verdict per criterion against handwritten (the equal-work reference) of the same build and form.
 
 Usage:
   python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME] [--json OUT.json] > report.md
-Exit status is non-zero if any variant's checksum differs from handwritten (behaviour broken). Criterion
-verdicts are reported, not enforced: pattern A (today's API) is expected to fail them; that is the gap.
+  python3 tests/collapse/collapse_evidence.py --self-test     # check the publish-path parser
+Exit status is non-zero if any variant's checksum differs from its reference (behaviour broken), if any build,
+run or measurement fails, if a declared reference is missing, or if the case/build selection is empty. A variant
+marked `// SUB0X_REQUIRES: <feature>` is skipped (reported, not failed) on a build whose compiler lacks the
+feature (the same probes as tests/collapse/CMakeLists.txt). Cost criterion verdicts are reported, not enforced:
+pattern A (today's API) is expected to fail them; that is the gap.
 """
 import argparse
 import json
@@ -76,6 +81,10 @@ DEPENDENCY_MARKERS = OrderedDict([
     ("pure virtual", re.compile(r"^__cxa_pure_virtual$")),
     ("atexit", re.compile(r"^(__cxa_atexit|__aeabi_atexit|atexit)$")),
 ])
+
+
+SUB0_NAMESPACE = re.compile(r"(^|[^\w])sub0x?::")
+SUB0_ONLY = re.compile(r"(^|[^\w])sub0::")
 
 
 def run(cmd, **kw):
@@ -150,6 +159,45 @@ def variant_reference(case, variant):
     return REFERENCE
 
 
+REQUIRES_MARKER = re.compile(r"^//\s*SUB0X_REQUIRES:\s*(\S+)\s*$")
+
+# Feature probes, equivalent to tests/collapse/CMakeLists.txt: a variant naming `// SUB0X_REQUIRES: <feature>`
+# on its second line is skipped (reported, not failed) on a build whose compiler lacks the feature.
+FEATURE_PROBES = {
+    "deducing-this": ("struct S { template<class T> void f(this auto&& self, const T& t) noexcept "
+                      "{ (void)self; (void)t; } };\nint main() { S s; s.f(1); return 0; }\n"),
+    "expected": ("#include <expected>\n#if !defined(__cpp_lib_expected)\n#error no std::expected\n#endif\n"
+                 "int main() { std::expected<void, int> e; return e ? 0 : 1; }\n"),
+}
+_probe_cache = {}
+
+
+def variant_requires(sources):
+    """The feature a variant needs (`// SUB0X_REQUIRES: <feature>` on the second line of its first source)."""
+    try:
+        with open(sources[0]) as fh:
+            fh.readline()
+            m = REQUIRES_MARKER.match(fh.readline().strip())
+    except (OSError, IndexError):
+        return None
+    return m.group(1) if m else None
+
+
+def has_feature(build_cfg, feature):
+    key = (build_cfg["cxx"], tuple(build_cfg["flags"]), feature)
+    if key not in _probe_cache:
+        if feature not in FEATURE_PROBES:
+            sys.exit(f"unknown SUB0X_REQUIRES feature: {feature}")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "probe.cpp")
+            with open(src, "w") as fh:
+                fh.write(FEATURE_PROBES[feature])
+            flags = [f for f in build_cfg["flags"] if f != "-flto"]
+            r = run([build_cfg["cxx"], "-std=c++23", *flags, "-fsyntax-only", src])
+        _probe_cache[key] = r.returncode == 0
+    return _probe_cache[key]
+
+
 def multi_tu(case, variants):
     return any(os.path.isdir(os.path.join(CASES_DIR, case, v)) for v in variants)
 
@@ -174,9 +222,12 @@ def build(build_cfg, case, variant, observable, out_dir):
 
 
 def checksum(exe):
+    """(checksum, error): the run must exit 0 and print its checksum."""
     r = run([exe])
     m = re.search(r"checksum (.*)", r.stdout)
-    return m.group(1).strip() if m else f"exit={r.returncode}"
+    if r.returncode != 0 or not m:
+        return None, f"run failed: exit={r.returncode} {r.stderr.strip()[:200]}"
+    return m.group(1).strip(), None
 
 
 def callgrind(exe):
@@ -195,72 +246,158 @@ def callgrind(exe):
                 phases[label] = total
     if "publish" in phases:
         phases["publish"] = phases["publish"] / PUBLISHES
-    return phases
+    missing = [p for p in ("setup", "publish", "teardown") if p not in phases]
+    return phases, (f"callgrind: missing phases {missing}" if missing else None)
 
 
-def disassemble(build_cfg, exe):
-    """Return {function: [(mnemonic, operands)]} for every function symbol in the image."""
-    out = run([build_cfg["objdump"], "-d", "--no-show-raw-insn", "-C", exe]).stdout
-    funcs, current = {}, None
-    for line in out.splitlines():
-        m = re.match(r"^[0-9a-f]+ <(.+)>:$", line)
+def parse_objdump(text):
+    """Parse `objdump -d --no-show-raw-insn -C` output.
+
+    Returns (funcs, names): funcs maps each function's start address to [(mnemonic, operands)], names maps the
+    start address to its demangled name. Functions are keyed by address, never by name: demangled names contain
+    '<', '>', '+' and spaces, and two distinct functions can share a demangled name (anonymous namespaces in
+    different TUs, constructor aliases)."""
+    funcs, names, current = {}, {}, None
+    for line in text.splitlines():
+        m = re.match(r"^([0-9a-f]+) <(.+)>:$", line)
         if m:
-            current = m.group(1)
+            current = int(m.group(1), 16)
             funcs[current] = []
+            names[current] = m.group(2)
             continue
         m = re.match(r"^\s+[0-9a-f]+:\s+(\S+)\s*(.*)$", line)
         if m and current is not None:
             funcs[current].append((m.group(1), m.group(2)))
-    return funcs
+    return funcs, names
+
+
+def disassemble(build_cfg, exe):
+    return parse_objdump(run([build_cfg["objdump"], "-d", "--no-show-raw-insn", "-C", exe]).stdout)
 
 
 def is_call(arch, mnemonic):
     return (mnemonic.startswith("call") if arch == "x86" else mnemonic in ("bl", "blx"))
 
 
+def branch_address(operands):
+    """The numeric target of a direct branch (`call 401126 <ns::f<A<B>>(A<B> const&)>`), or None if indirect.
+
+    The target is resolved from objdump's numeric address, not from the symbol text. The earlier parser cut the
+    demangled name at the first '>' or '+', so a call to `sub0x::detail::deliver<R, M>(R&, M const&)` became an
+    unresolvable name and its body was left off the publish path (scores review)."""
+    m = re.match(r"^(?:0x)?([0-9a-f]+)(?:\s|$)", operands)
+    return int(m.group(1), 16) if m else None
+
+
+def is_plt(name):
+    return "@plt" in name
+
+
 def is_tail_jump(arch, mnemonic, operands, funcs, current):
-    target = re.search(r"<([^>+]+)>", operands)
-    if not target or target.group(1) == current or target.group(1) not in funcs:
+    """A branch to the start of another function (a tail call). Branches inside a function are not calls."""
+    if not ((arch == "x86" and mnemonic.startswith("jmp")) or (arch == "arm" and mnemonic in ("b", "b.w", "b.n"))):
         return None
-    if arch == "x86" and mnemonic.startswith("jmp"):
-        return target.group(1)
-    if arch == "arm" and mnemonic in ("b", "b.w", "b.n"):
-        return target.group(1)
-    return None
+    target = branch_address(operands)
+    if target is None or target == current or target not in funcs:
+        return None
+    return target
 
 
-def publish_path(build_cfg, funcs):
+def publish_path(build_cfg, funcs, names=None, root="collapse_publish"):
     """Instructions and calls on the publication path: collapse_publish plus directly reachable functions."""
     arch = build_cfg["arch"]
-    seen, stack = [], ["collapse_publish"]
+    if names is None:  # legacy shape {name: insns}
+        names = {i: n for i, n in enumerate(funcs)}
+        funcs = {i: funcs[n] for i, n in names.items()}
+    start = next((a for a, n in names.items() if n == root), None)
+    seen, stack = [], [start] if start is not None else []
     instructions = direct = indirect = 0
-    external = set()
+    external = set() if start is not None else {root}
     while stack:
         f = stack.pop()
-        if f in seen or f not in funcs:
-            if f not in funcs:
-                external.add(f)
+        if f in seen:
             continue
         seen.append(f)
         for mnemonic, operands in funcs[f]:
             instructions += 1
-            target = re.search(r"<([^>+]+)", operands)
             if is_call(arch, mnemonic):
+                target = branch_address(operands)
                 if target is None or "*" in operands or (arch == "arm" and mnemonic == "blx" and re.match(r"r\d", operands)):
                     indirect += 1
                 else:
                     direct += 1
-                    name = target.group(1).split("@")[0]
-                    stack.append(name) if name in funcs else external.add(name)
+                    if target in funcs and not is_plt(names[target]):
+                        stack.append(target)
+                    else:
+                        label = names.get(target) or (re.search(r"<(.*)>\s*$", operands) or [None, hex(target)])[1]
+                        external.add(label.split("@")[0])
             else:
                 tail = is_tail_jump(arch, mnemonic, operands, funcs, f)
-                if tail:
+                if tail is not None:
                     direct += 1
-                    stack.append(tail)
+                    if is_plt(names[tail]):
+                        external.add(names[tail].split("@")[0])
+                    else:
+                        stack.append(tail)
                 elif arch == "x86" and mnemonic.startswith("jmp") and "*" in operands:
                     indirect += 1
     return {"instructions": instructions, "direct_calls": direct, "indirect_calls": indirect,
-            "functions": seen, "external": sorted(external)}
+            "functions": [names[f] for f in seen], "external": sorted(external)}
+
+
+SELF_TEST_X86 = """
+0000000000401000 <collapse_publish>:
+  401000:	push   %rbx
+  401001:	call   401100 <void sub0x::detail::deliver<(anonymous namespace)::Controller, (anonymous namespace)::Sample>((anonymous namespace)::Controller&, (anonymous namespace)::Sample const&)>
+  401006:	call   401200 <memcpy@plt>
+  40100b:	call   *%rax
+  40100d:	jne    401000 <collapse_publish>
+  40100f:	pop    %rbx
+  401010:	jmp    401300 <sub0x::Wiring<A<B<C> >, D>::publish<E>(E const&) const+0x0>
+
+0000000000401100 <void sub0x::detail::deliver<(anonymous namespace)::Controller, (anonymous namespace)::Sample>((anonymous namespace)::Controller&, (anonymous namespace)::Sample const&)>:
+  401100:	mov    (%rdi),%eax
+  401102:	ret
+
+0000000000401200 <memcpy@plt>:
+  401200:	jmp    *0x2000(%rip)
+
+0000000000401300 <sub0x::Wiring<A<B<C> >, D>::publish<E>(E const&) const>:
+  401300:	add    $0x1,%eax
+  401303:	jmp    401305 <sub0x::Wiring<A<B<C> >, D>::publish<E>(E const&) const+0x5>
+  401305:	ret
+"""
+
+SELF_TEST_ARM = """
+00008000 <collapse_publish>:
+    8000:	push	{r4, lr}
+    8002:	bl	8100 <sub0x::StaticWiring<&(anonymous namespace)::a, &(anonymous namespace)::b>::publish<S>(S const&)>
+    8006:	blx	r3
+    8008:	b.w	8200 <operator>>(A const&, B const&)>
+
+00008100 <sub0x::StaticWiring<&(anonymous namespace)::a, &(anonymous namespace)::b>::publish<S>(S const&)>:
+    8100:	bx	lr
+
+00008200 <operator>>(A const&, B const&)>:
+    8200:	movs	r0, #1
+    8202:	bx	lr
+"""
+
+
+def self_test():
+    """Checks the publish-path walk on synthetic objdump output: nested-template callees, a PLT stub, an
+    indirect call, a tail call whose target name has an offset suffix, an intra-function branch, and (Arm) a
+    tail call to an operator whose name contains '>'."""
+    x86 = publish_path({"arch": "x86"}, *parse_objdump(SELF_TEST_X86))
+    assert x86["instructions"] == 7 + 2 + 3, x86
+    assert x86["direct_calls"] == 3 and x86["indirect_calls"] == 1, x86
+    assert x86["external"] == ["memcpy"], x86
+    assert any(f.startswith("void sub0x::detail::deliver<") for f in x86["functions"]), x86
+    arm = publish_path({"arch": "arm"}, *parse_objdump(SELF_TEST_ARM))
+    assert arm["instructions"] == 4 + 1 + 2 and arm["direct_calls"] == 2 and arm["indirect_calls"] == 1, arm
+    assert "operator>>(A const&, B const&)" in arm["functions"], arm
+    print("self-test passed")
+    return 0
 
 
 def sections(build_cfg, exe):
@@ -278,11 +415,14 @@ def symbols(build_cfg, exe):
     out = run([build_cfg["nm"], "-S", "--size-sort", exe]).stdout
     demangled = run([build_cfg["nm"], "-C", "-S", "--size-sort", exe]).stdout
     raw = [l.split()[-1] for l in out.splitlines() if l.split()]
-    retained = []
+    retained, retained_x = [], []
     for line in demangled.splitlines():
         parts = line.split(None, 3)
-        if len(parts) == 4 and "sub0::" in parts[3]:
-            retained.append((int(parts[1], 16), parts[3]))
+        # Both namespaces, reported separately: sub0 (today's API) and sub0x (the #8 prototype and the pattern B
+        # sandbox). Matching "sub0::" alone missed every sub0x symbol, so retained prototype and sandbox code was
+        # invisible (scores review)
+        if len(parts) == 4 and SUB0_NAMESPACE.search(parts[3]):
+            (retained if SUB0_ONLY.search(parts[3]) else retained_x).append((int(parts[1], 16), parts[3]))
     sizes = {}
     for line in demangled.splitlines():
         parts = line.split(None, 3)
@@ -291,23 +431,35 @@ def symbols(build_cfg, exe):
     undefined = run([build_cfg["nm"], "-u", exe]).stdout.split()
     names = set(raw) | set(undefined)
     deps = [label for label, rx in DEPENDENCY_MARKERS.items() if any(rx.match(n) for n in names)]
-    return {"retained_sub0_bytes": sum(s for s, _ in retained), "retained_sub0": [n for _, n in retained],
+    return {"retained_sub0_bytes": sum(s for s, _ in retained) + sum(s for s, _ in retained_x),
+            "retained_sub0_only_bytes": sum(s for s, _ in retained), "retained_sub0x_bytes": sum(s for s, _ in retained_x),
+            "retained_sub0": [n for _, n in retained + retained_x],
             "dependencies": deps, "symbols": sizes}
 
 
 def measure(build_name, build_cfg, case, variant, form, observable, out_dir):
+    """A result dict; {"skipped": why} for an explicit unsupported-feature skip; {"error": why} for a failure."""
+    needed = variant_requires(variant_sources(case, variant))
+    if needed and not has_feature(build_cfg, needed):
+        return {"skipped": f"{build_cfg['cxx']} lacks {needed}"}
     exe, err = build(build_cfg, case, variant, observable, out_dir)
     if exe is None:
         return {"error": err}
     result = {"exe": exe}
-    funcs = disassemble(build_cfg, exe)
-    result["path"] = publish_path(build_cfg, funcs)
+    funcs, names = disassemble(build_cfg, exe)
+    result["path"] = publish_path(build_cfg, funcs, names)
+    if "collapse_publish" in result["path"]["external"]:
+        return {"error": "collapse_publish not found in the disassembly"}
     result["sections"] = sections(build_cfg, exe)
     result.update(symbols(build_cfg, exe))
     if build_cfg["run"]:
-        result["checksum"] = checksum(exe)
+        result["checksum"], err = checksum(exe)
+        if err:
+            return {"error": err}
         if shutil.which("valgrind"):
-            result["instr"] = callgrind(exe)
+            result["instr"], err = callgrind(exe)
+            if err:
+                return {"error": err}
     return result
 
 
@@ -325,7 +477,11 @@ def verdicts(result, ref):
     v["no extra indirect calls"] = result["path"]["indirect_calls"] <= ref["path"]["indirect_calls"]
     v["no extra RAM"] = (result["sections"]["data"] + result["sections"]["bss"]) <= (ref["sections"]["data"] + ref["sections"]["bss"])
     v["no static init"] = result["sections"]["init_array"] <= ref["sections"]["init_array"]
-    v["no Sub0Pub retained"] = result["retained_sub0_bytes"] == 0
+    # Today's library (sub0::) must leave nothing. Sandbox/prototype code (sub0x::) that survives as a named
+    # out-of-line function (a Sink thunk, DynamicPort::receive) passes only if the image is no larger than the
+    # reference's, i.e. it is the same code the reference has under another name
+    sub0x_ok = result.get("retained_sub0x_bytes", 0) == 0 or result["sections"]["text"] <= ref["sections"]["text"]
+    v["no Sub0Pub retained"] = result.get("retained_sub0_only_bytes", result["retained_sub0_bytes"]) == 0 and sub0x_ok
     extra = [d for d in result["dependencies"] if d not in ref["dependencies"]]
     v["no extra dependencies"] = not extra
     return v, extra
@@ -341,15 +497,32 @@ def main():
     ap.add_argument("--case")
     ap.add_argument("--build")
     ap.add_argument("--json")
+    ap.add_argument("--self-test", action="store_true", help="check the publish-path parser and exit")
     args = ap.parse_args()
+    if args.self_test:
+        return self_test()
 
     builds = available_builds()
     if args.build:
         builds = OrderedDict((n, b) for n, b in builds.items() if n == args.build)
+    if not builds:
+        print(f"**No build selected:** {args.build or 'no toolchain available'}", file=sys.stderr)
+        return 2
     cases = discover_cases(args.case)
+    if not cases:
+        print(f"**No case selected:** {args.case}", file=sys.stderr)
+        return 2
+    # A variant naming a reference the case does not have fails (it would silently fall back otherwise)
+    failures = []
+    for case, variants in cases.items():
+        for variant in variants:
+            ref_name = variant_reference(case, variant)
+            if ref_name and ref_name not in variants:
+                failures.append(f"{case}/{variant}: reference {ref_name} does not exist")
 
     results = OrderedDict()
     broken = []
+    skipped = []
     with tempfile.TemporaryDirectory() as tmp:
         for build_name, build_cfg in builds.items():
             for case, variants in cases.items():
@@ -358,7 +531,16 @@ def main():
                 for form, observable in FORMS.items():
                     for variant in variants:
                         key = (build_name, case, form, variant)
-                        results[key] = measure(build_name, build_cfg, case, variant, form, observable, tmp)
+                        results[key] = r = measure(build_name, build_cfg, case, variant, form, observable, tmp)
+                        if "error" in r:
+                            failures.append(f"{'/'.join(key)}: {r['error']}")
+                        elif "skipped" in r:
+                            skipped.append(f"{'/'.join(key)}: {r['skipped']}")
+            ran = [k for k in results if k[0] == build_name]
+            if ran and all("error" in results[k] or "skipped" in results[k] for k in ran):
+                failures.append(f"{build_name}: nothing measured")
+    if not results:
+        failures.append("the case/build selection measured nothing (e.g. an LTO build with a single-TU case)")
 
     print("# Collapse evidence (issue #9)\n")
     print("Final-link evidence per case, build and form; every variant is compared with `handwritten` "
@@ -381,21 +563,24 @@ def main():
                 ref = results[(build_name, case, form, REFERENCE)]
                 print(f"### {build_name}, {form} work\n")
                 if "error" in ref:
-                    print(f"handwritten failed to build: `{ref['error']}`\n")
+                    print(f"handwritten failed: `{ref['error']}`\n")
                     continue
                 cols = ["variant", "checksum", "publish instr", "setup instr", "teardown instr", "path instr",
-                        "calls (direct/indirect)", "text", "data+bss", "retained sub0 (B)", "added deps", "verdict"]
+                        "calls (direct/indirect)", "text", "data+bss", "retained sub0/sub0x (B)", "added deps", "verdict"]
                 print("| " + " | ".join(cols) + " |")
                 print("|" + "---|" * len(cols))
                 for variant in variants:
                     r = results[(build_name, case, form, variant)]
                     if "error" in r:
-                        print(f"| {variant} | build error: `{r['error']}` |" + " |" * (len(cols) - 2))
+                        print(f"| {variant} | **FAILED**: `{r['error']}` |" + " |" * (len(cols) - 2))
+                        continue
+                    if "skipped" in r:
+                        print(f"| {variant} | skipped: {r['skipped']} |" + " |" * (len(cols) - 2))
                         continue
                     ref_name = variant_reference(case, variant)
-                    ref = results[(build_name, case, form, ref_name or REFERENCE)]
-                    if "error" in ref:
-                        print(f"| {variant} | reference {ref_name} failed to build |" + " |" * (len(cols) - 2))
+                    ref = results.get((build_name, case, form, ref_name or REFERENCE), {"error": "missing"})
+                    if "error" in ref or "skipped" in ref:
+                        print(f"| {variant} | reference {ref_name} unavailable |" + " |" * (len(cols) - 2))
                         continue
                     shown = variant if ref_name in (None, REFERENCE) else f"{variant} (vs {ref_name})"
                     v, extra = verdicts(r, ref) if variant != REFERENCE else (OrderedDict(), [])
@@ -418,15 +603,15 @@ def main():
                         f"{r['path']['direct_calls']}/{r['path']['indirect_calls']}",
                         fmt_delta(r["sections"]["text"], ref["sections"]["text"]),
                         fmt_delta(ram, rram),
-                        str(r["retained_sub0_bytes"]),
+                        f"{r['retained_sub0_only_bytes']}/{r['retained_sub0x_bytes']}",
                         ", ".join(extra) or "-",
                         verdict]) + " |")
                 print()
             # Where the extra image comes from: largest symbols a variant adds over the reference (observable form)
             for variant in variants[1:]:
-                ref = results[(build_name, case, "observable", variant_reference(case, variant))]
+                ref = results.get((build_name, case, "observable", variant_reference(case, variant)), {"error": "-"})
                 r = results[(build_name, case, "observable", variant)]
-                if "error" in r or "error" in ref:
+                if any(k in x for k in ("error", "skipped") for x in (r, ref)):
                     continue
                 added = sorted(((sz, n) for n, sz in r["symbols"].items()
                                 if n not in ref["symbols"] or sz > ref["symbols"][n]), reverse=True)[:8]
@@ -444,10 +629,19 @@ def main():
         with open(args.json, "w") as fh:
             json.dump(serial, fh, indent=1)
 
+    # Gating: behaviour mismatches, build/run/measurement failures and missing references fail the tool.
+    # Explicit feature skips (SUB0X_REQUIRES) are listed, not failed. Cost verdicts stay report-only.
+    if skipped:
+        print("**Skipped (unsupported feature):** " + "; ".join(skipped) + "\n")
+    status = 0
     if broken:
-        print("**Behaviour mismatch:** " + ", ".join("/".join(k) for k in broken))
-        return 1
-    return 0
+        print("**Behaviour mismatch:** " + ", ".join("/".join(k) for k in broken) + "\n")
+        status = 1
+    if failures:
+        print("**Failed:** " + "; ".join(failures) + "\n")
+        print(f"{len(failures)} failure(s)", file=sys.stderr)
+        status = 1
+    return status
 
 
 if __name__ == "__main__":
