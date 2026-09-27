@@ -196,3 +196,60 @@ if (localLayout != remoteLayout) { /* reject connection */ }
 `memberCount<T>` (and so the fingerprint arity) counts an array member as one member. Earlier v2 builds counted each array element separately (`struct { float d[4]; int t; }` reported 5, not 2). As a result, fingerprints of structs that contain arrays differ from those builds, and GCC now compiles `makeLayout<T>()` for such structs.
 
 On GCC/Clang, the layout hash captures per-member offset and size via structured bindings (Boost.PFR-style), recursively fingerprinting nested structs and arrays. On MSVC, only the fingerprint (sizeof+alignof+arity) is available due to a compiler bug with structured bindings in template specializations. Full MSVC support is planned for C++26 reflection.
+
+---
+
+## Performance: v1.0 compared with v2 and the designs under review
+
+Measured with `python3 tests/compare/compare_versions.py`, which builds the same scenarios against the v1.0 tag's
+header, the v2 header's policies, the per-type broker prototype (#8) and the static wiring prototypes (#9), with
+hand-written code as the floor. Full tables, both compilers and method notes:
+[docs/perf/compare-v1-v2-2026-09.md](docs/perf/compare-v1-v2-2026-09.md). The metric is exact instructions per
+operation under callgrind (the repository's regression bar), not wall-clock time.
+
+Rows marked *prototype* are designs under review in `tests/design/` and `tests/collapse/`; they are not part of
+`sub0pub.hpp` yet and their API may change.
+
+### Runtime (instr/op, gcc 13 -O2; clang 18 in brackets)
+
+| Implementation | publish, 1 subscriber | publish, 8 subscribers | 8, first cancels | create + destroy |
+|---|---:|---:|---:|---:|
+| **v1.0** | 60 (60) | 221 (214) | 60 (57) | 48 (31) |
+| v2 Snapshot (default) | 75 (68) | 257 (228) | 90 (78) | 63 (47) |
+| v2 Direct unchecked | 57 (61) | 211 (215) | 56 (57) | 63 (47) |
+| v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
+| v2 ThreadSafe | 149 (144) | 332 (305) | 165 (155) | 220 (204) |
+| *prototype* per-type broker, Default | 80 (73) | 290 (262) | 102 (91) | 80 (72) |
+| *prototype* per-type broker, Lean | 34 (29) | 104 (99) | n/a | 67 (61) |
+| *prototype* static wiring (`StaticWiring`, `wire()`) | 9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
+| hand-written direct calls | 9 (7) | 37 (37) | 15 (8) | n/a |
+
+### Embedded footprint (Cortex-M33, one publisher, one subscriber, one publish site)
+
+| Implementation | text / data / bss (bytes) | Needs thread-local storage | Other link-time dependencies |
+|---|---|---|---|
+| **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
+| v2 Snapshot (default) | 566 / 4 / 77 | yes | `memcpy`, `memmove`, `operator delete`, `__cxa_pure_virtual` |
+| v2 Direct unchecked | 526 / 4 / 77 | yes | `memmove`, `operator delete`, `__cxa_pure_virtual` |
+| *prototype* per-type broker, Default | 570 / 4 / 62 | yes | as v2 Snapshot |
+| *prototype* per-type broker, Lean | 394 / 4 / 58 | no | `memmove`, `operator delete`, `__cxa_pure_virtual` |
+| *prototype* `StaticWiring` | 12 / 0 / 4 | no | none |
+
+### What this means when migrating
+
+- **v2's default costs more than v1.0.** Publishing to 1 or 8 subscribers costs 8 to 36 instructions more, and the
+  embedded image is 148 bytes larger. That buys re-entrant-safe dispatch (the snapshot), bounded capacity reported to
+  the caller, and order-preserving unsubscription. v1.0 had none of these.
+- **To keep v1.0's cost** where you never publish, subscribe or unsubscribe a type from inside its own `receive()`,
+  build with `SUB0PUB_REENTRANT_SAFE=false`. Publishing is then at or below v1.0 (gcc 57 vs 60, 211 vs 221). Creating
+  and destroying a subscriber stays about 15 instructions dearer, and the image stays 108 bytes larger than v1.0's.
+  `SUB0PUB_REENTRANT_CHECK` reports misuse in debug builds.
+- **`SUB0PUB_THREAD_SAFE`** costs 19 to 41 instructions more than v1.0's on gcc (11 to 25 on clang), because v2 also takes the snapshot inside the
+  lock. It still does not build on `arm-none-eabi` (no `std::mutex`).
+- **Where v2 is heading.** Both prototypes are measured here to show what the next API steps would cost.
+  - The per-type broker's Lean configuration publishes to 8 subscribers in about half v1.0's instructions. It also
+    drops the thread-local storage requirement and is 24 bytes smaller than v1.0.
+  - Its Default configuration costs slightly more than the v2 header's default. It adds safe teardown during
+    concurrent delivery (known issue K3) and a re-check after `filter()`, which costs 2 instructions per subscriber.
+  - Static wiring costs the same as hand-written direct calls: about 6 times fewer instructions than v1.0 for
+    8 subscribers, and 12 bytes of code.

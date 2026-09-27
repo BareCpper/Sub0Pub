@@ -174,8 +174,10 @@ ThreadLocal combination is correct. The price (a Lock needs TLS) is known issue 
 - **Delivery after a disconnect inside `filter()`.** Delivery called `filter()` then `receive()` without looking
   again, so a `filter()` that disconnected its subscriber and returned true still got `receive()`, and one that destroyed
   it made a call on a freed object. **Fixed:** `kit::deliverAt` re-reads the dispatch-owned slot (never the subscriber)
-  after `filter()`; Direct dispatch skips the null check its live entries never need. Measured cost: none (Lean 9/33/96
-  and Direct 61/166 unchanged; Snapshot 73/220 from 74/228). `test_axes` covers disconnect, self-destruction and domain
+  after `filter()`; Direct dispatch skips the null check its live entries never need. Measured cost: none where `filter()`
+  is disabled or devirtualised (Lean 9/33/96 and Direct 61/166 unchanged; Snapshot 73/220 from 74/228). With a real
+  `filter()` override, which this benchmark lacks, it is 2 instructions per delivered subscriber on gcc and clang
+  (v1/v2 comparison, [../perf/compare-v1-v2-2026-09.md](../perf/compare-v1-v2-2026-09.md)). `test_axes` covers disconnect, self-destruction and domain
   close from `filter()`, and ASan catches the self-destruction case when the re-check is removed.
 
 **Still not covered (open):**

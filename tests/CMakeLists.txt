@@ -38,3 +38,6 @@ add_subdirectory(design/quiescence)
 
 # Collapse evidence cases (issue #9)
 add_subdirectory(collapse)
+
+# v1 vs v2 comparison (MIGRATION.md "Performance evidence")
+add_subdirectory(compare)
