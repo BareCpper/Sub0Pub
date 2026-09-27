@@ -479,8 +479,10 @@ change the bridge decision (the alternatives cost kilobytes).
 ## Open gaps
 
 - **MSVC** (`dumpbin`) and **RISC-V** evidence: unchanged from COLLAPSE_EVIDENCE.md's plan.
-- **Concurrency of the static paths**: no test publishes on a B1/B2 wiring from several threads; `DynamicPort` is
-  documented single-threaded and has no TSan test either.
+- **Static-path concurrency coverage:** `unit/test_concurrent_wiring.cpp` exercises shared B1/B2 wiring and
+  B3 `Sink` from four threads, checking delivery, checksums and bool-cancellation isolation under TSan.
+  Bindings stay immutable and receivers supply synchronization. `DynamicPort` remains single-threaded;
+  concurrent registry mutation is outside its contract.
 - **Root causes, inferred not proven**: the clang B1 cost in aggregates (K23) and gcc's out-of-line recursive
   publication (K22) are optimiser decisions; the review measured them and ruled out the reference member, nothing more.
 - **C++23 deducing-this spellings** are measured on clang only (GCC 13 lacks the feature); `std::expected` on gcc only.

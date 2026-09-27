@@ -105,8 +105,9 @@ endforeach()
 
 # Pattern B sandbox guarantees and limitations that a behaviour-equivalent case cannot show
 # (docs/design/COLLAPSE_SCORES.md, "Coverage review")
-add_executable(Sub0Pub_CollapseSandboxTests ../test_main.cpp unit/test_sub0x_sandbox.cpp)
-target_link_libraries(Sub0Pub_CollapseSandboxTests PRIVATE Sub0Pub::Sub0Pub)
+find_package(Threads REQUIRED)
+add_executable(Sub0Pub_CollapseSandboxTests ../test_main.cpp unit/test_sub0x_sandbox.cpp unit/test_concurrent_wiring.cpp)
+target_link_libraries(Sub0Pub_CollapseSandboxTests PRIVATE Sub0Pub::Sub0Pub Threads::Threads)
 target_include_directories(Sub0Pub_CollapseSandboxTests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}" "${SUB0PUB_COLLAPSE_PROTOTYPE}" "${CMAKE_CURRENT_SOURCE_DIR}/../vendor")
 add_test(NAME Sub0Pub_CollapseSandboxTests COMMAND Sub0Pub_CollapseSandboxTests)
@@ -130,6 +131,8 @@ sub0x_collapse_compile_fail(cf_handles_mismatch       "Logger must receive Sampl
 # tail calls, PLT stubs); the full evidence run is not part of ctest (it needs valgrind and the Arm toolchain)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_Interpreter_FOUND)
+    add_test(NAME Sub0Pub_CollapseEvidenceGates
+             COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/unit/test_evidence_gates.py")
     add_test(NAME Sub0Pub_CollapseEvidenceSelfTest
              COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/collapse_evidence.py" --self-test)
 endif()

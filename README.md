@@ -75,6 +75,18 @@ int main() {
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 | Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
 
+### Measured v2 design prototypes
+
+The next broker design is experimental in `tests/design/broker_config/` and `tests/collapse/sandbox/`;
+these prototypes do not replace the public header yet. They cover per-message policy, scoped domains,
+transport routes, lifetime-safe concurrent teardown, typed static wiring and explicit dynamic bridges.
+
+Start with the [consolidated review](docs/design/REVIEW_RESPONSE_2026-09.md),
+[broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md)
+and [design decisions](docs/design/spikes/README.md). Measurements compare each option with hand-written
+code doing the same work; compiler-specific costs and untested targets remain explicit. Static wiring
+adds no synchronization: concurrent callers must keep bindings stable and use thread-safe receivers.
+
 ### Design Decisions
 
 **Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle.

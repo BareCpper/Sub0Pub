@@ -31,3 +31,42 @@ before it was fixed, and each fix carries a regression test. Fixes land on the #
 
 Still open, and listed in both score documents: concurrency tests for the static paths, root causes of K22 to K24,
 MSVC and RISC-V evidence, ISR publish, and lock cost on the target.
+
+## Consolidation review (2026-09-27)
+
+Re-reviewed `384f164` against all five original findings. Atomic ownership, the Snapshot/context constraint,
+dispatch-slot revalidation, strict build gating and address-based disassembly traversal address those findings.
+The measured decisions still favor typed wiring on static paths and the handshake for concurrent teardown.
+
+The consolidation adds:
+
+- **Static-path concurrency regression coverage:** four threads share B1/B2 wiring and B3 `Sink`, with exact
+  delivery/checksum checks and independent bool-cancellation decisions. Bindings are immutable and receivers
+  provide synchronization. These tests run in the existing sanitizer jobs; `DynamicPort` remains single-threaded.
+- **A remaining profiler failure fix:** Callgrind could exit nonzero after producing all phase dumps, and the
+  evidence tool still accepted the measurement. It now checks the process status. The failing-before/fixed-after
+  regression fixture preserves complete dumps to exercise this precise failure. Tests also guard empty selections,
+  failed reference builds and a process that fails after printing its checksum.
+- **Reader guidance:** the root README links the policy scores, static-wiring scores and decision record and
+  explicitly distinguishes the experimental prototypes from the public header.
+
+The earlier local checkout validated Release tests and the broker/quiescence/sandbox suites under TSan and
+ASan/UBSan (local LeakSanitizer needed disabling because `/proc` access was unavailable). Workspace maintenance
+removed that checkout before its push. The patch was restored from the review record and is revalidated before
+publication; CI keeps its full, unmodified sanitizer configuration. No dispatch implementation or measured score
+is changed by this consolidation patch.
+
+### Remaining work, explicitly outside this design-study merge
+
+- Port and measure deferred disconnect on the handshake; measure the empty-table optimization before promotion.
+- Phase 2: integrate the selected structure into the per-message broker/public API, with migration guidance.
+- Explain/measure K22–K24 compiler costs rather than assuming their root causes.
+- Add MSVC/RISC-V evidence, ISR/deferred-dispatch designs and target RTOS lock measurements.
+- Keep the documented DynamicPort mutation/lifetime restrictions visible; it is not a concurrent registry.
+
+These are recorded gaps, not claims of completed or validated capabilities. The public header is unchanged.
+
+Restored-checkout validation: GCC Release CTest **297/297 passed** after restoring missing execute bits on
+seven generated ELF files; the broker, quiescence and sandbox suites also pass the local TSan run. The generated
+file-mode repair is local environment maintenance, not a source change. Remote CI must pass on the published
+commit before merging the stack.

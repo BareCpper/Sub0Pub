@@ -233,7 +233,9 @@ def checksum(exe):
 def callgrind(exe):
     phases = {}
     with tempfile.TemporaryDirectory() as tmp:
-        run(["valgrind", "--tool=callgrind", "--callgrind-out-file=" + os.path.join(tmp, "cg.%p"), exe])
+        result = run(["valgrind", "--tool=callgrind", "--callgrind-out-file=" + os.path.join(tmp, "cg.%p"), exe])
+        if result.returncode != 0:
+            return phases, f"callgrind failed: exit={result.returncode} {result.stderr.strip()[:200]}"
         for f in os.listdir(tmp):
             label, total = None, None
             with open(os.path.join(tmp, f)) as fh:
