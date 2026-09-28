@@ -2,8 +2,8 @@
 """v1 vs v2 evidence for MIGRATION.md: the same scenarios against every implementation on the table.
 
 Implementations:
-  * v1.0          the v1.0 tag's include/sub0pub/sub0pub.hpp (read with `git show`), default and ThreadSafe
-  * v2 header     the current include/sub0pub/sub0pub.hpp, each dispatch policy
+  * v1.0          the v1.0 tag's include/sub0pub/ (read with `git archive`), default and ThreadSafe
+  * v2 header     the current include/sub0pub/ (umbrella sub0pub.hpp), each dispatch policy
   * v2 config     per-type configurations of the current header (Section 2), selected options
   * v2 wiring     static wiring of the current header (Section 4): StaticWiring, wire(), Sink<T>, DynamicPort
   * hand-written  direct calls and a virtual loop, the floor
@@ -82,12 +82,14 @@ def git(*args):
 
 
 def header_at(tmp, name, ref):
-    """Write the header at a git ref into its own include directory"""
-    inc = os.path.join(tmp, name, "include")
-    os.makedirs(os.path.join(inc, "sub0pub"))
-    with open(os.path.join(inc, "sub0pub", "sub0pub.hpp"), "w") as f:
-        f.write(git("show", f"{ref}:include/sub0pub/sub0pub.hpp"))
-    return inc
+    """Write the library headers at a git ref into their own include directory: the single sub0pub.hpp of v1.0,
+    or the split include/sub0pub/ tree (an umbrella sub0pub.hpp and the headers it includes) of later revisions"""
+    base = os.path.join(tmp, name)
+    os.makedirs(base)
+    archive = subprocess.run(["git", "-C", ROOT, "archive", "--format=tar", ref, "include/sub0pub"],
+                             capture_output=True, check=True).stdout
+    subprocess.run(["tar", "-x", "-C", base], input=archive, check=True)
+    return os.path.join(base, "include")
 
 
 def include_sets(tmp, v1_ref, extra_refs):

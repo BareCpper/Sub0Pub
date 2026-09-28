@@ -40,7 +40,7 @@ int main() {
 - **Zero-friction wiring** -- Publishers and subscribers connect automatically on construction via the MonoState Broker pattern. No registry, no `connect()`, no boilerplate.
 - **Compile-time type routing** -- Message dispatch is resolved entirely through template specialization. No `std::any`, no `void*`, no `dynamic_cast`, no runtime type lookups.
 - **Zero allocation** -- No `shared_ptr`, no heap allocation in the hot path. Fixed-size subscription tables live in static storage.
-- **Header-only** -- Single file (`include/sub0pub/sub0pub.hpp`), drop into any project, link with `Sub0Pub::Sub0Pub` via CMake.
+- **Header-only** -- `#include <sub0pub/sub0pub.hpp>` for everything, or only the part you use (`sub0pub/broker.hpp`, `sub0pub/wiring.hpp`, `sub0pub/ipc.hpp`); link with `Sub0Pub::Sub0Pub` via CMake.
 - **Multi-type subscription** -- `SubscribeAll<A, B, C>` or `SubscribeAll<std::tuple<A, B>>` to subscribe to many types in one class.
 - **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) for inter-process and network messaging out of the box.
 - **Pay only for what you use** -- The default is the cheapest dispatch: a loop of virtual calls. Snapshot dispatch, `cancel()`, `filter()` and locking are opt-in, and using one without opting in is caught: at compile time, or by a debug-build check.
@@ -183,6 +183,22 @@ Or add as a subdirectory:
 add_subdirectory(Sub0Pub)
 target_link_libraries(MyApp PRIVATE Sub0Pub::Sub0Pub)
 ```
+
+### Headers
+
+`#include <sub0pub/sub0pub.hpp>` includes the whole library. A translation unit that uses one part can include only
+that part; each area directory holds one header per responsibility:
+
+| Include | Provides | Needs |
+|---|---|---|
+| `sub0pub/broker.hpp` | the runtime broker: `Subscribe`, `Publish`, `SubscribeAll`, `Domain`, `Route`, `publish()`, `cancel()`, per-type configuration | configuration |
+| `sub0pub/wiring.hpp` | static wiring: `wire()`, `StaticWiring`, `Sink`, `Publisher`, `Forward`, `DynamicPort` | nothing else from Sub0Pub |
+| `sub0pub/ipc.hpp` | IPC serialisation: `StreamSerializer`, `StreamDeserializer`, `DefaultSerialisation` | streams and type identity only |
+| `sub0pub/config.hpp` | per-type configuration and its resolution (`config_t<T>`) | the configuration macros |
+| `sub0pub/wiring/broker_port.hpp`, `sub0pub/ipc/forward.hpp` | the bridges: `BrokerPort`; `ForwardSubscribe`, `ForwardPublish` | both parts they connect |
+
+`SUB0PUB_*` macros are read when `sub0pub/config_macros.hpp` is first included, whichever Sub0Pub header includes it:
+define them on the compiler command line or before the first Sub0Pub include.
 
 ---
 

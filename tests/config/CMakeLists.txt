@@ -1,4 +1,4 @@
-# Per-Data configuration (sub0pub.hpp Sections 2 and 3). Built with a project default configuration header,
+# Per-Data configuration (sub0pub/config.hpp and sub0pub/broker/). Built with a project default configuration header,
 # as a project would set it from its build system, so these TUs are a separate executable from Sub0Pub_Tests.
 
 function(sub0pub_config_target name)
