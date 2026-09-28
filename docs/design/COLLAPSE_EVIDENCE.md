@@ -1,7 +1,9 @@
 # Collapse Evidence: measuring the Sub0 goal (issue #9)
 
-**Status:** Phase 0 (measurement loop) and the first Phase 1 round (sandbox of candidate coding patterns)
-are in place. All eight acceptance cases are measured. The **draft recommendation** is in "Phase 1 results".
+**Status:** Phases 0 to 3 are done. The chosen model is public API (Phase 2) and is measured on the public header
+in every acceptance case (Phase 3); the **decision record** and the gate status are in
+[BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md), section 9. The one criterion still open is MSVC final-link
+evidence.
 **Gate:** #9 is a v2 acceptance gate. The broker API in [BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md) (#8)
 is not frozen until it can select the structure this evidence shows is needed.
 **Score matrix and coverage review (#10):** every axis these cases compare, scored option by option, the
@@ -48,7 +50,7 @@ measurement, not argued for.
    | publish path | final-ELF disassembly of `collapse_publish` plus directly reachable functions | static instructions within +2; no extra indirect calls |
    | RAM | final-ELF `.data` + `.bss` | no more |
    | static initialisation | `.init_array` size | no more |
-   | retained Sub0Pub code and state | `sub0::` and `sub0x::` symbols left in the final ELF, reported separately (`sub0x::` was not counted before the scores review) | none of `sub0::`; `sub0x::` only if the image is no larger than the reference's |
+   | retained Sub0Pub code and state | `sub0::` and `sub0x::` symbols left in the final ELF, reported separately (`sub0x::` was not counted before the scores review) | none, or only if the image is no larger than the reference's (the same code under another name). Until Phase 3 `sub0::` had to be absent; since the static wiring became `sub0::`, one rule covers both namespaces |
    | link dependencies | TLS, `operator delete`, `__cxa_pure_virtual`, atexit | none added |
    | where extra bytes come from | largest symbols added over the reference | reported |
 
@@ -61,9 +63,9 @@ measurement, not argued for.
    before the scores review, templated callees were cut off the path (COLLAPSE_SCORES.md, "Defects found").
 
 Named builds: `gcc-O2` and `clang-O2` (x86-64, run natively and under callgrind), and `cm33-gcc-Os`
-(arm-none-eabi GCC 13, Cortex-M33 as on the nRF54 application core, final ELF only). Still to add: MSVC
-(ELF-equivalent evidence via `dumpbin`), an LTO on/off pair for the cross-file case, and RISC-V once a
-toolchain with libstdc++ is available.
+(arm-none-eabi GCC 13, Cortex-M33 as on the nRF54 application core, final ELF only), each with an LTO
+counterpart for the cross-file case. Still to add: MSVC (evidence via `dumpbin` in place of ELF tools, and a
+replacement for callgrind), and RISC-V once a toolchain with libstdc++ is available.
 
 ```bash
 python3 tests/collapse/collapse_evidence.py [--case one_receiver] [--build cm33-gcc-Os] [--json out.json] > report.md
@@ -88,9 +90,15 @@ Added by the scores review ([COLLAPSE_SCORES.md](COLLAPSE_SCORES.md), "Coverage 
 receivers), `multi_types`, `nested_publish`, `large_payload`, `cancellation_filtered`, `static_dynamic_bridge_churn`,
 `transport_two_links`, B3 in `two_domains`/`transport_endpoint`/`cross_file`, and the #8 registry in the core cases.
 
-Variant naming: `sub0pub_virtual` is pattern A (today's API); `sub0x_b1_wire`, `sub0x_b2_static` and
-`sub0x_b3_sink` are pattern B (`tests/collapse/sandbox/sub0x_static.hpp`); `sub0x_dynamic*` is the #8
-runtime-registry prototype.
+Variant naming:
+- `sub0_*` (Phase 3): the chosen model on the public header, `include/sub0pub/sub0pub.hpp`: `sub0_b1_wire`,
+  `sub0_b2_static`, `sub0_b3_sink`, the cancellation, bridge and origin forms, and the public registry's `Domain`
+  and `Route` (`sub0_dynamic_*`);
+- `sub0pub_virtual*`: the public runtime registry through `Subscribe`/`Publish`. Before Phase 2 this was pattern A,
+  the v1 API; since the pay-for-what-you-use default, `sub0pub_virtual` and `sub0pub_virtual_lean` build the same
+  configuration;
+- `sub0x_*`: the frozen prototypes, kept as the measured record: pattern B in
+  `tests/collapse/sandbox/sub0x_static.hpp` and the #8 registry (`sub0x_dynamic*`).
 
 ## Phase 0 results: pattern A (today's API)
 
@@ -183,7 +191,7 @@ pattern's own overhead, and several variants were not in their best form. Correc
 
 With these, **B1 and B3 cost nothing over hand-written code doing the same job**, on every build, case and form.
 
-### Answers to the three design questions (draft, from evidence)
+### Answers to the three design questions (from evidence; final in Phase 3)
 1. **Where are concrete subscriber instances bound?** At the application's composition point, by the wiring.
    Neither in the message definition, nor at construction of the receiver.
 2. **When does their identity become type-erased?** Only at an explicit boundary the user chooses: a
@@ -193,7 +201,7 @@ With these, **B1 and B3 cost nothing over hand-written code doing the same job**
    application's own objects and no registration code, and it produces the same final image as hand-written
    code on GCC, Clang and Cortex-M33, within one TU and across TUs with or without LTO.
 
-### Recommended hot-loop coding pattern (draft, for review)
+### Recommended hot-loop coding pattern (decided in Phase 3; public API since Phase 2)
 1. Write receivers as plain classes with non-virtual `receive(const T&)`, and `filter()` only where it filters.
 2. Bind instances at the composition point:
    - **static topology (`StaticWiring`)** for objects with static storage duration, the common embedded case,
@@ -202,7 +210,7 @@ With these, **B1 and B3 cost nothing over hand-written code doing the same job**
      stored address per binding), nothing more. Publishers hold the returned wiring by value.
 3. Publishers, in order of cost:
    - name the `StaticWiring` alias directly (`=` on every build);
-   - use the CRTP mixin `sub0x::Publisher<Derived, Out>` when the topology is not known where the publisher
+   - use the CRTP mixin `sub0::Publisher<Derived, Out>` when the topology is not known where the publisher
      is written (`=` against hand-written runtime binding, like a hand-spelled `template<class Out>`);
    - use `Sink<T>` across a library or ABI boundary (`=` against a hand-written context + function pointer:
      the one indirect call is the price of erasure itself).
@@ -251,6 +259,9 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   - MSVC evidence;
   - ~~the equal-work runtime-address reference for B1~~ (done, with `handwritten_erased` and
     `handwritten_registry`: see "Fairness review").
-- **Phase 2:** broker specialisation (#8) selects the chosen static structure per message type or domain,
-  with runtime subscription kept at the dynamic boundary.
-- **Phase 3:** decision record here and in BROKER_CUSTOMISATION.md; compromises go into its known-issues list.
+- **Phase 2 (done, PR #13):** the per-type broker (#8) and the static wiring are public API in `sub0pub.hpp`,
+  with runtime subscription kept at the dynamic boundary (`DynamicPort`, `BrokerPort`).
+- **Phase 3 (done):** every chosen-model variant measured on the public header
+  ([../perf/collapse/phase3-public-api-2026-09.md](../perf/collapse/phase3-public-api-2026-09.md)); decision record
+  and gate status in [BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md), section 9; compromises in its section 8.
+  Open: MSVC final-link evidence.

@@ -24,7 +24,7 @@ Exit status is non-zero if any variant's checksum differs from its reference (be
 run or measurement fails, if a declared reference is missing, or if the case/build selection is empty. A variant
 marked `// SUB0X_REQUIRES: <feature>` is skipped (reported, not failed) on a build whose compiler lacks the
 feature (the same probes as tests/collapse/CMakeLists.txt). Cost criterion verdicts are reported, not enforced:
-pattern A (today's API) is expected to fail them; that is the gap.
+the runtime-registry variants are expected to fail them; that is the price of runtime subscription.
 """
 import argparse
 import json

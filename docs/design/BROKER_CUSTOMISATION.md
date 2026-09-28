@@ -1,6 +1,7 @@
 # Broker Customisation: Design Study
 
-**Status:** integrated. The design is public API in `sub0pub.hpp` (namespace `sub0`, Phase 2; see `MIGRATION.md`).
+**Status:** decided (Phase 3 of #9). The design is public API in `sub0pub.hpp` (namespace `sub0`, Phase 2; see
+`MIGRATION.md`). The decision record, with the public API's measured results per acceptance case, is **section 9**.
 The prototype it was proven with (`tests/design/broker_config/`, namespace `sub0x`) stays as the measured record. **Baseline:** [../PERFORMANCE_BASELINE.md](../PERFORMANCE_BASELINE.md).
 **Related:** #4 (capacity, done), #5 (scoped broker / lifetime-safe dispatch), [TAGGED_TYPES_PROPOSAL.md](../TAGGED_TYPES_PROPOSAL.md).
 
@@ -203,13 +204,22 @@ endpoint/teardown machinery added for the review (section 7). Earlier figures fr
    - a `filter()` override can fail to compile when the type is configured with `NoFilter`;
    - IPC classes (`ForwardSubscribe` and friends) must be ported onto the facade.
 3. **Collapse (#9):** static subscriber sets as a configuration axis.
-4. **Design questions for review:**
-   - Should `config<>` layer on the project default (current) or on Builtin? Current reasoning: per-type overrides should respect project choices.
-   - Should a mismatch in release builds be link-time detectable? One idea is a per-configuration symbol and a weak/strong pairing trick. This needs research: no portable mechanism is known.
-   - Naming: `sub0_config` for the member and ADL hook; `configure<T>` for traits; option names.
-   - Should `Storage::Scoped` with a default domain also be allowed (a global instance plus opt-in scopes)?
-   - IPC: should routes live in the per-type configuration (static) or be attached by endpoints at runtime (current `ForwardSubscribe` model)? Likely both: the static route list enables zero-cost dispatch tables.
-   - Should `Subscribe<T>` keep a virtual destructor? See known issue K7 in section 8.
+4. **Design questions for review** (answered in Phase 2; recorded in section 9):
+   - Should `config<>` layer on the project default or on Builtin? **The project default.** `config<Opts...>` is
+     an alias of `with<GlobalDefault, Opts...>`, so it also names a different type wherever the default differs
+     (PR #13 review finding 1).
+   - Should a mismatch in release builds be link-time detectable? **Not solved.** It stays a build contract with
+     a debug-build diagnostic (`SUB0PUB_CHECK_CONFIG`); known issue K6.
+   - Naming: **kept** `sub0_config` for the member and ADL hook, `SUB0PUB_CONFIGURE` / `configure<T>` for
+     traits, and the option names of section 4.
+   - Should `Storage::Scoped` with a default domain also be allowed? **No.** A scoped type is always bound to
+     an explicit `Domain<T>` (a scoped subscriber built without one does not compile). A type that needs a
+     process-wide instance uses Global storage.
+   - IPC: routes in the configuration or attached at runtime? **Both, at different places.** The runtime
+     registry attaches endpoints at runtime (`Route<Data, Transport>`); the static wiring binds them at the
+     composition point (`Forward`, `StaticForward`), which is the zero-cost form (section 9).
+   - Should `Subscribe<T>` keep a virtual destructor? **No**, nor `Publish<T>`: both are protected and
+     non-virtual (K7, K25).
 
 ## 6. How to continue (for the review session)
 
@@ -324,7 +334,7 @@ rather than forgotten. Baseline issues in today's library are listed in
 | K3 | Concurrent configurations pay a seq_cst handshake per subscriber per publish, and a second lock acquisition to unlink the dispatch | Locked, 8 subscribers: 347 (spin lock) vs baseline ThreadSafe 333 (`std::mutex`; the lock types differ); public header with `SUB0PUB_THREAD_SAFE` (`std::mutex`): 1 / 8 subscribers 260 / 554 against 149 / 332 before Phase 2 (`docs/perf/compare-v1-v2-2026-09.md`) | disconnect-while-delivering safety, which the baseline ThreadSafe mode lacks: it has the #5 use-after-free | per-subscriber reference counts or epoch-based reclamation; measure against the handshake. **Measured** ([spikes/quiescence.md](spikes/quiescence.md)): hazard pointer and epoch are cheaper (8 subscribers 165 and 118 vs 256) only because they skip self-disconnect, nested-publish and thread-limit safety; they fail lifetime probes the handshake passes. Fixed (round 2) and given the same empty-table fast path, hazard costs 12/105/182 (0/1/8 subscribers) vs the handshake's 25/99/260, and epoch 25/84/130 (after the slot-ownership race fix, quiescence.md section 12); both bound threads and nesting and drop publications past the bound in release builds. The handshake stays; the fast path (a relaxed count mirror, -42 on an empty publish, +13 on create/destroy) is a candidate for this prototype |
 | K4 | Concurrent `disconnect()` can block (bounded by one callback on another thread); two receivers disconnecting each other at the same moment from different threads deadlock | blocking; a documented usage rule | the only way to guarantee "no call after disconnect returns" without allocation | a non-blocking `disconnectLater()` for use inside receivers (prototyped: quiescence mechanism 4); a deadlock detector in debug builds |
 | K5 | Concurrent configurations need an explicit `trySubscribe()` at the end of the most-derived constructor | API burden, easy to forget | the base constructor runs before the derived object exists | a CRTP `Subscriber<Derived, Data>` helper that activates after construction (prototyped: quiescence mechanism 5, heap objects only); a debug warning for a never-activated subscriber |
-| K6 | `Domain` lifetime (it must outlive its handles) is only debug-checked; configuration consistency across TUs is a build contract with a best-effort diagnostic | undefined behaviour if violated in release | no zero-cost runtime mechanism exists | link-time detection research (section 5, question 4) |
+| K6 | `Domain` lifetime (it must outlive its handles) is only debug-checked; configuration consistency across TUs is a build contract with a best-effort diagnostic | undefined behaviour if violated in release | no zero-cost runtime mechanism exists | link-time detection research (section 5, question 4). **Narrowed in Phase 2:** types local to one TU may use different `SUB0PUB_*` macros in different TUs, because the Builtin default and `config<Opts...>` name a different type for each set of values (tested in both link orders, `Sub0Pub_ConfigIdentity_*`); the contract remains for a type shared between TUs |
 | K7 | ~~`Subscribe<T>` keeps a virtual destructor~~ **Resolved in Phase 2:** `Subscribe<T>`'s destructor is protected and non-virtual and `Publish<T>` is not polymorphic, so `operator delete` is no longer a link dependency (Cortex-M33 one-type image 566 → 526 B text). Remaining cost: subscribers destroyed through their own type should be `final` to silence compiler warnings | – | – | – |
 | K8 | Custom brokers (`Implementation<>`) support Global storage only; `Domain` requires the library broker | limitation | the prototype's scoped table type is library-internal | put the table type in the broker concept |
 | K9 | Cancel, re-entrancy checks and teardown walk this thread's dispatch-frame stack | O(nesting depth), usually 1 | frames are per Data type, shared by all of that type's domains | per-table frame chains if deep nesting appears in practice |
@@ -332,15 +342,81 @@ rather than forgotten. Baseline issues in today's library are listed in
 | K11 | ~~A pattern B publisher that stores its output costs gcc +9 publish instr, +40 B RAM~~ **Withdrawn (fairness review):** measured against static-address code, so it was the price of runtime binding, which hand-written code pays too. Holding the wiring by value, the stored-output publisher is `=` against hand-written runtime binding on every build ([COLLAPSE_EVIDENCE.md](COLLAPSE_EVIDENCE.md), "Fairness review") | none | - | - |
 | K12 | ~~The `DynamicPort<T, N>` bridge costs gcc +1 publish instr; empty +3 / +11 / +6~~ **Withdrawn (fairness review):** against a hand-written registry with the same features (capacity, removal) it is `=` populated and empty; the empty-port cost is the price of accepting dynamic subscribers at all | none | - | - |
 | K13 | C++20/23 spellings (concepts, deducing this, `std::expected` results) are optional extras; the C++17 spelling is the contract | none at runtime; diagnostics are poorer under C++17 SFINAE | GCC 13 and `arm-none-eabi-g++` 13 lack deducing this; clang + libstdc++ 13 lacks `std::expected` ([spikes/cxx23_upgrade.md](spikes/cxx23_upgrade.md)) | raise the baseline once the embedded toolchains (Zephyr SDK, nRF Connect SDK) ship GCC 14 |
-| K14 | Capability routing is silent on a signature mismatch: a receiver whose `receive` does not accept the message (wrong parameter type, a non-const `receive` reached through a const binding) is not delivered to, with no diagnostic | a missed delivery, found only by tests | routing by capability is what lets receivers need no base class or registration | an opt-in `receives<T...>` declaration per receiver checked at bind time; a debug diagnostic when a bound receiver handles no message type ever published on its wiring (the opt-in guard `sub0x::handles_v<R, T>` exists since the scores review, [COLLAPSE_SCORES.md](COLLAPSE_SCORES.md)) |
+| K14 | Capability routing is silent on a signature mismatch: a receiver whose `receive` does not accept the message (wrong parameter type, a non-const `receive` reached through a const binding) is not delivered to, with no diagnostic | a missed delivery, found only by tests | routing by capability is what lets receivers need no base class or registration | an opt-in `receives<T...>` declaration per receiver checked at bind time; a debug diagnostic when a bound receiver handles no message type ever published on its wiring (the opt-in guard `sub0::handles_v<R, T>` exists since the scores review, [COLLAPSE_SCORES.md](COLLAPSE_SCORES.md)) |
 | K15 | Split horizon decides at compile time when the origin's type is bound once in the wiring; the origin must then be that bound endpoint | a debug assertion; undefined skip target if violated in release | otherwise an address compare per publish (+3 to +4 instr) | `publishFrom<Endpoint>(msg)`, which identifies the origin by type and needs no origin object |
 | K16 | A Lock (concurrent publishers) requires `ThreadLocalContext`, so every concurrent configuration needs TLS (`__aeabi_read_tp` on Cortex-M; Zephyr `CONFIG_THREAD_LOCAL_STORAGE`) | a link dependency and per-thread TLS block on targets that otherwise avoid TLS | a process-wide `StaticContext` frame stack is unsafe with concurrent publishers (reproduced: lost deliveries and data races) | a context keyed by the RTOS thread (for example indexed by `k_current_get()`) as a third context option |
 | K17 | Nothing is shared between `Data` types: each type instantiates its own table, dispatch loop and handle code | Cortex-M33: +558 B text and +53 B RAM per type (Default), +382 B / +49 B (Lean) ([AXIS_SCORES.md](AXIS_SCORES.md)) | the configuration is resolved per type at compile time | a type-erased dispatch core shared by all types with the same configuration (the loop over `Subscribe` bases does not depend on `Data`), leaving only the typed entry points per type |
-| K18 | Pattern B1: split horizon between two endpoints of the same transport type is decided by an address compare at run time (the type identifies neither) | `transport_two_links`: publish +8 (gcc) / +10 (clang), Cortex-M33 path +10 against hand-written runtime code ([COLLAPSE_SCORES.md](COLLAPSE_SCORES.md)) | a runtime-bound endpoint's identity is a runtime value | give each link its own adapter type (`struct LinkA : sub0x::Forward<Radio> { using Forward::Forward; };`) and use `publishFrom<LinkA>(msg)`: `=` on gcc and Cortex-M33 (clang: K23) |
+| K18 | Pattern B1: split horizon between two endpoints of the same transport type is decided by an address compare at run time (the type identifies neither) | `transport_two_links`: publish +8 (gcc) / +10 (clang), Cortex-M33 path +10 against hand-written runtime code ([COLLAPSE_SCORES.md](COLLAPSE_SCORES.md)) | a runtime-bound endpoint's identity is a runtime value | give each link its own adapter type (`struct LinkA : sub0::Forward<Radio> { using Forward::Forward; };`) and use `publishFrom<LinkA>(msg)`: `=` on gcc and Cortex-M33 (clang: K23) |
 | K19 | Pattern B cancellation is opt-in per call: a receiver returning `false` stops only `publishCancelable`; plain `publish()` ignores it silently, and `Sink<T>` (B3) has no cancelable publish | a missed stop, found only by tests (unit test "cancellation") | the cancel protocol is a return value, not shared state, so it is free but must be requested | a compile-time diagnostic when `publish()` reaches a bool-returning receiver, or a `Sink` constructed from `publishCancelable` |
 | K20 | Pattern B2 binds complete objects with static storage duration only: no automatic storage, no array elements, no receiver added at run time, and a bound array binds nothing; a fan-out of N receivers of one type is N named objects, delivered unrolled | `cf_static_wiring_local`, `cf_static_wiring_element`; 32 receivers: +668 B Cortex-M33 text against a hand-written loop over an array (`many_receivers`) | C++17 template arguments must be addresses of complete objects; a fold expression has no loop form | B1 (`wire(...)`) for dynamic lifetimes; a `StaticArray<&array>` binding that delivers by loop (not prototyped) |
 | K21 | `DynamicPort<T, N>` has no snapshot and no report: a receiver removed during delivery makes the next one miss that publication, `add()` at capacity drops silently (`tryAdd()` reports), and gcc/clang keep an out-of-line copy of `receive()` beside the inlined one | x86 image +48 B (gcc) / +30 B (clang), +68 B with churn; Cortex-M33 `=`; unit tests "limitation K21", "DynamicPort: capacity" | the port is the least a dynamic side can cost (the hand-written registry has the same removal hazard) | iterate a count snapshot or backwards; `BrokerPort` with Snapshot where removal during delivery is needed |
-| K22 | A nested publication on the same static wiring (a receiver publishing on the wiring that binds it) is compiled as recursion through the fold | gcc x86: +536 B text and an out-of-line `sub0x` function (publish -1.5 instructions); clang B2 publish +4; Cortex-M33 `=` (`nested_publish`) | the optimiser's inlining of a recursive template instantiation | inferred, not proven: mark the nested publication's entry `noinline`, or publish nested messages through a separate wiring |
+| K22 | A nested publication on the same static wiring (a receiver publishing on the wiring that binds it) is compiled as recursion through the fold | gcc x86: +536 B text and an out-of-line `sub0` function (publish -1.5 instructions); clang B2 publish +4; Cortex-M33 `=` (`nested_publish`) | the optimiser's inlining of a recursive template instantiation | inferred, not proven: mark the nested publication's entry `noinline`, or publish nested messages through a separate wiring |
 | K23 | Clang does not propagate `Wiring` bindings held inside an aggregate the way it propagates a hand-written struct of pointers | one publisher holding two wirings: publish +3, RAM +24 B; per-link adapter types: publish +5 (clang only; gcc and Cortex-M33 `=`) | observed optimiser behaviour; storing pointers instead of references in `Wiring` did not change it | open: compare with clang 19+, or a `Wiring` that stores a plain struct instead of `std::tuple` |
-| K24 | Pattern B cancellation combined with `filter()` is not byte-identical to hand-written code on Cortex-M33 | +4 path instructions, +12 B text (`cancellation_filtered`, bool and token alike); gcc and clang `=` | the filter and the stop are two separate branches where hand-written code merges them | open (small); inferred to be a GCC `-Os` block-ordering choice |
+| K24 | Pattern B cancellation combined with `filter()` is not byte-identical to hand-written code | Cortex-M33: +4 path instructions, +12 B text; gcc x86: +3 path instructions, publish +0.3 (`cancellation_filtered`, bool and token alike, observable form); clang `=` | the filter and the stop are two separate branches where hand-written code merges them | open (small); inferred to be a GCC block-ordering choice |
+| K25 | `Publish<T>`'s destructor is protected and non-virtual, so a publisher is always a class derived from it: `sub0::Publish<T>` cannot be a plain variable (`struct Out final : sub0::Publish<T> {};`) | one line per publisher type; a compile error otherwise | deleting through `Publish<T>*` must not compile (v1 destroyed it virtually), and a virtual destructor costs a vptr per publisher and an `operator delete` link dependency (K7) | a library-provided final handle type, if direct handles prove common |
+| K26 | Under Direct dispatch (the default), a table change during that table's own dispatch (subscribe, unsubscribe, `Domain::close()` from `receive()` or `filter()`) is detected only by the debug-build check (`DirectChecked`); a release build does not detect it | in a release build the rest of that publication may skip a subscriber or call one added during it | detection needs a publish frame, which the default does not carry (K2) | opt in with `sub0::Snapshot` / `SUB0PUB_REENTRANT_SAFE` for types that change their table from their own callbacks; `Domain::close()` clears slots so a dispatch in progress stops calling them either way |
 
+## 9. Decision record (issue #9, Phase 3)
+
+The v2 broker design is decided as below. Every result in this section is measured on the **public API**
+(`include/sub0pub/sub0pub.hpp`, namespace `sub0`), not the prototypes: each chosen-model variant of the collapse
+cases has a `sub0_*` form built on the public header
+([../perf/collapse/phase3-public-api-2026-09.md](../perf/collapse/phase3-public-api-2026-09.md), GCC 13 and
+Clang 18 at `-O2`, arm-none-eabi GCC 13 `-Os` for Cortex-M33, LTO pairs for the cross-file case).
+
+**The public API reproduces the prototypes.** Of 324 public-variant measurements (case × build × form), the 286
+of the static-wiring forms (B1, B2, B3, cancellation, split horizon, one publisher over two domains) are
+identical to their `sub0x` prototypes on every metric. The other 38 are the runtime-registry forms (`Domain`,
+`Route`, `BrokerPort`). Each costs the same as its prototype's configuration or less, because the public default
+is the lean one and the protected destructors remove the `operator delete` dependency. The exceptions are clang
+images with `BrokerPort`: +410 B text under churn (publish -4.5 instructions) and +8 B when empty.
+
+### Decisions
+
+| # | Decision | Chosen | Rejected, with the evidence |
+|---|---|---|---|
+| D1 | Where a type's broker policy lives | On the type: member alias `using sub0_config = sub0::config<...>`, ADL declaration or `SUB0PUB_CONFIGURE`; else the project header (`SUB0PUB_CONFIG_HEADER`); else the `SUB0PUB_*` macros (sections 3, 4) | a broker chosen per use site (sites can disagree); a central registry header (dependency inversion) |
+| D2 | What the default costs | The cheapest correct dispatch: direct iteration (checked in debug builds), no publish context, no `filter()`, no lock. Each costlier feature is opt-in, and using it without opting in is a compile error or a debug-build report (`MIGRATION.md`, "The default is the cheapest dispatch") | the earlier v2 default with snapshot, `cancel()` and `filter()` always on: 77 / 287 instr/op against 38 / 101 for 1 / 8 subscribers (`docs/PERFORMANCE_BASELINE.md`) |
+| D3 | The hot-loop structure (#9's central question) | Static wiring at the application's composition point: plain receiver classes, bound with `StaticWiring<&a, &b>` (static storage), `wire(a, b)` (runtime lifetimes) or behind a `Sink<T>` port (an ABI boundary) | policy switches inside the virtual registry, which keep its dispatch model (#9 review finding 3); routing static receivers through the registry: +78 to +86 publish instructions, +35 to +68 with no dynamic subscriber ([spikes/static_dynamic_bridge.md](spikes/static_dynamic_bridge.md)) |
+| D4 | The static-to-dynamic boundary | Genuinely dynamic subscribers join the static wiring through `DynamicPort<T, N>`, or through `BrokerPort<T>` to the runtime registry when they need its policy (Snapshot, lock, domain) | an inverted bridge (registry in front of the static wiring): publish +37 / +10 populated, +7 / +15 empty, over the hand-written equivalent ([spikes/static_dynamic_bridge.md](spikes/static_dynamic_bridge.md)) |
+| D5 | Cancellation in the static path | A receiver returns `bool` (`false` stops) and the publisher calls `publishCancelable`: no shared or thread-local state | a thread-local `cancel()` mirroring the registry: gcc +3 instructions; Cortex-M33 +14 path instructions, +257 B RAM and a TLS dependency ([spikes/static_cancellation.md](spikes/static_cancellation.md)) |
+| D6 | Publisher ergonomics | Name the `StaticWiring` alias, or the CRTP mixin `Publisher<Derived, Out>`, or `Sink<T>` across a boundary | C++23 deducing this (GCC 13 rejects it; where it builds it costs exactly the mixin) ([spikes/publisher_ergonomics.md](spikes/publisher_ergonomics.md)) |
+| D7 | Lifetime | `Subscribe<T>` and `Publish<T>` have protected non-virtual destructors (K7, K25); locked types register with an explicit `trySubscribe()` after construction (K5); `Domain::close()` detaches, rejects and quiesces; disconnect during a dispatch is safe under Snapshot | a virtual destructor (a vptr per object and `operator delete` on small targets); registration in the base constructor for concurrent types (another thread could dispatch into a half-built object) |
+| D8 | Concurrency | `LockWith<L>`, any `lock()`/`unlock()` type, with the seq_cst disconnect handshake (K3) | hazard pointers and epochs: cheaper only because they skip self-disconnect, nesting and thread-limit safety ([spikes/quiescence.md](spikes/quiescence.md)) |
+| D9 | Language standard | C++17 is the contract; C++20 concepts are an optional diagnostic aid (K13) | raising the baseline before the embedded toolchains ship GCC 14 ([spikes/cxx23_upgrade.md](spikes/cxx23_upgrade.md)) |
+
+### Measured results per acceptance case (public API)
+
+"=" means identical to the equal-work hand-written reference on every criterion, in both forms (observable and
+removable work). Deltas are publish instructions per publication (gcc / clang) and Cortex-M33 image text,
+against that reference. B1 is compared with hand-written runtime binding and B3 with a hand-written context
+pointer plus function pointer (COLLAPSE_EVIDENCE.md, "The loop").
+
+| Case | Static wiring (B2 `StaticWiring` / B1 `wire` / B3 `Sink`) | Runtime registry (public defaults) |
+|---|---|---|
+| Zero receivers | = / = / = | = |
+| One receiver | = / = / = ¹ | +11 / +23; +416 B |
+| Multiple receivers, repeated types | = / = / = ¹ | +56 / +46; +484 B |
+| Default and runtime filters | = / = / = ¹: the always-true filter disappears, the runtime filter keeps its branch | with `SUB0PUB_FILTER`: +67.5 / +55.5; +544 B |
+| Two independent domains | = / = / = ¹; one publisher over both domains: B2 =, B1 = except clang observable +3 (K23) | `Domain`: +71 / +63; +2232 B (the prototype's default: +147 / +193) |
+| Concrete transport endpoint (egress + ingress) | = / = / = ¹, including the origin forms; two links of one transport type: B2 =, B1 +8 / +10 unless each link has its own type (K18) | `Route`: +116 / +113; +716 B and TLS (StaticContext: +688 B, no TLS) |
+| Dynamic subscriptions | `DynamicPort` = when empty; populated = except an out-of-line `receive()` on x86 (K21) and, under churn, a longer gcc publish path | against a hand-written registry with the same features: +3.5 / -1.5; +32 B (v1.0: +19 / +37 at its leanest) |
+| Cross-file, LTO off / on | = / = / = ¹ on every build, with and without LTO | +25 / +24 without LTO, +56 / +44 with LTO: LTO does not devirtualise the registry |
+
+¹ B3 on clang fails only the static publish-path criterion: Clang inlines the type-erased call (no indirect call
+remains, publish -1 to +0 instructions), and the metric then counts the inlined receiver as path instructions.
+
+Remaining gaps, all recorded above: nested publication on one static wiring (K22), two links of one transport
+type on clang (K18, K23), cancellation combined with `filter()` (K24), `DynamicPort`'s out-of-line `receive()`
+(K21), and the `BrokerPort` bridge's setup, teardown and RAM (the price of its policy).
+
+### Gate status (#9, "Done when")
+
+| Criterion | Status |
+|---|---|
+| Every acceptance case passes the evidence standard on the named builds, with final-link evidence | **Met on GCC 13, Clang 18 and arm-none-eabi GCC 13 (Cortex-M33), with LTO pairs**, with the compromises listed. **Not met on MSVC x64:** behaviour is checked there (every variant builds and runs under ctest in CI), but the evidence tool reads ELF and callgrind output, and no `dumpbin`-based collector exists yet. RISC-V is deferred until a toolchain with a C++ standard library is in CI, as the issue allows |
+| The recommended hot-loop pattern is documented and was chosen by measurement | Met: COLLAPSE_EVIDENCE.md ("Recommended hot-loop coding pattern"), `README.md` and `MIGRATION.md` (static wiring) |
+| The dynamic-subscription path meets its regression limits | Met: the public registry costs +3.5 / -1.5 against a hand-written registry with the same features, against v1.0's +19 / +37, and v2's default publish is 34 / 104 instr/op for 1 / 8 subscribers against v1.0's 60 / 221 (`docs/perf/compare-v1-v2-2026-09.md`) |
+| #8's broker API can select the static structure, and is frozen only after that | The public API provides both structures and the bridges between them. Freezing it is the maintainer's decision |
+
+**Open before #9 can close:** MSVC final-link evidence.
