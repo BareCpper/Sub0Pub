@@ -323,7 +323,7 @@ Changed from `int_least16_t` to `int32_t` to prevent overflow on large payloads.
 
 ### Endianness
 
-Sub0Pub does **not** perform per-message byte-swapping. All peers on a given IPC channel must share the same byte order. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase, with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
+Sub0Pub does **not** perform per-message byte-swapping, and it is not a planned feature. All peers on a given IPC channel must share the same byte order; ensuring that, or converting where a platform needs it, is the application's responsibility. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase (it detects a mismatch; it does not convert), with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
 ### Type Layout Verification
 

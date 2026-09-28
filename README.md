@@ -88,7 +88,12 @@ Remaining compromises are listed with their measured cost in
 
 ### Design Decisions
 
-**Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle.
+**Endianness: out of scope, by design.** Sub0Pub IPC does not convert byte order, and doing so is not a planned
+feature. Messages cross the channel as their in-memory representation, so every peer on a channel must share the
+same byte order and layout. Checking that the build and platforms in use are compatible is the application's
+responsibility, as is any conversion a mixed-endian deployment needs (for example in a transport adapter). This keeps
+the IPC path at little or no cost: conversion on every message would violate the library's core principle. A basic
+byte-swizzle example may be added later (lowest priority).
 
 **Automatic layout verification.** `makeLayout<T>()` produces a `TypeLayout` containing sizeof, alignof, arity, array extent info, and a per-member layout hash -- all automatically via C++17 structured bindings (Boost.PFR-style). No macros, no member lists. On MSVC, per-member decomposition is deferred to C++26 reflection; the fingerprint (sizeof+alignof+arity) still catches most layout mismatches. Full type-member introspection is planned via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
@@ -100,6 +105,7 @@ Remaining compromises are listed with their measured cost in
 | **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
 | **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
 | **MSVC layout hash limited** -- structured binding bug prevents per-member decomposition | Low | Awaiting C++26 `std::meta::reflect` |
+| **No byte-order conversion** -- peers must share byte order and layout (see Design Decisions) | By design | Application responsibility; a basic byte-swizzle example is possible future work (lowest priority) |
 
 ### Roadmap
 

@@ -174,7 +174,7 @@ Sub0Pub is a header-only C++ type-based publish-subscribe messaging library targ
 
 9. **Write API documentation** — MonoState lifetime model, thread-safety contract, feature flags, examples for `SubscribeAll`, `ForwardPublish`, serialization.
 10. **Move `Broker` to `sub0::detail`** — reduce public API surface.
-11. **Add endianness handling** to serialization headers for cross-architecture IPC.
+11. ~~**Add endianness handling** to serialization headers for cross-architecture IPC.~~ **Out of scope (2026-09):** byte-order conversion is not a supported or intended IPC feature; peers must share byte order, and any conversion is the application's (README, "Design Decisions").
 12. **Add CRC/checksum** option to the serialization protocol.
 13. **Consolidate publish convention** — document `sub0::publish(this, data)` as canonical, deprecate or protect member `publish()`.
 14. **Audit and triage `@todo` comments** — convert correctness-critical items to tracked issues.
