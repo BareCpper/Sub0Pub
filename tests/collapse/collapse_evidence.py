@@ -20,11 +20,20 @@ For every case in tests/collapse/cases/<case>/ and every variant file in it, in 
 Usage:
   python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME] [--json OUT.json] > report.md
   python3 tests/collapse/collapse_evidence.py --self-test     # check the publish-path parser
+  python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json        # regression gate (CI)
+  python3 tests/collapse/collapse_evidence.py --write-budgets tests/collapse/budgets.json  # record new budgets
 Exit status is non-zero if any variant's checksum differs from its reference (behaviour broken), if any build,
 run or measurement fails, if a declared reference is missing, or if the case/build selection is empty. A variant
 marked `// SUB0X_REQUIRES: <feature>` is skipped (reported, not failed) on a build whose compiler lacks the
 feature (the same probes as tests/collapse/CMakeLists.txt). Cost criterion verdicts are reported, not enforced:
-pattern A (today's API) is expected to fail them; that is the gap.
+the runtime-registry variants are expected to fail them; that is the price of runtime subscription.
+
+Regression gate (--budgets): every public-API variant (`sub0_*`, `sub0pub_virtual*`) has a budget per build and form
+for each metric's delta against its reference (publish/setup/teardown instructions, publish path, indirect calls,
+text, RAM, static initialisation, added dependencies). Exceeding a budget, or a public-API variant with no budget,
+fails the tool. Budgets are the measured deltas when recorded, never tighter than the criteria's tolerances; a
+deliberate change re-records them with --write-budgets and commits the file with the change. The frozen prototypes
+(`sub0x_*`) and the references are not gated.
 """
 import argparse
 import json
@@ -479,14 +488,68 @@ def verdicts(result, ref):
     v["no extra indirect calls"] = result["path"]["indirect_calls"] <= ref["path"]["indirect_calls"]
     v["no extra RAM"] = (result["sections"]["data"] + result["sections"]["bss"]) <= (ref["sections"]["data"] + ref["sections"]["bss"])
     v["no static init"] = result["sections"]["init_array"] <= ref["sections"]["init_array"]
-    # Today's library (sub0::) must leave nothing. Sandbox/prototype code (sub0x::) that survives as a named
-    # out-of-line function (a Sink thunk, DynamicPort::receive) passes only if the image is no larger than the
-    # reference's, i.e. it is the same code the reference has under another name
-    sub0x_ok = result.get("retained_sub0x_bytes", 0) == 0 or result["sections"]["text"] <= ref["sections"]["text"]
-    v["no Sub0Pub retained"] = result.get("retained_sub0_only_bytes", result["retained_sub0_bytes"]) == 0 and sub0x_ok
+    # Sub0Pub code (sub0:: or sub0x::) that survives as a named out-of-line function (a Sink thunk,
+    # DynamicPort::receive) passes only if the image is no larger than the reference's, i.e. it is the same code
+    # the reference has under another name. One rule for both namespaces: since Phase 2 the static wiring is
+    # public (sub0::), and a runtime registry's retained code always makes its image larger
+    v["no Sub0Pub retained"] = result["retained_sub0_bytes"] == 0 or result["sections"]["text"] <= ref["sections"]["text"]
     extra = [d for d in result["dependencies"] if d not in ref["dependencies"]]
     v["no extra dependencies"] = not extra
     return v, extra
+
+
+BUDGET_ALLOWANCE = {"publish": INSTR_TOLERANCE, "path": PATH_TOLERANCE}  # a passing criterion keeps its tolerance
+
+
+def gated(variant):
+    """Public-API variants carry regression budgets; the frozen prototypes and the references do not."""
+    return variant.startswith("sub0_") or variant.startswith("sub0pub_virtual")
+
+
+def deltas(result, ref):
+    """Metric deltas of a variant against its reference (the quantities the budgets bound)."""
+    d = OrderedDict()
+    for phase in ("publish", "setup", "teardown"):
+        if phase in result.get("instr", {}) and phase in ref.get("instr", {}):
+            d[phase] = round(result["instr"][phase] - ref["instr"][phase], 3)
+    d["path"] = result["path"]["instructions"] - ref["path"]["instructions"]
+    d["indirect_calls"] = result["path"]["indirect_calls"] - ref["path"]["indirect_calls"]
+    d["text"] = result["sections"]["text"] - ref["sections"]["text"]
+    d["ram"] = (result["sections"]["data"] + result["sections"]["bss"]) - (ref["sections"]["data"] + ref["sections"]["bss"])
+    d["init_array"] = result["sections"]["init_array"] - ref["sections"]["init_array"]
+    return d
+
+
+def budget_key(build_name, case, form, variant):
+    return f"{build_name}/{case}/{form}/{variant}"
+
+
+def make_budget(result, ref):
+    b = OrderedDict((k, max(v, BUDGET_ALLOWANCE.get(k, 0))) for k, v in deltas(result, ref).items())
+    b["added_deps"] = sorted(d for d in result["dependencies"] if d not in ref["dependencies"])
+    return b
+
+
+def check_budget(result, ref, budget):
+    """Breaches of a budget: a list of 'metric delta > budget' strings."""
+    over = []
+    measured = deltas(result, ref)
+    # A missing profiler result must not silently disable recorded instruction limits. Conversely, every
+    # measured metric needs an explicit limit: a truncated budget must not turn a regression into a pass.
+    for k in budget:
+        if k != "added_deps" and k not in measured:
+            over.append(f"{k}: missing measurement")
+    for k, v in measured.items():
+        if k not in budget:
+            over.append(f"{k}: missing budget")
+        elif v > budget[k] + 1e-6:
+            over.append(f"{k} {v:+g} > {budget[k]:+g}")
+    if "added_deps" not in budget:
+        over.append("added_deps: missing budget")
+    extra = sorted(set(d for d in result["dependencies"] if d not in ref["dependencies"]) - set(budget.get("added_deps", [])))
+    if extra:
+        over.append("added deps " + ", ".join(extra))
+    return over
 
 
 def fmt_delta(value, ref, digits=0):
@@ -499,6 +562,8 @@ def main():
     ap.add_argument("--case")
     ap.add_argument("--build")
     ap.add_argument("--json")
+    ap.add_argument("--budgets", help="fail if a public-API variant exceeds its recorded budget (regression gate)")
+    ap.add_argument("--write-budgets", help="record the measured deltas of the public-API variants as budgets")
     ap.add_argument("--self-test", action="store_true", help="check the publish-path parser and exit")
     args = ap.parse_args()
     if args.self_test:
@@ -556,6 +621,7 @@ def main():
         print(f"- **{build_name}**: `{ver}` `{' '.join(build_cfg['flags'])}`")
     print()
 
+    gate_rows = OrderedDict()
     for case, variants in cases.items():
         print(f"## Case: {case}\n")
         for build_name, build_cfg in builds.items():
@@ -588,6 +654,8 @@ def main():
                     v, extra = verdicts(r, ref) if variant != REFERENCE else (OrderedDict(), [])
                     if variant != REFERENCE and v.get("same behaviour") is False:
                         broken.append((build_name, case, form, variant))
+                    if gated(variant):
+                        gate_rows[budget_key(build_name, case, form, variant)] = (r, ref)
                     ins = r.get("instr", {})
                     rins = ref.get("instr", {})
                     def phase(p, digits):
@@ -631,13 +699,52 @@ def main():
         with open(args.json, "w") as fh:
             json.dump(serial, fh, indent=1)
 
-    # Gating: behaviour mismatches, build/run/measurement failures and missing references fail the tool.
-    # Explicit feature skips (SUB0X_REQUIRES) are listed, not failed. Cost verdicts stay report-only.
+    toolchains = OrderedDict((n, run([b["cxx"], "--version"]).stdout.splitlines()[0]) for n, b in builds.items())
+    if args.write_budgets:
+        recorded = {"budgets": OrderedDict()}
+        if os.path.exists(args.write_budgets):  # a partial selection updates only the rows it measured
+            with open(args.write_budgets) as fh:
+                recorded = json.load(fh, object_pairs_hook=OrderedDict)
+        recorded.setdefault("toolchains", OrderedDict()).update(toolchains)
+        for key, (r, ref) in gate_rows.items():
+            recorded["budgets"][key] = make_budget(r, ref)
+        recorded["budgets"] = OrderedDict(sorted(recorded["budgets"].items()))
+        with open(args.write_budgets, "w") as fh:
+            json.dump(recorded, fh, indent=1)
+            fh.write("\n")
+    breaches = []
+    if args.budgets:
+        with open(args.budgets) as fh:
+            recorded = json.load(fh)
+        for name, ver in toolchains.items():
+            if recorded.get("toolchains", {}).get(name) not in (None, ver):
+                print(f"Note: {name} is `{ver}`; budgets were recorded with `{recorded['toolchains'][name]}`.\n")
+        for key, (r, ref) in gate_rows.items():
+            budget = recorded["budgets"].get(key)
+            if budget is None:
+                breaches.append(f"{key}: no budget (record one with --write-budgets)")
+                continue
+            over = check_budget(r, ref, budget)
+            if over:
+                breaches.append(f"{key}: " + "; ".join(over))
+        print(f"**Regression gate:** {len(gate_rows)} public-API measurements against `{args.budgets}`: "
+              + (f"{len(breaches)} over budget\n" if breaches else "all within budget\n"))
+        for b in breaches:
+            print(f"- {b}")
+        if breaches:
+            print()
+
+    # Gating: behaviour mismatches, build/run/measurement failures, missing references and (with --budgets)
+    # public-API regressions fail the tool. Explicit feature skips (SUB0X_REQUIRES) are listed, not failed.
+    # Cost verdicts stay report-only: they compare with hand-written code, the budgets with the recorded state.
     if skipped:
         print("**Skipped (unsupported feature):** " + "; ".join(skipped) + "\n")
     status = 0
     if broken:
         print("**Behaviour mismatch:** " + ", ".join("/".join(k) for k in broken) + "\n")
+        status = 1
+    if breaches:
+        print(f"{len(breaches)} budget breach(es)", file=sys.stderr)
         status = 1
     if failures:
         print("**Failed:** " + "; ".join(failures) + "\n")

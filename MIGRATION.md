@@ -151,6 +151,19 @@ Every translation unit must resolve the same configuration for a type: resolving
 
 **Action:** None. Scored forms: [docs/design/COLLAPSE_SCORES.md](docs/design/COLLAPSE_SCORES.md).
 
+### The library is split into focused headers
+
+`include/sub0pub/sub0pub.hpp` was a single 3,200-line file. It is now an umbrella header over one header per
+responsibility, grouped in `utility/`, `broker/`, `wiring/` and `ipc/`, with an entry header per area:
+`sub0pub/broker.hpp` (runtime broker), `sub0pub/wiring.hpp` (static wiring, no broker), `sub0pub/ipc.hpp` (IPC
+serialisation, no broker), and the bridges `sub0pub/wiring/broker_port.hpp` and `sub0pub/ipc/forward.hpp`. The
+`SUB0PUB_*` defaults live in `sub0pub/config_macros.hpp`. No name, namespace or behaviour changed: the generated
+code is identical (collapse evidence, `tests/collapse/budgets.json`).
+
+**Action:** None. `#include <sub0pub/sub0pub.hpp>` works as before, including the standard headers it provided. To
+compile less, include only the part you use (README, "Headers"). Headers under the area directories other than
+the entry headers are implementation structure and may move.
+
 ---
 
 ## Behavioral Changes
@@ -323,7 +336,7 @@ Changed from `int_least16_t` to `int32_t` to prevent overflow on large payloads.
 
 ### Endianness
 
-Sub0Pub does **not** perform per-message byte-swapping. All peers on a given IPC channel must share the same byte order. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase, with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
+Sub0Pub does **not** perform per-message byte-swapping, and it is not a planned feature. All peers on a given IPC channel must share the same byte order; ensuring that, or converting where a platform needs it, is the application's responsibility. This is by design -- runtime endianness conversion would contradict the library's zero-overhead principle. For mixed-architecture deployments, a connection-time layout verification handshake is planned for a future phase (it detects a mismatch; it does not convert), with full type introspection via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
 ### Type Layout Verification
 

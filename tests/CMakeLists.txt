@@ -37,9 +37,12 @@ sub0pub_add_bench(Sub0Pub_Bench_Full       bench/bench_core.cpp SUB0PUB_REENTRAN
 sub0pub_add_bench(Sub0Pub_Bench_ThreadSafe bench/bench_core.cpp SUB0PUB_THREAD_SAFE=true SUB0PUB_FILTER=true)
 sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
 
-# Per-Data configuration and static wiring (public API, sub0pub.hpp Sections 2 to 4)
+# Per-Data configuration and static wiring (public API: sub0pub/config.hpp, sub0pub/broker/, sub0pub/wiring/)
 add_subdirectory(config)
 add_subdirectory(wiring)
+
+# Header hygiene: every header self-contained, each entry header isolated from the other areas
+add_subdirectory(headers)
 
 # Design prototypes (not public API)
 add_subdirectory(design/broker_config)

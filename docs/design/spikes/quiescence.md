@@ -1,5 +1,7 @@
 # Spike: teardown / quiescence mechanism face-off (issue #5)
 
+> **Header split (2026-09):** `sub0pub.hpp:N` line references in this record point into the single-file header of the time. The library is now split into focused headers under `include/sub0pub/` (umbrella `sub0pub.hpp`; MIGRATION.md, "The library is split into focused headers").
+
 **Status:** spike, standalone from the existing prototype. **Scope:** the guarantee "after
 `disconnect()` returns, `receive()` is never called again on any thread" (section 7 of
 [BROKER_CUSTOMISATION.md](../BROKER_CUSTOMISATION.md), known issues K3, K4, K5, K10). Does not touch

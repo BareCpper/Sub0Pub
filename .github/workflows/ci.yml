@@ -75,14 +75,15 @@ jobs:
 
   collapse-evidence:
     # Issue #9: final-link evidence per case/variant/build (docs/design/COLLAPSE_EVIDENCE.md).
-    # Fails on behaviour mismatch; collapse criteria are reported (pattern A is expected to fail them).
+    # Fails on behaviour mismatch and on a public-API variant over its recorded budget (tests/collapse/budgets.json);
+    # collapse criteria against hand-written code are reported (the runtime registry is expected to fail them).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchains
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends valgrind clang gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
       - name: Collect evidence
-        run: python3 tests/collapse/collapse_evidence.py --json collapse-evidence.json > collapse-evidence.md
+        run: python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json --json collapse-evidence.json > collapse-evidence.md
       - name: Summary
         if: always()
         run: cat collapse-evidence.md >> "$GITHUB_STEP_SUMMARY"

@@ -58,7 +58,17 @@ public:
 
 - Feature flags use `#ifndef` / `#define` / `#endif` pattern with default values
 - Guard conditions: `#if SUB0PUB_FLAG` (not `#ifdef`)
-- Include guard: `#ifndef CROG_SUB0PUB_HPP`
+- Include guard: `#ifndef CROG_SUB0PUB_<PATH>_HPP`, the header's path under `include/` in upper case, e.g.
+  `CROG_SUB0PUB_BROKER_SUBSCRIBE_HPP` for `sub0pub/broker/subscribe.hpp` (the umbrella keeps `CROG_SUB0PUB_HPP`)
+
+## Headers
+
+- One responsibility per header, in the area directory it belongs to (`utility/`, `broker/`, `wiring/`, `ipc/`);
+  `types.hpp` collects general-purpose helper types until a group of them earns its own header
+- Every header includes what it uses (`tests/headers` compiles each one on its own) and includes
+  `sub0pub/config_macros.hpp` before reading a `SUB0PUB_*` macro; only `config_macros.hpp` defines their defaults
+- An area's entry header (`broker.hpp`, `wiring.hpp`, `ipc.hpp`) must not reach another area; bridges between
+  areas get their own header (`tests/headers` checks the isolation)
 
 ## Error Handling
 

@@ -1,4 +1,4 @@
-# Static wiring (sub0pub.hpp Section 4): guarantees, limits and concurrent use
+# Static wiring (sub0pub/wiring/): guarantees, limits and concurrent use
 
 find_package(Threads REQUIRED)
 add_executable(Sub0Pub_WiringTests ../test_main.cpp test_wiring.cpp test_concurrent_wiring.cpp)

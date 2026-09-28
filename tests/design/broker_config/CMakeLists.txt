@@ -1,5 +1,5 @@
 # PROTOTYPE: per-Data broker configuration (docs/design/BROKER_CUSTOMISATION.md)
-# Builds and tests the sub0x design prototype without touching sub0pub.hpp.
+# Builds and tests the sub0x design prototype without touching the public headers (include/sub0pub/).
 
 set(SUB0X_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(SUB0X_VENDOR "${CMAKE_CURRENT_SOURCE_DIR}/../../vendor")
