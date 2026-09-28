@@ -49,12 +49,19 @@ int main() {
 
 ### How It Compares
 
-Sub0Pub provides synchronous, typed messaging with bounded subscription storage and optional static wiring.
-Choose ETL for embedded message routing, EnTT or eventpp for event dispatch and queues, zbus for Zephyr
-channels, or Boost.Signals2/Qt for signal-slot connections and their lifetime facilities.
+**Sub0Pub is built for typed messaging with predictable storage and a small integration footprint.**
+Its C++17, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
+to direct calls. Filtering, snapshots and locking are opt-in per message type.
 
-See [library comparisons and bridge candidates](docs/COMPARISONS.md) for trade-offs and sources.
-ETL and EnTT bridges are proposed first prototypes; no adapters are implemented yet.
+| Compared with | Why choose Sub0Pub? | Trade-off |
+|---|---|---|
+| ETL messaging | Route plain C++ payloads locally without message base classes or numeric IDs; bind plain receivers with static wiring. | ETL provides a broader embedded toolkit and addressed message routing. |
+| EnTT / eventpp | Combine bounded subscription storage and explicit static fan-out in a focused messaging library. | Queues and deferred processing need application support. |
+| Boost.Signals2 / Qt | Fixed-capacity broker storage and direct-call static wiring, with no Qt runtime or MOC requirement. | Connection lifetime and event-loop facilities differ; adapters must preserve them explicitly. |
+| Zephyr zbus | Use the same typed messaging core on bare metal, an RTOS or desktop. | No built-in shared-channel state or RTOS observer queues. |
+
+These are design trade-offs, not cross-library speed rankings. See [comparisons and proposed bridges](docs/COMPARISONS.md)
+for sources, lifetime details and integration options.
 
 ### Current Status
 
