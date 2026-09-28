@@ -1,4 +1,7 @@
 """Evidence failures must fail the job; no external compiler/profiler needed."""
+import copy
+import json
+import tempfile
 import contextlib
 import importlib.util
 import io
@@ -14,6 +17,64 @@ spec.loader.exec_module(evidence)
 
 
 class EvidenceGates(unittest.TestCase):
+    def budget_run(self, change_result=None, change_budget=None):
+        reference = {
+            "checksum": "same", "instr": {"publish": 10, "setup": 10, "teardown": 10},
+            "path": {"instructions": 10, "direct_calls": 0, "indirect_calls": 0},
+            "sections": {"text": 100, "data": 0, "bss": 0, "init_array": 0},
+            "retained_sub0_bytes": 0, "retained_sub0_only_bytes": 0, "retained_sub0x_bytes": 0,
+            "dependencies": [], "symbols": {},
+        }
+        result = copy.deepcopy(reference)
+        budget = evidence.make_budget(result, reference)
+        if change_result:
+            change_result(result)
+        if change_budget:
+            change_budget(budget)
+        rows = {evidence.budget_key("gcc-O2", "one_receiver", form, "sub0_b2_static"): budget
+                for form in evidence.FORMS}
+        def measure(build, config, case, variant, form, observable, tmp):
+            return copy.deepcopy(reference if variant == "handwritten" else result)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "budgets.json"
+            path.write_text(json.dumps({"budgets": rows}))
+            output = io.StringIO()
+            with patch.object(sys, "argv", ["evidence", "--budgets", str(path)]), \
+                 patch.object(evidence, "available_builds", return_value={"gcc-O2": evidence.BUILDS["gcc-O2"]}), \
+                 patch.object(evidence, "discover_cases", return_value={"one_receiver": ["handwritten", "sub0_b2_static"]}), \
+                 patch.object(evidence, "measure", side_effect=measure), \
+                 patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 0, "test compiler\n", "")), \
+                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+                return evidence.main(), output.getvalue()
+
+    def test_complete_budget_passes(self):
+        status, _ = self.budget_run()
+        self.assertEqual(status, 0)
+
+    def test_cost_regression_fails_main(self):
+        def regress(result):
+            result["instr"]["publish"] += 100
+            result["sections"]["bss"] += 4096
+        status, output = self.budget_run(change_result=regress)
+        self.assertEqual(status, 1)
+        self.assertIn("publish +100", output)
+        self.assertIn("ram +4096", output)
+
+    def test_missing_profiler_measurements_fail_main(self):
+        status, output = self.budget_run(change_result=lambda result: result.pop("instr"))
+        self.assertEqual(status, 1)
+        self.assertIn("publish: missing measurement", output)
+
+    def test_missing_metric_budget_fails_main(self):
+        status, output = self.budget_run(change_budget=lambda budget: budget.pop("ram"))
+        self.assertEqual(status, 1)
+        self.assertIn("ram: missing budget", output)
+
+    def test_missing_dependency_budget_fails_main(self):
+        status, output = self.budget_run(change_budget=lambda budget: budget.pop("added_deps"))
+        self.assertEqual(status, 1)
+        self.assertIn("added_deps: missing budget", output)
+
     def test_broken_reference_is_not_success(self):
         with patch.object(sys, "argv", ["evidence"]), \
              patch.object(evidence, "available_builds", return_value={"gcc-O2": evidence.BUILDS["gcc-O2"]}), \

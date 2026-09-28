@@ -533,9 +533,19 @@ def make_budget(result, ref):
 def check_budget(result, ref, budget):
     """Breaches of a budget: a list of 'metric delta > budget' strings."""
     over = []
-    for k, v in deltas(result, ref).items():
-        if k in budget and v > budget[k] + 1e-6:
+    measured = deltas(result, ref)
+    # A missing profiler result must not silently disable recorded instruction limits. Conversely, every
+    # measured metric needs an explicit limit: a truncated budget must not turn a regression into a pass.
+    for k in budget:
+        if k != "added_deps" and k not in measured:
+            over.append(f"{k}: missing measurement")
+    for k, v in measured.items():
+        if k not in budget:
+            over.append(f"{k}: missing budget")
+        elif v > budget[k] + 1e-6:
             over.append(f"{k} {v:+g} > {budget[k]:+g}")
+    if "added_deps" not in budget:
+        over.append("added_deps: missing budget")
     extra = sorted(set(d for d in result["dependencies"] if d not in ref["dependencies"]) - set(budget.get("added_deps", [])))
     if extra:
         over.append("added deps " + ", ".join(extra))

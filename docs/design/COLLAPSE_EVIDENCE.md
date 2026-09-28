@@ -57,7 +57,8 @@ measurement, not argued for.
    **Regression gate (Phase 3):** with `--budgets tests/collapse/budgets.json` (as CI runs it), each public-API
    variant (`sub0_*`, `sub0pub_virtual*`) must stay within its recorded budget for every metric's delta against its
    reference, per build and form (publish, setup and teardown instructions, path, indirect calls, text, RAM, static
-   initialisation, added dependencies); a breach or a missing budget fails the tool. Budgets are the measured
+   initialisation, added dependencies); a breach, missing metric limit or missing recorded measurement fails the tool.
+   In particular, a host run without profiler results cannot pass a budget that includes instruction counts. Budgets are the measured
    deltas, never tighter than the criteria's tolerances, and are re-recorded with `--write-budgets` in the commit
    that changes them. The frozen `sub0x_*` prototypes and the references are reported, not gated.
 
