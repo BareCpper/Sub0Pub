@@ -364,12 +364,21 @@ cases has a `sub0_*` form built on the public header
 ([../perf/collapse/phase3-public-api-2026-09.md](../perf/collapse/phase3-public-api-2026-09.md), GCC 13 and
 Clang 18 at `-O2`, arm-none-eabi GCC 13 `-Os` for Cortex-M33, LTO pairs for the cross-file case).
 
-**The public API reproduces the prototypes.** Of 324 public-variant measurements (case × build × form), the 286
-of the static-wiring forms (B1, B2, B3, cancellation, split horizon, one publisher over two domains) are
-identical to their `sub0x` prototypes on every metric. The other 38 are the runtime-registry forms (`Domain`,
-`Route`, `BrokerPort`). Each costs the same as its prototype's configuration or less, because the public default
-is the lean one and the protected destructors remove the `operator delete` dependency. The exceptions are clang
-images with `BrokerPort`: +410 B text under churn (publish -4.5 instructions) and +8 B when empty.
+**The public API reproduces the prototypes.** 324 public-variant measurements (case × build × form) have a
+`sub0x` twin:
+- **Static wiring, 270 rows** (B1, B2, B3, cancellation, split horizon, one publisher over two domains):
+  identical to the prototype on every metric.
+- **`DynamicPort`, 18 rows:** 14 identical; 4 are 1 B smaller (clang text).
+- **Runtime registry, 36 rows** (`Domain`, `Route`, `BrokerPort`): 2 identical; 28 equal or cheaper on every
+  metric, because the public default is the lean configuration and the protected destructors remove the
+  `operator delete` dependency; 6 mixed: clang `BrokerPort` images +410 B text under churn (publish -4.5
+  instructions) and +8 B when empty; and on Cortex-M33 the `Domain` publish path is 16 static instructions
+  longer with one indirect call fewer (direct iteration inlined), in a smaller image with less RAM and no TLS or
+  `operator delete`.
+
+**The recommended publisher mixin is measured on the public API.** `sub0::Publisher<Derived, Out>` (`sub0_b1_mixin`
+in eight cases, `sub0_alt2_crtp_mixin` in `publisher_ergonomics`) is identical to a publisher that stores its
+output by hand (`sub0_b1_wire`, 48 of 48 rows) and to the prototype mixin (6 of 6).
 
 ### Decisions
 
@@ -418,5 +427,6 @@ type on clang (K18, K23), cancellation combined with `filter()` (K24), `DynamicP
 | The recommended hot-loop pattern is documented and was chosen by measurement | Met: COLLAPSE_EVIDENCE.md ("Recommended hot-loop coding pattern"), `README.md` and `MIGRATION.md` (static wiring) |
 | The dynamic-subscription path meets its regression limits | Met: the public registry costs +3.5 / -1.5 against a hand-written registry with the same features, against v1.0's +19 / +37, and v2's default publish is 34 / 104 instr/op for 1 / 8 subscribers against v1.0's 60 / 221 (`docs/perf/compare-v1-v2-2026-09.md`) |
 | #8's broker API can select the static structure, and is frozen only after that | The public API provides both structures and the bridges between them. Freezing it is the maintainer's decision |
+| Deterministic regression gating in CI (evidence standard) | Met: every public-API variant (`sub0_*`, `sub0pub_virtual*`, 510 build × form rows) has a recorded budget per metric in `tests/collapse/budgets.json`, and the CI `collapse-evidence` job fails on a breach or a missing budget (`--budgets`). Checked by injecting +100 instructions per publish and 4 KiB of RAM into `one_receiver/sub0_b2_static`: exit 1, both forms reported over budget. A deliberate change re-records the budgets (`--write-budgets`) in the same commit |
 
 **Open before #9 can close:** MSVC final-link evidence.

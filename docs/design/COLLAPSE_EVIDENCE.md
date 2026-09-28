@@ -54,6 +54,13 @@ measurement, not argued for.
    | link dependencies | TLS, `operator delete`, `__cxa_pure_virtual`, atexit | none added |
    | where extra bytes come from | largest symbols added over the reference | reported |
 
+   **Regression gate (Phase 3):** with `--budgets tests/collapse/budgets.json` (as CI runs it), each public-API
+   variant (`sub0_*`, `sub0pub_virtual*`) must stay within its recorded budget for every metric's delta against its
+   reference, per build and form (publish, setup and teardown instructions, path, indirect calls, text, RAM, static
+   initialisation, added dependencies); a breach or a missing budget fails the tool. Budgets are the measured
+   deltas, never tighter than the criteria's tolerances, and are re-recorded with `--write-budgets` in the commit
+   that changes them. The frozen `sub0x_*` prototypes and the references are reported, not gated.
+
    Behaviour mismatches fail the tool, and so (since the scores review) do build, run and callgrind failures,
    a declared reference that does not exist, and an empty case or build selection; before, those printed a row
    and exited 0. A variant marked `// SUB0X_REQUIRES: <feature>` is probed per build, with the same probes as

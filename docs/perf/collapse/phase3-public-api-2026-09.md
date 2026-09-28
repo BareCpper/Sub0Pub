@@ -1023,6 +1023,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 19.0 (+0.0) | 18 (+0) | 16 (+0) | 18 (+0) | 0/0 | 2367 (+0) | 616 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 35.5 (+16.5) | 26 (+8) | 16 (+0) | 17 (-1) | 1/1 | 2531 (+164) | 656 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 19.0 (+0.0) | 22 (+4) | 16 (+0) | 18 (+0) | 0/0 | 2399 (+32) | 640 (+24) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 19.0 (+0.0) | 22 (+0) | 16 (+0) | 18 (+0) | 0/0 | 2399 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 19.0 (+0.0) | 22 (+0) | 16 (+0) | 18 (+0) | 0/0 | 2399 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 19.0 (+0.0) | 18 (+0) | 16 (+0) | 18 (+0) | 0/0 | 2367 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 35.5 (+0.0) | 26 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2531 (+0) | 656 (+0) | 55/0 | - | PASS |
@@ -1042,6 +1043,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 22.0 (+14.0) | 26 (+8) | 16 (+0) | 17 (+13) | 1/1 | 2483 (+164) | 656 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 8.0 (+0.0) | 22 (+4) | 16 (+0) | 4 (+0) | 0/0 | 2351 (+32) | 640 (+24) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 22 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2351 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 22 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2351 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 22.0 (+0.0) | 26 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2483 (+0) | 656 (+0) | 5/0 | - | PASS |
@@ -1148,6 +1150,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 22.0 (+0.0) | 16 (+0) | 14 (+0) | 19 (+0) | 0/0 | 2122 (+0) | 656 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 31.0 (+9.0) | 22 (+6) | 14 (+0) | 12 (-7) | 0/1 | 2218 (+96) | 688 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 22.0 (+0.0) | 16 (+0) | 14 (+0) | 19 (+0) | 0/0 | 2122 (+0) | 656 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 22.0 (+0.0) | 16 (+0) | 14 (+0) | 19 (+0) | 0/0 | 2122 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 22.0 (+0.0) | 16 (+0) | 14 (+0) | 19 (+0) | 0/0 | 2122 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 22.0 (+0.0) | 16 (+0) | 14 (+0) | 19 (+0) | 0/0 | 2122 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 30.0 (-1.0) | 22 (+0) | 14 (+0) | 30 (+18) | 1/0 | 2233 (+15) | 688 (+0) | 0/0 | - | FAIL: publish path |
@@ -1167,6 +1170,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 8.0 (+0.0) | 22 (+6) | 14 (+0) | 4 (+0) | 0/0 | 2106 (+32) | 688 (+32) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
 | handwritten_runtime | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 8.0 (+0.0) | 22 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2106 (+0) | 688 (+0) | 0/0 | - | PASS |
@@ -1263,6 +1267,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 19 (+0) | 0/0 | 1128 (+0) | 508 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (-4) | 0/1 | 1192 (+64) | 528 (+20) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 19 (+0) | 0/0 | 1148 (+20) | 520 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 19 (+0) | 0/0 | 1148 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 19 (+0) | 0/0 | 1148 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 19 (+0) | 0/0 | 1128 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1192 (+0) | 528 (+0) | 40/0 | - | PASS |
@@ -1282,6 +1287,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+8) | 0/1 | 1156 (+60) | 528 (+20) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 7 (+0) | 0/0 | 1116 (+20) | 520 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1116 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1116 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1156 (+0) | 528 (+0) | 2/0 | - | PASS |
@@ -1389,6 +1395,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 67.0 (+0.0) | 19 (+0) | 16 (+0) | 43 (+0) | 1/0 | 2529 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 77.0 (+10.0) | 27 (+8) | 16 (+0) | 31 (-12) | 1/1 | 2669 (+140) | 656 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 70.0 (+3.0) | 23 (+4) | 16 (+0) | 46 (+3) | 1/0 | 2577 (+48) | 640 (+16) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 70.0 (+0.0) | 23 (+0) | 16 (+0) | 46 (+0) | 1/0 | 2577 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 70.0 (+0.0) | 23 (+0) | 16 (+0) | 46 (+0) | 1/0 | 2577 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 67.0 (+0.0) | 19 (+0) | 16 (+0) | 43 (+0) | 1/0 | 2529 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 76.0 (-1.0) | 27 (+0) | 16 (+0) | 30 (-1) | 1/1 | 2669 (+0) | 656 (+0) | 70/0 | - | PASS |
@@ -1407,6 +1414,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 19 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2335 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 59.0 (+50.0) | 27 (+8) | 16 (+0) | 31 (+25) | 1/1 | 2605 (+270) | 656 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 10.0 (+1.0) | 23 (+4) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+32) | 640 (+16) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 10.0 (+0.0) | 23 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 10.0 (+0.0) | 23 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 640 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 19 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2335 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 57.0 (-2.0) | 27 (+0) | 16 (+0) | 30 (-1) | 1/1 | 2605 (+0) | 656 (+0) | 11/0 | - | PASS |
@@ -1522,6 +1530,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 26.0 (+0.0) | 17 (+0) | 14 (+0) | 23 (+0) | 0/0 | 2138 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 53.0 (+27.0) | 23 (+6) | 14 (+0) | 27 (+4) | 0/1 | 2389 (+251) | 688 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 26.0 (+0.0) | 17 (+0) | 14 (+0) | 23 (+0) | 0/0 | 2138 (+0) | 664 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 26.0 (+0.0) | 17 (+0) | 14 (+0) | 23 (+0) | 0/0 | 2138 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 26.0 (+0.0) | 17 (+0) | 14 (+0) | 23 (+0) | 0/0 | 2138 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 26.0 (+0.0) | 17 (+0) | 14 (+0) | 23 (+0) | 0/0 | 2138 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 52.0 (-1.0) | 23 (+0) | 14 (+0) | 48 (+21) | 1/0 | 2399 (+10) | 688 (+0) | 0/0 | - | FAIL: publish path |
@@ -1540,6 +1549,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 34.0 (+25.0) | 23 (+6) | 14 (+0) | 27 (+23) | 0/1 | 2341 (+267) | 688 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 33.0 (-1.0) | 23 (+0) | 14 (+0) | 29 (+2) | 1/0 | 2346 (+5) | 688 (+0) | 0/0 | - | PASS |
@@ -1636,6 +1646,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 35 (+0) | 0/0 | 1172 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 22 (-13) | 0/1 | 1224 (+52) | 532 (+20) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 37 (+2) | 0/0 | 1192 (+20) | 524 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 37 (+0) | 0/0 | 1192 (+0) | 524 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 37 (+0) | 0/0 | 1192 (+0) | 524 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 35 (+0) | 0/0 | 1172 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 22 (+0) | 0/1 | 1224 (+0) | 532 (+0) | 52/0 | - | PASS |
@@ -1654,6 +1665,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 12 (+0) | 0/0 | 1116 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 22 (+10) | 0/1 | 1184 (+68) | 532 (+20) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 12 (+0) | 0/0 | 1132 (+16) | 524 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1132 (+0) | 524 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1132 (+0) | 524 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 12 (+0) | 0/0 | 1116 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 22 (+0) | 0/1 | 1184 (+0) | 532 (+0) | 10/0 | - | PASS |
@@ -1760,6 +1772,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 282.0 (+80.0) | 118 (+68) | 16 (+0) | 17 (-181) | 1/1 | 4067 (+836) | 1016 (+272) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_loop | ok | 332.0 (+130.0) | 80 (+30) | 67 (+51) | 18 (-180) | 0/0 | 2518 (-713) | 760 (+16) | 0/0 | - | reference; FAIL: publish instr, setup instr, teardown instr, no extra RAM |
 | handwritten_runtime | ok | 296.0 (+94.0) | 114 (+64) | 16 (+0) | 291 (+93) | 0/0 | 4015 (+784) | 1016 (+272) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 296.0 (+0.0) | 114 (+0) | 16 (+0) | 291 (+0) | 0/0 | 4015 (+0) | 1016 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 296.0 (+0.0) | 114 (+0) | 16 (+0) | 291 (+0) | 0/0 | 4015 (+0) | 1016 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 202.0 (+0.0) | 50 (+0) | 16 (+0) | 198 (+0) | 0/0 | 3231 (+0) | 744 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 282.0 (+0.0) | 118 (+0) | 16 (+0) | 17 (+0) | 1/1 | 4067 (+0) | 1016 (+0) | 834/0 | - | PASS |
@@ -1779,6 +1792,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 22.0 (+14.0) | 118 (+68) | 16 (+0) | 17 (+13) | 1/1 | 3235 (+596) | 1016 (+272) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_loop | ok | 59.0 (+51.0) | 80 (+30) | 67 (+51) | 10 (+6) | 0/0 | 2502 (-137) | 760 (+16) | 0/0 | - | reference; FAIL: publish instr, setup instr, teardown instr, publish path, no extra RAM |
 | handwritten_runtime | ok | 8.0 (+0.0) | 114 (+64) | 16 (+0) | 4 (+0) | 0/0 | 3087 (+448) | 1016 (+272) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 114 (+0) | 16 (+0) | 4 (+0) | 0/0 | 3087 (+0) | 1016 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 114 (+0) | 16 (+0) | 4 (+0) | 0/0 | 3087 (+0) | 1016 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 50 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2639 (+0) | 744 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 22.0 (+0.0) | 118 (+0) | 16 (+0) | 17 (+0) | 1/1 | 3235 (+0) | 1016 (+0) | 5/0 | - | PASS |
@@ -1888,6 +1902,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 274.0 (+18.0) | 114 (+66) | 14 (+0) | 12 (-239) | 0/1 | 3722 (+512) | 1048 (+264) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_loop | ok | 230.0 (-26.0) | 32 (-16) | 14 (+0) | 38 (-213) | 0/0 | 2453 (-757) | 784 (+0) | 0/0 | - | reference; PASS |
 | handwritten_runtime | ok | 265.0 (+9.0) | 112 (+64) | 14 (+0) | 262 (+11) | 0/0 | 3594 (+384) | 1040 (+256) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 265.0 (+0.0) | 112 (+0) | 14 (+0) | 262 (+0) | 0/0 | 3594 (+0) | 1040 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 265.0 (+0.0) | 112 (+0) | 14 (+0) | 262 (+0) | 0/0 | 3594 (+0) | 1040 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 256.0 (+0.0) | 48 (+0) | 14 (+0) | 251 (+0) | 0/0 | 3210 (+0) | 784 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 273.0 (-1.0) | 114 (+0) | 14 (+0) | 270 (+258) | 1/0 | 3730 (+8) | 1048 (+0) | 0/0 | - | FAIL: publish path |
@@ -1907,6 +1922,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 8.0 (+0.0) | 114 (+98) | 14 (+0) | 4 (+0) | 0/0 | 2842 (+768) | 1048 (+392) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
 | handwritten_loop | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference; PASS |
 | handwritten_runtime | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 8.0 (+0.0) | 114 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2842 (+0) | 1048 (+0) | 0/0 | - | PASS |
@@ -2024,6 +2040,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | - | - | - | - | 15 (-128) | 0/1 | 1940 (+116) | 772 (+136) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_loop | - | - | - | - | 21 (-122) | 0/0 | 1156 (-668) | 636 (+0) | 0/0 | - | reference; PASS |
 | handwritten_runtime | - | - | - | - | 114 (-29) | 32/0 | 1840 (+16) | 764 (+128) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 114 (+0) | 32/0 | 1840 (+0) | 764 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 114 (+0) | 32/0 | 1840 (+0) | 764 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 143 (+0) | 32/0 | 1824 (+0) | 636 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1940 (+0) | 772 (+0) | 330/0 | - | PASS |
@@ -2043,6 +2060,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | - | - | - | - | 15 (+8) | 0/1 | 1592 (+176) | 772 (+136) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_loop | - | - | - | - | 11 (+4) | 0/0 | 1128 (-288) | 636 (+0) | 0/0 | - | reference; FAIL: publish path |
 | handwritten_runtime | - | - | - | - | 7 (+0) | 0/0 | 1552 (+136) | 764 (+128) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1552 (+0) | 764 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1552 (+0) | 764 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 7 (+0) | 0/0 | 1416 (+0) | 636 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1592 (+0) | 772 (+0) | 2/0 | - | PASS |
@@ -2152,6 +2170,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 30.0 (+0.0) | 21 (+0) | 16 (+0) | 26 (+0) | 0/0 | 2431 (+0) | 632 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 52.0 (+22.0) | 31 (+10) | 16 (+0) | 17 (-9) | 1/1 | 2627 (+196) | 672 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 38.0 (+8.0) | 27 (+6) | 16 (+0) | 35 (+9) | 0/0 | 2495 (+64) | 656 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 38.0 (+0.0) | 27 (+0) | 16 (+0) | 35 (+0) | 0/0 | 2495 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 38.0 (+0.0) | 27 (+0) | 16 (+0) | 35 (+0) | 0/0 | 2495 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 30.0 (+0.0) | 21 (+0) | 16 (+0) | 26 (+0) | 0/0 | 2431 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 52.0 (+0.0) | 31 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2627 (+0) | 672 (+0) | 99/0 | - | PASS |
@@ -2172,6 +2191,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 21 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 24.0 (+15.0) | 31 (+10) | 16 (+0) | 17 (+11) | 1/1 | 2531 (+164) | 672 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 10.0 (+1.0) | 27 (+6) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+32) | 656 (+24) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 10.0 (+0.0) | 27 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 10.0 (+0.0) | 27 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 21 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 24.0 (+0.0) | 31 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2531 (+0) | 672 (+0) | 11/0 | - | PASS |
@@ -2288,6 +2308,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 45.0 (+12.0) | 27 (+8) | 14 (+0) | 12 (-17) | 0/1 | 2314 (+144) | 704 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 44.0 (-1.0) | 27 (+0) | 14 (+0) | 41 (+29) | 1/0 | 2314 (+0) | 704 (+0) | 0/0 | - | FAIL: publish path |
@@ -2308,6 +2329,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 18.0 (+9.0) | 27 (+10) | 14 (+0) | 12 (+8) | 0/1 | 2234 (+160) | 704 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 9.0 (+0.0) | 19 (+2) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+16) | 672 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 17.0 (-1.0) | 27 (+0) | 14 (+0) | 14 (+2) | 1/0 | 2239 (+5) | 704 (+0) | 0/0 | - | PASS |
@@ -2419,6 +2441,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 30 (+0) | 0/0 | 1188 (+0) | 520 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (-15) | 0/1 | 1240 (+52) | 540 (+20) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 32 (+2) | 0/0 | 1200 (+12) | 532 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 32 (+0) | 0/0 | 1200 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 32 (+0) | 0/0 | 1200 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 30 (+0) | 0/0 | 1188 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1240 (+0) | 540 (+0) | 68/0 | - | PASS |
@@ -2439,6 +2462,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 12 (+0) | 0/0 | 1136 (+0) | 520 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+3) | 0/1 | 1184 (+48) | 540 (+20) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 12 (+0) | 0/0 | 1148 (+12) | 532 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1148 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1148 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 12 (+0) | 0/0 | 1136 (+0) | 520 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1184 (+0) | 540 (+0) | 10/0 | - | PASS |
@@ -2556,6 +2580,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 32.0 (+0.0) | 19 (+0) | 16 (+0) | 28 (+0) | 0/0 | 2399 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 67.0 (+35.0) | 32 (+13) | 16 (+0) | 28 (+0) | 1/2 | 2719 (+320) | 704 (+80) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 36.0 (+4.0) | 25 (+6) | 16 (+0) | 33 (+5) | 0/0 | 2463 (+64) | 656 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 36.0 (+0.0) | 25 (+0) | 16 (+0) | 33 (+0) | 0/0 | 2463 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 36.0 (+0.0) | 25 (+0) | 16 (+0) | 33 (+0) | 0/0 | 2463 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 32.0 (+0.0) | 19 (+0) | 16 (+0) | 28 (+0) | 0/0 | 2399 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 67.0 (+0.0) | 32 (+0) | 16 (+0) | 28 (+0) | 1/2 | 2719 (+0) | 704 (+0) | 113/0 | - | PASS |
@@ -2574,6 +2599,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 19 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2335 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 37.0 (+28.0) | 32 (+13) | 16 (+0) | 28 (+22) | 1/2 | 2623 (+288) | 704 (+80) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 10.0 (+1.0) | 25 (+6) | 16 (+0) | 6 (+0) | 0/0 | 2383 (+48) | 656 (+32) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 10.0 (+0.0) | 25 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2383 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 10.0 (+0.0) | 25 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2383 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 19 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2335 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 37.0 (+0.0) | 32 (+0) | 16 (+0) | 28 (+0) | 1/2 | 2623 (+0) | 704 (+0) | 17/0 | - | PASS |
@@ -2683,6 +2709,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 34.0 (+0.0) | 17 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2154 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 59.0 (+25.0) | 26 (+9) | 14 (+0) | 19 (-12) | 0/2 | 2382 (+228) | 712 (+48) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 34.0 (+0.0) | 17 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2154 (+0) | 664 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 34.0 (+0.0) | 17 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2154 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 34.0 (+0.0) | 17 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2154 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 34.0 (+0.0) | 17 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2154 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 59.0 (+0.0) | 26 (+0) | 14 (+0) | 57 (+38) | 2/0 | 2388 (+6) | 712 (+0) | 0/0 | - | FAIL: publish path |
@@ -2701,6 +2728,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 18.0 (+9.0) | 26 (+9) | 14 (+0) | 12 (+8) | 0/1 | 2218 (+144) | 712 (+48) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 17.0 (-1.0) | 26 (+0) | 14 (+0) | 14 (+2) | 1/0 | 2224 (+6) | 712 (+0) | 0/0 | - | PASS |
@@ -2800,6 +2828,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 30 (+0) | 4/0 | 1168 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 23 (-7) | 0/2 | 1268 (+100) | 548 (+36) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 32 (+2) | 4/0 | 1196 (+28) | 532 (+20) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 32 (+0) | 4/0 | 1196 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 32 (+0) | 4/0 | 1196 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 30 (+0) | 4/0 | 1168 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 23 (+0) | 0/2 | 1268 (+0) | 548 (+0) | 56/0 | - | PASS |
@@ -2818,6 +2847,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 12 (+0) | 0/0 | 1116 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 23 (+11) | 0/2 | 1204 (+88) | 548 (+36) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 12 (+0) | 0/0 | 1140 (+24) | 532 (+20) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1140 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1140 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 12 (+0) | 0/0 | 1116 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 23 (+0) | 0/2 | 1204 (+0) | 548 (+0) | 12/0 | - | PASS |
@@ -3298,6 +3328,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 15.0 (+0.0) | 19 (+0) | 16 (+0) | 11 (+0) | 0/0 | 2351 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 31.0 (+16.0) | 25 (+6) | 16 (+0) | 17 (+6) | 1/1 | 2515 (+164) | 648 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 16.0 (+1.0) | 21 (+2) | 16 (+0) | 12 (+1) | 0/0 | 2367 (+16) | 632 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 16.0 (+0.0) | 21 (+0) | 16 (+0) | 12 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 16.0 (+0.0) | 21 (+0) | 16 (+0) | 12 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 15.0 (+0.0) | 19 (+0) | 16 (+0) | 11 (+0) | 0/0 | 2351 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 31.0 (+0.0) | 25 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2515 (+0) | 648 (+0) | 34/0 | - | PASS |
@@ -3317,6 +3348,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 8.0 (+0.0) | 19 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 624 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 22.0 (+14.0) | 25 (+6) | 16 (+0) | 17 (+13) | 1/1 | 2483 (+164) | 648 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 8.0 (+0.0) | 21 (+2) | 16 (+0) | 4 (+0) | 0/0 | 2335 (+16) | 632 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 21 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2335 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 21 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2335 (+0) | 632 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 19 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 624 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 22.0 (+0.0) | 25 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2483 (+0) | 648 (+0) | 5/0 | - | PASS |
@@ -3433,6 +3465,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 18.0 (+0.0) | 17 (+0) | 14 (+0) | 14 (+0) | 0/0 | 2106 (+0) | 664 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 26.0 (+8.0) | 21 (+4) | 14 (+0) | 12 (-2) | 0/1 | 2202 (+96) | 680 (+16) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | 17.0 (-1.0) | 19 (+2) | 14 (+0) | 13 (-1) | 0/0 | 2122 (+16) | 672 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 17.0 (+0.0) | 19 (+0) | 14 (+0) | 13 (+0) | 0/0 | 2122 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 17.0 (+0.0) | 19 (+0) | 14 (+0) | 13 (+0) | 0/0 | 2122 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 18.0 (+0.0) | 17 (+0) | 14 (+0) | 14 (+0) | 0/0 | 2106 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 25.0 (-1.0) | 21 (+0) | 14 (+0) | 22 (+10) | 1/0 | 2214 (+12) | 680 (+0) | 0/0 | - | FAIL: publish path |
@@ -3452,6 +3485,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 8.0 (+0.0) | 21 (+5) | 14 (+0) | 4 (+0) | 0/0 | 2106 (+32) | 680 (+24) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
 | handwritten_runtime | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference; PASS |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 8.0 (+0.0) | 21 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2106 (+0) | 680 (+0) | 0/0 | - | PASS |
@@ -3568,6 +3602,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 15 (+0) | 0/0 | 1128 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+0) | 0/1 | 1176 (+48) | 524 (+12) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 17 (+2) | 0/0 | 1140 (+12) | 516 (+4) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 17 (+0) | 0/0 | 1140 (+0) | 516 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 17 (+0) | 0/0 | 1140 (+0) | 516 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 15 (+0) | 0/0 | 1128 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1176 (+0) | 524 (+0) | 28/0 | - | PASS |
@@ -3587,6 +3622,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | - | - | - | - | 7 (+0) | 0/0 | 1104 (+0) | 512 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+8) | 0/1 | 1152 (+48) | 524 (+12) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | - | - | - | - | 7 (+0) | 0/0 | 1112 (+8) | 516 (+4) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1112 (+0) | 516 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 7 (+0) | 0/0 | 1112 (+0) | 516 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 7 (+0) | 0/0 | 1104 (+0) | 512 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1152 (+0) | 524 (+0) | 2/0 | - | PASS |
@@ -3712,6 +3748,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | ok | 30.0 (+0.0) | 21 (+0) | 16 (+0) | 26 (+0) | 0/0 | 2431 (+0) | 632 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin | skipped: g++ lacks deducing-this | | | | | | | | | | |
 | alt8_deducing_this_callsite | skipped: g++ lacks deducing-this | | | | | | | | | | |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | ok | 38.0 (+0.0) | 27 (+0) | 16 (+0) | 35 (+0) | 0/0 | 2495 (+0) | 656 (+0) | 0/0 | - | PASS |
 
 ### gcc-O2, removable work
 
@@ -3728,6 +3765,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | ok | 9.0 (+0.0) | 21 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin | skipped: g++ lacks deducing-this | | | | | | | | | | |
 | alt8_deducing_this_callsite | skipped: g++ lacks deducing-this | | | | | | | | | | |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | ok | 10.0 (+0.0) | 27 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+0) | 656 (+0) | 0/0 | - | PASS |
 
 <details><summary>gcc-O2: largest symbols added by handwritten_erased (bytes)</summary>
 
@@ -3774,6 +3812,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin (vs handwritten_runtime) | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 | alt8_deducing_this_callsite (vs handwritten_runtime) | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | ok | 33.0 (+0.0) | 19 (+0) | 14 (+0) | 29 (+0) | 0/0 | 2170 (+0) | 672 (+0) | 0/0 | - | PASS |
 
 ### clang-O2, removable work
 
@@ -3790,6 +3829,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 664 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+0) | 672 (+0) | 0/0 | - | PASS |
 | alt8_deducing_this_callsite (vs handwritten_runtime) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+0) | 672 (+0) | 0/0 | - | PASS |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2090 (+0) | 672 (+0) | 0/0 | - | PASS |
 
 <details><summary>clang-O2: largest symbols added by handwritten_erased (bytes)</summary>
 
@@ -3836,6 +3876,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | - | - | - | - | 30 (+0) | 0/0 | 1188 (+0) | 520 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin | skipped: arm-none-eabi-g++ lacks deducing-this | | | | | | | | | | |
 | alt8_deducing_this_callsite | skipped: arm-none-eabi-g++ lacks deducing-this | | | | | | | | | | |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | - | - | - | - | 32 (+0) | 0/0 | 1200 (+0) | 532 (+0) | 0/0 | - | PASS |
 
 ### cm33-gcc-Os, removable work
 
@@ -3852,6 +3893,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | alt6_static_bound | - | - | - | - | 12 (+0) | 0/0 | 1136 (+0) | 520 (+0) | 0/0 | - | PASS |
 | alt7_deducing_this_mixin | skipped: arm-none-eabi-g++ lacks deducing-this | | | | | | | | | | |
 | alt8_deducing_this_callsite | skipped: arm-none-eabi-g++ lacks deducing-this | | | | | | | | | | |
+| sub0_alt2_crtp_mixin (vs handwritten_runtime) | - | - | - | - | 12 (+0) | 0/0 | 1148 (+0) | 532 (+0) | 0/0 | - | PASS |
 
 <details><summary>cm33-gcc-Os: largest symbols added by handwritten_erased (bytes)</summary>
 
@@ -5260,6 +5302,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 65.0 (+34.0) | 35 (+14) | 16 (+0) | 29 (+2) | 1/2 | 2767 (+336) | 696 (+64) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_gateway | ok | 37.0 (+6.0) | 27 (+6) | 16 (+0) | 32 (+5) | 0/0 | 2479 (+48) | 656 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
 | handwritten_runtime | ok | 38.0 (+7.0) | 27 (+6) | 16 (+0) | 34 (+7) | 0/0 | 2495 (+64) | 664 (+32) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 38.0 (+0.0) | 27 (+0) | 16 (+0) | 34 (+0) | 0/0 | 2495 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | ok | 37.0 (+0.0) | 27 (+0) | 16 (+0) | 32 (+0) | 0/0 | 2479 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 38.0 (+0.0) | 27 (+0) | 16 (+0) | 34 (+0) | 0/0 | 2495 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | ok | 30.0 (-1.0) | 21 (+0) | 16 (+0) | 26 (-1) | 0/0 | 2431 (+0) | 632 (+0) | 0/0 | - | PASS |
@@ -5282,6 +5325,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 38.0 (+28.0) | 35 (+14) | 16 (+0) | 29 (+23) | 1/2 | 2671 (+304) | 696 (+64) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_gateway | ok | 10.0 (+0.0) | 27 (+6) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+32) | 656 (+24) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
 | handwritten_runtime | ok | 11.0 (+1.0) | 27 (+6) | 16 (+0) | 7 (+1) | 0/0 | 2399 (+32) | 664 (+32) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 11.0 (+0.0) | 27 (+0) | 16 (+0) | 7 (+0) | 0/0 | 2399 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | ok | 10.0 (+0.0) | 27 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2399 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 11.0 (+0.0) | 27 (+0) | 16 (+0) | 7 (+0) | 0/0 | 2399 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | ok | 9.0 (-1.0) | 21 (+0) | 16 (+0) | 6 (+0) | 0/0 | 2367 (+0) | 632 (+0) | 0/0 | - | PASS |
@@ -5391,6 +5435,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 58.0 (+24.0) | 29 (+10) | 14 (+0) | 22 (-9) | 0/2 | 2406 (+220) | 712 (+40) | 0/0 | - | reference; FAIL: publish instr, setup instr, no extra indirect calls, no extra RAM |
 | handwritten_gateway | ok | 34.0 (+0.0) | 19 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2186 (+0) | 672 (+0) | 0/0 | - | reference; PASS |
 | handwritten_runtime | ok | 34.0 (+0.0) | 21 (+2) | 14 (+0) | 31 (+0) | 0/0 | 2202 (+16) | 680 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 34.0 (+0.0) | 21 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2202 (+0) | 680 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | ok | 37.0 (+3.0) | 25 (+6) | 14 (+0) | 34 (+3) | 0/0 | 2234 (+48) | 696 (+24) | 0/0 | - | FAIL: publish instr, setup instr, publish path, no extra RAM |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 34.0 (+0.0) | 21 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2202 (+0) | 680 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | ok | 34.0 (+0.0) | 19 (+0) | 14 (+0) | 31 (+0) | 0/0 | 2186 (+0) | 672 (+0) | 0/0 | - | PASS |
@@ -5413,6 +5458,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | ok | 21.0 (+12.0) | 29 (+12) | 14 (+0) | 14 (+8) | 0/1 | 2258 (+168) | 712 (+48) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
 | handwritten_gateway | ok | 9.0 (+0.0) | 19 (+2) | 14 (+0) | 6 (+0) | 0/0 | 2106 (+16) | 672 (+8) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
 | handwritten_runtime | ok | 9.0 (+0.0) | 18 (+1) | 14 (+0) | 6 (+0) | 0/0 | 2106 (+16) | 664 (+0) | 0/0 | - | reference; FAIL: setup instr |
+| sub0_b1_mixin (vs handwritten_runtime) | ok | 9.0 (+0.0) | 18 (+0) | 14 (+0) | 6 (+0) | 0/0 | 2106 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | ok | 9.0 (+0.0) | 19 (+0) | 14 (+0) | 6 (+0) | 0/0 | 2106 (+0) | 672 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | ok | 9.0 (+0.0) | 18 (+0) | 14 (+0) | 6 (+0) | 0/0 | 2106 (+0) | 664 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | ok | 9.0 (+0.0) | 17 (+0) | 14 (+0) | 6 (+0) | 0/0 | 2090 (+0) | 664 (+0) | 0/0 | - | PASS |
@@ -5551,6 +5597,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | - | - | - | - | 27 (-3) | 0/2 | 1300 (+112) | 548 (+28) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_gateway | - | - | - | - | 32 (+2) | 0/0 | 1200 (+12) | 532 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
 | handwritten_runtime | - | - | - | - | 37 (+7) | 0/0 | 1220 (+32) | 532 (+12) | 0/0 | - | reference; FAIL: publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 37 (+0) | 0/0 | 1220 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | - | - | - | - | 32 (+0) | 0/0 | 1200 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 37 (+0) | 0/0 | 1220 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | - | - | - | - | 30 (+0) | 0/0 | 1188 (+0) | 520 (+0) | 0/0 | - | PASS |
@@ -5573,6 +5620,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten_erased | - | - | - | - | 27 (+15) | 0/2 | 1232 (+96) | 548 (+28) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_gateway | - | - | - | - | 12 (+0) | 0/0 | 1148 (+12) | 532 (+12) | 0/0 | - | reference; FAIL: no extra RAM |
 | handwritten_runtime | - | - | - | - | 16 (+4) | 0/0 | 1164 (+28) | 532 (+12) | 0/0 | - | reference; FAIL: publish path, no extra RAM |
+| sub0_b1_mixin (vs handwritten_runtime) | - | - | - | - | 16 (+0) | 0/0 | 1164 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_one_publisher (vs handwritten_gateway) | - | - | - | - | 12 (+0) | 0/0 | 1148 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire (vs handwritten_runtime) | - | - | - | - | 16 (+0) | 0/0 | 1164 (+0) | 532 (+0) | 0/0 | - | PASS |
 | sub0_b2_one_publisher | - | - | - | - | 12 (+0) | 0/0 | 1136 (+0) | 520 (+0) | 0/0 | - | PASS |
@@ -5680,6 +5728,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 22.0 (+14.0) | 22 (+4) | 16 (+0) | 17 (+13) | 1/1 | 2467 (+148) | 640 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
+| sub0_b1_mixin | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 22.0 (+0.0) | 22 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2467 (+0) | 640 (+0) | 5/0 | - | PASS |
@@ -5698,6 +5747,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 22.0 (+14.0) | 22 (+4) | 16 (+0) | 17 (+13) | 1/1 | 2467 (+148) | 640 (+24) | 0/0 | - | reference; FAIL: publish instr, setup instr, publish path, no extra indirect calls, no extra RAM |
+| sub0_b1_mixin | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 18 (+0) | 16 (+0) | 4 (+0) | 0/0 | 2319 (+0) | 616 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 22.0 (+0.0) | 22 (+0) | 16 (+0) | 17 (+0) | 1/1 | 2467 (+0) | 640 (+0) | 5/0 | - | PASS |
@@ -5762,6 +5812,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 8.0 (+0.0) | 18 (+2) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 672 (+16) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 8.0 (+0.0) | 18 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 672 (+0) | 0/0 | - | PASS |
@@ -5780,6 +5831,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | 8.0 (+0.0) | 18 (+2) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 672 (+16) | 0/0 | - | reference; FAIL: setup instr, no extra RAM |
+| sub0_b1_mixin | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | ok | 8.0 (+0.0) | 16 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 656 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | ok | 8.0 (+0.0) | 18 (+0) | 14 (+0) | 4 (+0) | 0/0 | 2074 (+0) | 672 (+0) | 0/0 | - | PASS |
@@ -5839,6 +5891,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+8) | 0/1 | 1140 (+44) | 520 (+12) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
+| sub0_b1_mixin | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1140 (+0) | 520 (+0) | 2/0 | - | PASS |
@@ -5857,6 +5910,7 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | handwritten | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | reference |
 | handwritten_erased | - | - | - | - | 15 (+8) | 0/1 | 1140 (+44) | 520 (+12) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
+| sub0_b1_mixin | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b1_wire | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b2_static | - | - | - | - | 7 (+0) | 0/0 | 1096 (+0) | 508 (+0) | 0/0 | - | PASS |
 | sub0_b3_sink (vs handwritten_erased) | - | - | - | - | 15 (+0) | 0/1 | 1140 (+0) | 520 (+0) | 2/0 | - | PASS |
