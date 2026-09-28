@@ -6,7 +6,7 @@
 
 A header-only messaging library that uses C++ template specialization to route signals at compile time. No `connect()` calls, no signal objects, no MOC toolchain, no allocations. Just inherit, publish, and receive.
 
-Built for **embedded systems**, **game loops**, **desktop applications**, and **distributed IPC**.
+Built for **embedded systems**, **game loops**, **desktop applications**, and **messaging across process boundaries** (with an application-supplied transport).
 
 ```cpp
 #include "sub0pub/sub0pub.hpp"
@@ -42,7 +42,7 @@ int main() {
 - **Zero allocation** -- No `shared_ptr`, no heap allocation in the hot path. Fixed-size subscription tables live in static storage.
 - **Header-only** -- Single file (`include/sub0pub/sub0pub.hpp`), drop into any project, link with `Sub0Pub::Sub0Pub` via CMake.
 - **Multi-type subscription** -- `SubscribeAll<A, B, C>` or `SubscribeAll<std::tuple<A, B>>` to subscribe to many types in one class.
-- **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) for inter-process and network messaging out of the box.
+- **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) that frames messages onto a stream you supply; the transport, byte order and delivery guarantees are the application's.
 - **Pay only for what you use** -- The default is the cheapest dispatch: a loop of virtual calls. Snapshot dispatch, `cancel()`, `filter()` and locking are opt-in, and using one without opting in is caught: at compile time, or by a debug-build check.
 - **Publish cancellation** -- Opt-in: subscribers call `cancel()` from within `receive()` to halt further delivery on the current publish cycle.
 - **Message filtering** -- Opt-in: a `filter(const Data&)` override for per-subscriber message selection.
@@ -51,7 +51,7 @@ int main() {
 
 **Sub0Pub is built for typed messaging with predictable storage and a small integration footprint.**
 Its C++17, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
-to direct calls. Filtering, snapshots and locking are opt-in per message type.
+to direct calls. Filtering, cancellation, snapshots and locking are opt-in per message type.
 
 | Compared with | Why choose Sub0Pub? | Trade-off |
 |---|---|---|
