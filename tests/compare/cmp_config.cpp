@@ -1,4 +1,4 @@
-/** v1 vs v2 comparison: the v2 per-type configuration (sub0pub.hpp Section 2).
+/** v1 vs v2 comparison: the v2 per-type configuration (sub0pub/config.hpp).
  *
  * One message type per configuration, all in one binary. Scenarios a configuration does not offer
  * (filter() without the filter option, cancel() without a publish context) are left out.

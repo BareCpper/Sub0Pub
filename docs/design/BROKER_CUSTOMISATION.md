@@ -1,6 +1,6 @@
 # Broker Customisation: Design Study
 
-**Status:** decided (Phase 3 of #9). The design is public API in `sub0pub.hpp` (namespace `sub0`, Phase 2; see
+**Status:** decided (Phase 3 of #9). The design is public API in `include/sub0pub/` (namespace `sub0`, Phase 2; see
 `MIGRATION.md`). The decision record, with the public API's measured results per acceptance case, is **section 9**.
 The prototype it was proven with (`tests/design/broker_config/`, namespace `sub0x`) stays as the measured record. **Baseline:** [../PERFORMANCE_BASELINE.md](../PERFORMANCE_BASELINE.md).
 **Related:** #4 (capacity, done), #5 (scoped broker / lifetime-safe dispatch), [TAGGED_TYPES_PROPOSAL.md](../TAGGED_TYPES_PROPOSAL.md).
@@ -158,7 +158,7 @@ without a domain. `Publish<T>` loses its virtual destructor (F3): it becomes an 
 ### Measured against the baseline
 
 Full results: [../perf/prototype-sub0x-2026-09.md](../perf/prototype-sub0x-2026-09.md). Built with no project header,
-so `Default` is the Builtin configuration, the same policy as `sub0pub.hpp` today. These figures include the
+so `Default` is the Builtin configuration, the same policy as the public header had at the time. These figures include the
 endpoint/teardown machinery added for the review (section 7). Earlier figures from before that work are in the git history.
 
 | instr/op (GCC 13) | 0 subscribers | 1 subscriber | 8 subscribers | create + destroy |
@@ -197,7 +197,7 @@ endpoint/teardown machinery added for the review (section 7). Earlier figures fr
 ### Not yet proven (next steps, in order)
 
 1. **Zephyr lock type:** compile a `k_spinlock` adapter against Zephyr headers (or a stub).
-2. **Integration plan (done in Phase 2):** `sub0x` is now `sub0::` in `sub0pub.hpp`, with the static wiring of #9;
+2. **Integration plan (done in Phase 2):** `sub0x` is now `sub0::` in the public headers (`include/sub0pub/`), with the static wiring of #9;
    the migration is in `MIGRATION.md`, the public tests in `tests/config/` and `tests/wiring/`. The plan was: move `sub0x` into `sub0pub.hpp` as `sub0::`. Macros stay as the builtin source,
    and `detail::Broker<Data>` becomes the facade. Update `MIGRATION.md`:
    - `Publish<T>` is no longer polymorphic;
@@ -359,7 +359,7 @@ rather than forgotten. Baseline issues in today's library are listed in
 ## 9. Decision record (issue #9, Phase 3)
 
 The v2 broker design is decided as below. Every result in this section is measured on the **public API**
-(`include/sub0pub/sub0pub.hpp`, namespace `sub0`), not the prototypes: each chosen-model variant of the collapse
+(`include/sub0pub/`, namespace `sub0`), not the prototypes: each chosen-model variant of the collapse
 cases has a `sub0_*` form built on the public header
 ([../perf/collapse/phase3-public-api-2026-09.md](../perf/collapse/phase3-public-api-2026-09.md), GCC 13 and
 Clang 18 at `-O2`, arm-none-eabi GCC 13 `-Os` for Cortex-M33, LTO pairs for the cross-file case).

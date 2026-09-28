@@ -10,7 +10,7 @@ Full reports:
 
 ## Phase 2: the current bar
 
-Phase 2 replaced the broker in `sub0pub.hpp` with the per-type broker from the design study, made the default the
+Phase 2 replaced the broker in `sub0pub.hpp` (since split into focused headers under `include/sub0pub/`) with the per-type broker from the design study, made the default the
 cheapest dispatch, and made every costly feature opt-in (MIGRATION.md, "The default is the cheapest dispatch"). The
 tables further down are the header **before** Phase 2 (`9e04143`). These are the numbers new changes are measured
 against (`tests/bench/run_baseline.py --no-timing`, GCC 13, `-O2`):
@@ -154,7 +154,7 @@ is required**), `operator delete` (from virtual destructors), `__cxa_pure_virtua
 
 ### Embedded findings
 1. **`SUB0PUB_THREAD_SAFE` does not compile on arm-none-eabi.** There is no `std::mutex`
-   (`sub0pub.hpp:620`), so bare-metal and RTOS targets have no supported locking option today.
+   (`sub0pub.hpp:620` in the v1 single-file header), so bare-metal and RTOS targets have no supported locking option today.
 2. **TLS is mandatory.** Every build needs thread-local storage (Zephyr: `CONFIG_THREAD_LOCAL_STORAGE`),
    even single-threaded ones, because of the cancel and nested-publish context.
 3. **`Publish<T>` has a virtual destructor whose body does nothing**, since publisher unsubscribe is a

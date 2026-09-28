@@ -1,5 +1,7 @@
 # Spike: embedded image size of today's API (issue #2)
 
+> **Header split (2026-09):** `sub0pub.hpp:N` line references in this record point into the single-file header of the time. The library is now split into focused headers under `include/sub0pub/` (umbrella `sub0pub.hpp`; MIGRATION.md, "The library is split into focused headers").
+
 Face-off of every source of retained code/data/link dependency that today's public `sub0pub.hpp`
 (pattern A) forces onto a Cortex-M33 `-Os` image, with measured final-linked-ELF bytes per lever,
 alone and combined. Levers are implemented as `SPIKE_*` macros on a **copy** of the header

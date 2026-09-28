@@ -137,7 +137,7 @@ namespace sub0
 
 namespace sub0
 {
-    // OStream/IStream type aliases (needed by IPC section below)
+    // OStream/IStream type aliases (used by the IPC headers, sub0pub/ipc/)
 #if SUB0PUB_STD
     typedef std::ostream OStream;
     typedef std::istream IStream;

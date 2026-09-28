@@ -1,4 +1,4 @@
-/** v1 vs v2 comparison: v2 static wiring (sub0pub.hpp Section 4) and hand-written code.
+/** v1 vs v2 comparison: v2 static wiring (sub0pub/wiring/) and hand-written code.
  *
  * Same control conditions as cmp_sub0pub.cpp: the publish entry point and every receive() are out of line,
  * so each variant pays one real call per delivery and the difference is the dispatch around it.

@@ -98,7 +98,7 @@ receivers), `multi_types`, `nested_publish`, `large_payload`, `cancellation_filt
 `transport_two_links`, B3 in `two_domains`/`transport_endpoint`/`cross_file`, and the #8 registry in the core cases.
 
 Variant naming:
-- `sub0_*` (Phase 3): the chosen model on the public header, `include/sub0pub/sub0pub.hpp`: `sub0_b1_wire`,
+- `sub0_*` (Phase 3): the chosen model on the public headers (`include/sub0pub/`): `sub0_b1_wire`,
   `sub0_b2_static`, `sub0_b3_sink`, the cancellation, bridge and origin forms, and the public registry's `Domain`
   and `Route` (`sub0_dynamic_*`);
 - `sub0pub_virtual*`: the public runtime registry through `Subscribe`/`Publish`. Before Phase 2 this was pattern A,
@@ -266,7 +266,7 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   - MSVC evidence;
   - ~~the equal-work runtime-address reference for B1~~ (done, with `handwritten_erased` and
     `handwritten_registry`: see "Fairness review").
-- **Phase 2 (done, PR #13):** the per-type broker (#8) and the static wiring are public API in `sub0pub.hpp`,
+- **Phase 2 (done, PR #13):** the per-type broker (#8) and the static wiring are public API in `include/sub0pub/`,
   with runtime subscription kept at the dynamic boundary (`DynamicPort`, `BrokerPort`).
 - **Phase 3 (done):** every chosen-model variant measured on the public header
   ([../perf/collapse/phase3-public-api-2026-09.md](../perf/collapse/phase3-public-api-2026-09.md)); decision record
