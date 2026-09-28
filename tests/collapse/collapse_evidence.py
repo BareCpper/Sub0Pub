@@ -479,11 +479,11 @@ def verdicts(result, ref):
     v["no extra indirect calls"] = result["path"]["indirect_calls"] <= ref["path"]["indirect_calls"]
     v["no extra RAM"] = (result["sections"]["data"] + result["sections"]["bss"]) <= (ref["sections"]["data"] + ref["sections"]["bss"])
     v["no static init"] = result["sections"]["init_array"] <= ref["sections"]["init_array"]
-    # Today's library (sub0::) must leave nothing. Sandbox/prototype code (sub0x::) that survives as a named
-    # out-of-line function (a Sink thunk, DynamicPort::receive) passes only if the image is no larger than the
-    # reference's, i.e. it is the same code the reference has under another name
-    sub0x_ok = result.get("retained_sub0x_bytes", 0) == 0 or result["sections"]["text"] <= ref["sections"]["text"]
-    v["no Sub0Pub retained"] = result.get("retained_sub0_only_bytes", result["retained_sub0_bytes"]) == 0 and sub0x_ok
+    # Sub0Pub code (sub0:: or sub0x::) that survives as a named out-of-line function (a Sink thunk,
+    # DynamicPort::receive) passes only if the image is no larger than the reference's, i.e. it is the same code
+    # the reference has under another name. One rule for both namespaces: since Phase 2 the static wiring is
+    # public (sub0::), and a runtime registry's retained code always makes its image larger
+    v["no Sub0Pub retained"] = result["retained_sub0_bytes"] == 0 or result["sections"]["text"] <= ref["sections"]["text"]
     extra = [d for d in result["dependencies"] if d not in ref["dependencies"]]
     v["no extra dependencies"] = not extra
     return v, extra
