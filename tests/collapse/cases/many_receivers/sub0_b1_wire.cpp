@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: 32 receivers of one type. Pattern B1: typed wiring bound at the composition point; the publisher is
  *  templated on its output and holds the wiring (32 receiver references) by value. */
 #include "collapse_case.hpp"

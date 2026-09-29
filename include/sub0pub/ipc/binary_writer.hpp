@@ -45,13 +45,13 @@ namespace sub0
                 && utility::write<Postfix_t>(stream);
         }
 
-        bool open(OStream& stream)
+        bool open(OStream& /*stream*/)
         {
             /* Do nothing */
             return true;
         }
 
-        void close( OStream& stream  )
+        void close( OStream& /*stream*/ )
         {
             /* Do nothing */
         }

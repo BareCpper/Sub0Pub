@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: two independent domains. Pattern B1: one typed wiring per domain, bound at the composition point. */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"

@@ -1,4 +1,4 @@
-/** Case: one concrete receiver. Pattern A: today's public sub0pub.hpp API. */
+/** Case: one concrete receiver. The runtime broker (Subscribe/Publish). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

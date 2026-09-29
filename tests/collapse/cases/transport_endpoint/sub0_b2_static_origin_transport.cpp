@@ -1,5 +1,5 @@
 /** Case: concrete transport endpoint. Pattern B2 as sub0_b2_static, but ingress names the radio itself as its
- *  origin, not the StaticForward binding. Before the scores review this echoed the ingress back out. */
+ *  origin, not the StaticForward binding: ingress must not be echoed back out through the radio. */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

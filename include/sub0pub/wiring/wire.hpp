@@ -15,7 +15,7 @@
 // Receivers are ordinary classes: a non-virtual `receive(const T&)` per message type they handle, and optionally
 // `bool filter(const T&)`. No base class, no registry, no registration. The application binds concrete receiver
 // instances where it composes itself; their types are kept all the way to the call, so each delivery is a direct,
-// inlinable call (measured equal to hand-written code: docs/design/COLLAPSE_SCORES.md):
+// inlinable call (measured equal to hand-written code: docs/EVIDENCE.md):
 //
 //   auto bus = sub0::wire(controllerA, controllerB, logger);             // runtime addresses, static types
 //   using Bus = sub0::StaticWiring<&controllerA, &controllerB, &logger>; // static storage: no RAM, fixed targets
@@ -30,7 +30,7 @@ namespace sub0
 {
     /** Whether a wiring delivers T to R: a receiver meant to handle T can state it where it is bound, e.g.
      *      static_assert(sub0::handles_v<Logger, Sample>, "Logger must receive Sample");
-     *  Capability routing is otherwise silent about a signature mismatch (known issue K14). Pass `const R` for a
+     *  Capability routing is otherwise silent about a signature mismatch (docs/DESIGN.md, K14). Pass `const R` for a
      *  receiver bound through a pointer to const.
      */
     template<class R, class T>

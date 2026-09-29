@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: default and runtime filters: Controller declares an always-true filter (must compile away); EvenMonitor's runtime filter keeps its branch.
  *  Pattern B1: typed wiring bound at the composition point; publisher templated on its output (public API, include/sub0pub/sub0pub.hpp). */
 #include "collapse_case.hpp"

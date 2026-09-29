@@ -65,32 +65,16 @@ for sources, lifetime details and integration options.
 
 ### Current Status
 
-> **Status: v2.0.0-alpha** -- See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the full discipline review.
-
-| Area | Status |
-|------|--------|
-| Test suite (doctest) | Done -- core pub/sub, cancellation, SubscribeAll, ordering |
-| CI/CD (GitHub Actions) | Done -- Linux GCC/Clang, Windows MSVC, macOS |
-| Performance benchmarks (nanobench) | Done -- system info capture, 8 scenarios |
-| Pre-push test hook | Done -- blocks push on test failure |
-| Atomic publish cancellation | Done -- `std::atomic<bool>` |
-| Configurable subscriber limit | Done -- `SUB0PUB_MAX_SUBSCRIPTIONS` |
-| Bounded capacity contract | Done -- `isSubscribed()` / `trySubscribe()`, no table overflow in release builds |
-| Compile-time type IDs for IPC | Done -- `utility::typeHash<T>()` |
-| Subscription order preservation | Done -- `std::move` replaces swap-remove |
-| Broker hidden from public API | Done -- moved to `sub0::detail` |
-| Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
-| Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
-| Per-type configuration | Done -- capacity, dispatch, context, lock, filter and storage chosen per `Data` type; scoped `Domain` sessions; transport `Route`s |
-| Static wiring | Done -- `wire()` / `StaticWiring`: direct calls, measured equal to hand-written code |
+**v2.0.0-alpha:** complete and tested, not yet field-tested. CI builds and tests every change on Linux (GCC, Clang),
+macOS and Windows (MSVC), under AddressSanitizer, UndefinedBehaviorSanitizer and ThreadSanitizer, and checks the
+final-link code of every public-API pattern against a recorded budget.
 
 ### Measured design
 
-Every option of the per-type configuration and the static wiring is measured against hand-written code doing the
-same work: [broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md),
-[design decisions](docs/design/spikes/README.md) and the [v1.0 comparison](MIGRATION.md#performance-v10-compared-with-v2).
-Remaining compromises are listed with their measured cost in
-[BROKER_CUSTOMISATION.md section 8](docs/design/BROKER_CUSTOMISATION.md).
+The runtime broker's per-type configuration and the static wiring are measured against hand-written code doing the
+same work. [docs/DESIGN.md](docs/DESIGN.md) records the design, its decisions and its known limitations with their
+measured cost; [docs/EVIDENCE.md](docs/EVIDENCE.md) records how the code is measured and the results. For v1 users,
+[MIGRATION.md](MIGRATION.md#performance-v10-compared-with-v2) compares v1.0 with v2.
 
 ### Design Decisions
 
@@ -107,51 +91,37 @@ byte-swizzle example may be added later (lowest priority).
 
 | Issue | Severity | Plan |
 |-------|----------|------|
-| **Cross-module isolation** -- MonoState `static` state is per-DLL | Medium | Document and provide explicit instantiation pattern |
+| **Cross-module isolation** -- a broker's static state is per module (DLL / shared library) | Medium | Not supported yet: [examples/cross_module](examples/cross_module/README.md) records what support needs |
 | **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
 | **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
 | **MSVC layout hash limited** -- structured binding bug prevents per-member decomposition | Low | Awaiting C++26 `std::meta::reflect` |
 | **No byte-order conversion** -- peers must share byte order and layout (see Design Decisions) | By design | Application responsibility; a basic byte-swizzle example is possible future work (lowest priority) |
 
-### Roadmap
+The runtime broker's and the static wiring's limitations are listed, with their measured cost, in
+[docs/DESIGN.md](docs/DESIGN.md#known-limitations).
 
-**Phase 1 -- Foundation:** ~~Fix CMake, add tests, CI, atomic cancellation.~~ Done.
+### Planned
 
-**Phase 2 -- Safety:** ~~Type-ID fix, configurable limits, ordered removal, thread-safe option.~~ Done.
-
-**Phase 3 -- Polish:** ~~Serialization round-trip tests, cross-platform examples, layout fingerprinting.~~ Done.
-
-**Phase 4 -- IPC Hardening:** Optional CRC/checksum protocol layer, connection-time layout verification handshake, [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration for deeper type introspection.
+**IPC hardening:** an optional CRC/checksum protocol layer, a connection-time layout verification handshake, and
+[Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect) integration for deeper type introspection.
 
 ---
 
 ## Performance
 
-Benchmarks are built alongside tests and capture system info automatically. Run with:
+Benchmarks are built alongside the tests and capture system information automatically:
 
 ```bash
 ./build/tests/Release/Sub0Pub_Bench   # Windows
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
 ```
 
-`Sub0Pub_Bench_Unchecked`, `_Checked` and `_ThreadSafe` run the same scenarios under the other dispatch policies, and `Sub0Pub_Bench_Ipc` measures serialize/deserialize end to end. `python3 tests/bench/run_baseline.py` runs them all and adds deterministic instruction counts (valgrind). `python3 tests/footprint/measure_footprint.py` reports code size and RAM for the host and Cortex-M33. The measured baseline and its findings are in [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
-
-**Reference results:**
-
-> Intel Core Ultra 9 275HX, 24 threads, 31 GB RAM, MSVC 1950, Release build
-
-| Benchmark | ns/op | ops/s |
-|-----------|------:|------:|
-| Publish (1 subscriber) | 4.2 | 238M |
-| Publish (4 subscribers) | 8.3 | 120M |
-| Publish (8 subscribers) | 15.0 | 67M |
-| Filtered publish (pass) | 4.3 | 230M |
-| Filtered publish (reject) | 4.0 | 249M |
-| Multi-type dispatch | 4.3 | 233M |
-| Subscribe/unsubscribe churn | 3.2 | 315M |
-| Empty publish (0 subscribers) | 1.9 | 515M |
-
-Publish cost scales linearly with subscriber count at ~1.5ns per additional subscriber. The ~1.6ns fixed overhead vs v1 is from the snapshot-copy approach that prevents mutex deadlock on re-entrant publish — a correctness trade-off. Multi-type dispatch has zero overhead compared to single-type.
+`Sub0Pub_Bench` runs the default configuration; `Sub0Pub_Bench_Checked`, `_Full` and `_ThreadSafe` run the same
+scenarios with the debug-build check, with snapshot dispatch, `cancel()` and `filter()`, and with a lock.
+`Sub0Pub_Bench_Axes` changes one configuration option at a time, and `Sub0Pub_Bench_Ipc` measures serialize and
+deserialize end to end. `python3 tests/bench/run_baseline.py` runs them all and adds deterministic instruction
+counts (valgrind); `python3 tests/footprint/measure_footprint.py` reports code size and RAM for the host and
+Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
 
 ---
 
@@ -381,6 +351,3 @@ The policy macros (`SUB0PUB_MAX_SUBSCRIPTIONS`, `SUB0PUB_REENTRANT_SAFE`, `SUB0P
 ## License
 
 [MIT License](LICENSE.md) -- Copyright (c) 2018 Craig Hutchinson
-
-Runnable [examples](examples/README.md) cover static, dynamic, mixed and transport paths; see the
-[optimization and migration coverage review](docs/V2_OPTIMIZATION_REVIEW.md) for measurement scope.

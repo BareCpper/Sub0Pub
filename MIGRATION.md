@@ -3,7 +3,7 @@
 This document tracks all breaking changes between Sub0Pub v1 and v2. Update this document with any commit that introduces a migration-relevant change.
 
 For runnable static, dynamic and mixed-path migration recipes, see [examples](examples/README.md).
-The [coverage ledger](docs/V2_OPTIMIZATION_REVIEW.md) distinguishes measured paths from remaining evidence gaps.
+[docs/DESIGN.md](docs/DESIGN.md) explains when to use static wiring, the runtime broker, or both.
 
 ---
 
@@ -140,7 +140,7 @@ The options are:
 
 Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes. Types local to one translation unit may use different `SUB0PUB_*` macros in different units: `sub0::config<Opts...>` is an alias of `sub0::with<Default, Opts...>`, so it names a different type wherever the default differs.
 
-**Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
+**Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Options and what each costs: [docs/DESIGN.md](docs/DESIGN.md#per-type-configuration-of-the-runtime-broker).
 
 ### Static wiring (new)
 
@@ -152,7 +152,7 @@ Every translation unit must resolve the same configuration for a type: resolving
 - `DynamicPort<T, N>` and `BrokerPort<T>` bring runtime subscribers into a static wiring;
 - `handles_v<R, T>` asserts that a receiver handles a message.
 
-**Action:** None. Scored forms: [docs/design/COLLAPSE_SCORES.md](docs/design/COLLAPSE_SCORES.md).
+**Action:** None. Measured forms: [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
 ### The library is split into focused headers
 
@@ -380,11 +380,11 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | publish, 1 subscriber | publish, 8 subscribers | 8, first cancels | create + destroy |
 |---|---:|---:|---:|---:|
 | **v1.0** | 60 (60) | 221 (214) | 60 (57) | 48 (31) |
-| v2 default | 34 (31) | 104 (101) | n/a (opt-in) | 47 (36) |
-| v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 95 (80) |
+| v2 default | 34 (31) | 104 (101) | n/a (opt-in) | 47 (35) |
+| v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 91 (79) |
 | v2 Full (`SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`) | 80 (73) | 290 (262) | 102 (91) | 54 (41) |
 | v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
-| v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 297 (292) |
+| v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 293 (290) |
 | v2 static wiring (`StaticWiring`, `wire()`) | 8–9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
 | hand-written direct calls | 9 (7) | 37 (37) | 15 (8) | n/a |
 
@@ -393,15 +393,15 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | text / data / bss (bytes) | Needs thread-local storage | Other link-time dependencies |
 |---|---|---|---|
 | **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
-| v2 default | 228 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
-| v2 Full | 394 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
+| v2 default | 224 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 Full | 390 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
 | v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 
 ### What this means when migrating
 
 - **The default costs less than v1.0.** It publishes to 1 and 8 subscribers in 34 and 104 instructions, against
-  v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (36 against 31 on clang). The
-  embedded image is 228 bytes against 418, and needs neither thread-local storage nor `operator delete`.
+  v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (35 against 31 on clang). The
+  embedded image is 224 bytes against 418, and needs neither thread-local storage nor `operator delete`.
 - **What you give up by default, you get back by opting in.** The default has no snapshot, no `cancel()`, no
   `filter()` and no lock. v1.0 had cancel and filter always on. Code that needs one of them is told:
   - `filter()` or `cancel()` without the opt-in does not compile;

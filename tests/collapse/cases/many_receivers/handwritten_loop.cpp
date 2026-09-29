@@ -1,6 +1,6 @@
 /** Case: 32 receivers of one type. Extra reference (not selected by any variant): the receivers in one static
  *  array, delivered by a loop -- what a careful engineer writes for a homogeneous fan-out. Reported against
- *  `handwritten` (one call per receiver), it prices unrolled delivery, which is the only form pattern B has. */
+ *  `handwritten` (one call per receiver), it prices unrolled delivery, which is the only form static wiring has. */
 #include "collapse_case.hpp"
 #include "many.hpp"
 

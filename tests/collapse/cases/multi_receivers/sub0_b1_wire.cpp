@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: multiple receivers including a repeated type (bound order = delivery order).
  *  Pattern B1: typed wiring bound at the composition point; publisher templated on its output (public API, include/sub0pub/sub0pub.hpp). */
 #include "collapse_case.hpp"

@@ -1,7 +1,7 @@
 /** Case: two independent domains, published by ONE publisher (a gateway feeding two sessions). Runtime-bound
- *  reference with the same layout as sub0x_b1_one_publisher: one object holding the addresses of both domains'
+ *  reference with the same layout as sub0_b1_one_publisher: one object holding the addresses of both domains'
  *  receivers (stored at setup). Equal work for that variant, which selects it with
- *  `// SUB0X_REFERENCE: handwritten_gateway`; `handwritten_runtime` (two publisher objects) is laid out differently. */
+ *  `// COLLAPSE_REFERENCE: handwritten_gateway`; `handwritten_runtime` (two publisher objects) is laid out differently. */
 #include "collapse_case.hpp"
 
 namespace {

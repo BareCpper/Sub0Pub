@@ -1,7 +1,7 @@
 /** Case: static/dynamic bridge, empty dynamic side. Equal-work reference: a hand-written program that can accept
  *  dynamic subscribers at run time (the same 8-slot, add/remove registry as static_dynamic_bridge/handwritten)
  *  but has none in this scenario, so its publish still walks an empty registry. The bridge variants select it
- *  with `// SUB0X_REFERENCE: handwritten_registry`; `handwritten` (no registry at all) prices the capability. */
+ *  with `// COLLAPSE_REFERENCE: handwritten_registry`; `handwritten` (no registry at all) prices the capability. */
 #include "collapse_case.hpp"
 
 namespace {

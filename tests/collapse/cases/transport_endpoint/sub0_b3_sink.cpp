@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_erased
+// COLLAPSE_REFERENCE: handwritten_erased
 /** Case: concrete transport endpoint. Pattern B3: a non-template publisher holds a Sink<Sample> into a typed
  *  wiring with a Forward<Radio> endpoint; ingress, handled at the composition point, uses publishFrom. */
 #include "collapse_case.hpp"

@@ -1,4 +1,4 @@
-/** Case: multiple receivers including a repeated type. Pattern A: today's public sub0pub.hpp API. */
+/** Case: multiple receivers including a repeated type. The runtime broker (Subscribe/Publish). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

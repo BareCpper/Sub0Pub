@@ -2,7 +2,7 @@
 /** Case: cross-file application (receivers in another translation unit, external linkage).
  *  Type-erased reference: a non-template publisher in its own TU (sensor.cpp, a library boundary) holding a
  *  context + function pointer; the application's node (app.cpp) delivers to the receivers (receivers.cpp).
- *  Equal work for B3, selected with `// SUB0X_REFERENCE: handwritten_erased`. Built with and without LTO. */
+ *  Equal work for B3, selected with `// COLLAPSE_REFERENCE: handwritten_erased`. Built with and without LTO. */
 #include "collapse_case.hpp"
 
 namespace app {

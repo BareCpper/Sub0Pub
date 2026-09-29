@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 
 namespace sub0
 {
@@ -86,7 +87,7 @@ namespace sub0
         }
 
         template<>
-        inline bool write<void>(std::ostream& stream)
+        inline bool write<void>(std::ostream& /*stream*/)
         {
             return true;
         }
@@ -94,7 +95,9 @@ namespace sub0
         /// @todo Determine how to avoid this i.e. Drop std::istream or only use interface type?
         inline size_t readline(IStream& istream, char* const buffer, const size_t bufferCount)
         {
-            return istream.readline(buffer, bufferCount);
+            if constexpr (sizeof(size_t) > sizeof(IStream::StreamSize)) // where the narrowing below can lose data
+                assert(bufferCount <= (std::numeric_limits<IStream::StreamSize>::max)() && "readline: buffer larger than a stream can address");
+            return istream.readline(buffer, static_cast<IStream::StreamSize>(bufferCount));
         }
 
         template< typename Type_t >
@@ -111,7 +114,7 @@ namespace sub0
         }
 
         template<>
-        inline bool write<void>(OStream& stream)
+        inline bool write<void>(OStream& /*stream*/)
         {
             return true;
         }

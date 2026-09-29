@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: nested publication. Relay receives Sample, publishes Command{v + 100} and, for odd v, re-publishes
  *  Sample{v + 1} (same type, re-entrant, bounded by the data). Actuator receives Command, Tail (gain 5)
  *  receives Sample. Bound order relay, actuator, tail: the nested publications complete before Tail sees

@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_erased
+// COLLAPSE_REFERENCE: handwritten_erased
 /** Case: zero receivers.
  *  Pattern B3: non-template publisher holding a type-erased Sink<Sample> into typed wiring (public API, include/sub0pub/sub0pub.hpp). */
 #include "collapse_case.hpp"

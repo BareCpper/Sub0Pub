@@ -1,4 +1,4 @@
-/** Case: static/dynamic bridge (issue #9 open item). A sensor publishes Sample to two static receivers
+/** Case: static/dynamic bridge. A sensor publishes Sample to two static receivers
  *  (controller gain 3, logger) and to a runtime registry holding one dynamic subscriber (Probe), subscribed
  *  during setup. Order: controller, logger, then dynamic subscribers. Reference: direct calls to controller
  *  and logger, plus a minimal hand-written dynamic registry (fixed array + virtual receive) for the probe. */

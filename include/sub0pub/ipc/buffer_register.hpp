@@ -83,7 +83,7 @@ namespace sub0
             if ( buffer.paddingSize < 0 ) //< Nullify unpopulated bytess
             {
                 char* bufferEnd = buffer.buffer + buffer.bufferSize;
-                std::fill(bufferEnd + buffer.paddingSize, bufferEnd, 0x00); //< Clear content that will not be written
+                std::fill(bufferEnd + buffer.paddingSize, bufferEnd, '\0'); //< Clear content that will not be written
             }
         }
 
@@ -104,7 +104,7 @@ namespace sub0
          * @param header Header data to validate against
          * @return True always
         */
-        bool validate(const Header_t& header) const
+        bool validate(const Header_t& /*header*/) const
         {
             return true;
         }

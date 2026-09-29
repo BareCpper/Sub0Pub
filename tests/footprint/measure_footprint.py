@@ -40,24 +40,24 @@ POLICIES = OrderedDict([
     ("ThreadSafe", ["-DNDEBUG", "-DSUB0PUB_THREAD_SAFE=true"]),
 ])
 
-PROTO_DIR = os.path.normpath(os.path.join(HERE, "..", "design", "broker_config"))
-PROTO_SCENARIOS = OrderedDict([
-    ("fp_sub0x_default", "Default (Snapshot, ThreadLocal, filter)"),
-    ("fp_sub0x_direct", "Direct"),
-    ("fp_sub0x_static", "Direct + StaticContext (no TLS)"),
-    ("fp_sub0x_lean", "Lean (Direct, NoContext, NoFilter)"),
-    # One option changed from Default at a time (docs/design/AXIS_SCORES.md)
-    ("fp_axis_checked", "Default, Dispatch=DirectChecked"),
-    ("fp_axis_snapstatic", "Default, Context=Static"),
-    ("fp_axis_nocontext", "Default, Context=None (must be rejected: Snapshot needs a context)"),
-    ("fp_axis_nofilter", "Default, Filter=off"),
-    ("fp_axis_lock", "Default, Lock=spin (RTOS-style yield hook)"),
-    ("fp_axis_lockstatic", "Default, Lock=spin + StaticContext (must be rejected)"),
-    ("fp_axis_scoped", "Default, Storage=Scoped"),
-    ("fp_axis_cap64", "Default, Capacity=64"),
-    ("fp_axis_impl", "Default, Implementation=SingleSubscriberBroker"),
-    ("fp_axis_route", "Default + 1 Route"),
-    ("fp_axis_2types_default", "Default, 2 Data types (marginal cost of a type)"),
+AXIS_DIR = os.path.join(HERE, "axis")
+# Runtime-broker configuration options, each changed alone from the Full base or the Lean library default
+AXIS_SCENARIOS = OrderedDict([
+    ("fp_axis_lean", "Lean: Direct, NoContext, NoFilter (the library default)"),
+    ("fp_axis_full", "Full: Snapshot, ThreadLocal context, filter"),
+    ("fp_axis_direct", "Full, Dispatch=Direct"),
+    ("fp_axis_direct_static", "Full, Dispatch=Direct, Context=Static (no TLS)"),
+    ("fp_axis_checked", "Full, Dispatch=DirectChecked"),
+    ("fp_axis_snapstatic", "Full, Context=Static"),
+    ("fp_axis_nocontext", "Full, Context=None (must be rejected: Snapshot needs a context)"),
+    ("fp_axis_nofilter", "Full, Filter=off"),
+    ("fp_axis_lock", "Full, Lock=spin (RTOS-style yield hook)"),
+    ("fp_axis_lockstatic", "Full, Lock=spin + StaticContext (must be rejected)"),
+    ("fp_axis_scoped", "Full, Storage=Scoped"),
+    ("fp_axis_cap64", "Full, Capacity=64"),
+    ("fp_axis_impl", "Full, Implementation=SingleSubscriberBroker"),
+    ("fp_axis_route", "Full + 1 Route"),
+    ("fp_axis_2types_full", "Full, 2 Data types (marginal cost of a type)"),
     ("fp_axis_2types_lean", "Lean, 2 Data types (marginal cost of a type)"),
 ])
 
@@ -77,7 +77,7 @@ def compile_obj(target, scenario, policy_flags, out_dir, src_dir=HERE, extra=())
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         first_error = next((l for l in r.stderr.splitlines() if "error" in l), r.stderr.strip()[:120])
-        return None, first_error.strip()
+        return None, first_error.replace(os.path.dirname(INCLUDE) + os.sep, "").strip()  # repository-relative
     return obj, None
 
 
@@ -192,9 +192,9 @@ def main():
         print()
 
 
-    # Prototype (docs/design/BROKER_CUSTOMISATION.md): the policy is bound per Data type, not per build
-    if os.path.isdir(os.path.join(PROTO_DIR, "footprint")):
-        print("## Prototype: sub0x per-type configurations\n")
+    # Per-type configuration (docs/DESIGN.md): the policy is bound per Data type, not per build
+    if os.path.isdir(AXIS_DIR):
+        print("## Runtime broker configuration, one option at a time\n")
         print("Same usage as `fp_1type` (1 type, 1 publisher, 1 subscriber, 1 publish site); compare with "
               "the Direct (default) column above.\n")
         with tempfile.TemporaryDirectory() as tmp:
@@ -202,13 +202,13 @@ def main():
                 print(f"### Target: {tname}\n")
                 print("| Configuration | text / data / bss | `Broker::publish()` | sizeof Subscribe / Publish | Link-time dependencies |")
                 print("|---|---:|---:|---:|---|")
-                for scen, desc in PROTO_SCENARIOS.items():
-                    obj, err = compile_obj(target, scen, ["-DNDEBUG"], tmp, os.path.join(PROTO_DIR, "footprint"), ["-I" + PROTO_DIR])
+                for scen, desc in AXIS_SCENARIOS.items():
+                    obj, err = compile_obj(target, scen, ["-DNDEBUG"], tmp, AXIS_DIR, ["-I" + AXIS_DIR])
                     if obj is None:
                         print(f"| {desc} | n/a: `{err}` | | | |")
                         continue
                     syms = symbols(target, obj)
-                    pub = sum(sz for sz, k, n in syms if "Broker<" in n and "::publish(" in n)
+                    pub = sum(sz for sz, k, n in syms if "Broker" in n and "::publish(" in n)
                     sizes = {n[len("fp_sizeof_"):]: sz for sz, k, n in syms if n.startswith("fp_sizeof_")}
                     undef = ", ".join(f"`{u}`" for u in undefined(target, obj))
                     more = "".join(f", {k} {v}" for k, v in sizes.items() if k not in ("Subscribe", "Publish"))

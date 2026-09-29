@@ -1,5 +1,5 @@
-/** Static/dynamic bridge, alternative A: a BrokerPort bound into the static wiring forwards to a full #8
- *  runtime registry (sub0pub.hpp: Domain/Subscribe/Publish) for the dynamic subscriber. */
+/** Static/dynamic bridge through a BrokerPort bound into the static wiring: it forwards to the runtime broker
+ *  (Domain/Subscribe/Publish) for the dynamic subscriber. */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

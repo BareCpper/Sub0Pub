@@ -1,6 +1,6 @@
 /** Case: a large payload (64-byte Frame, 16 words, word i = v + i) delivered to a controller (reads words 0
  *  and 15) and a logger (xors word 7 with its count), by const reference.
- *  Pattern A: today's API. */
+ *  The runtime broker (Subscribe/Publish). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

@@ -1,8 +1,6 @@
-/** Pattern B sandbox (tests/collapse/sandbox/): guarantees and limitations that the collapse cases cannot show,
- *  because a case must behave exactly like its hand-written reference (docs/design/COLLAPSE_SCORES.md,
- *  "Coverage review"). Each test demonstrates one row of the guarantees table; tests named "limitation" pin a
- *  documented compromise (known issues K14 and K18-K24 in docs/design/BROKER_CUSTOMISATION.md section 8), so a
- *  change of behaviour is noticed. */
+/** Static wiring: guarantees and limitations that the collapse cases cannot show, because a case must behave
+ *  exactly like its hand-written reference (docs/EVIDENCE.md). Tests named "limitation" pin a documented
+ *  limitation (K14, K18-K24 in docs/DESIGN.md, "Known limitations"), so a change of behaviour is noticed. */
 #include "doctest.h"
 #include "sub0pub/sub0pub.hpp"
 
@@ -37,9 +35,9 @@ Radio sRadio;
 sub0::StaticForward<&sRadio> sUplink;
 using SBus = sub0::StaticWiring<&sController, &sUplink>;
 
-TEST_CASE("split horizon: ingress may name the transport or its adapter as origin (defect fixed by the review)")
+TEST_CASE("split horizon: ingress may name the transport or its adapter as origin")
 {
-    // Before the review, naming the transport object (the natural origin at a receive callback) was not
+    // Regression: naming the transport object (the natural origin at a receive callback) was once not
     // recognised as the Forward/StaticForward bound for it, and ingress was echoed back out, silently.
     gTrace.clear();
     sRadio.sent = 0;
@@ -113,7 +111,7 @@ TEST_CASE("limitation K14: a receiver whose receive() does not match is skipped 
     ConstBus::publish(Sample{1}); // bound through a pointer to const: the non-const receive() is not viable
     CHECK(sConstBound.got == 0);
 
-    // The opt-in guard added by the review turns both mistakes into compile-time facts
+    // The opt-in guard turns both mistakes into compile-time facts
     static_assert(!sub0::handles_v<WrongParam, Sample>, "detects the wrong parameter type");
     static_assert(!sub0::handles_v<const NonConstReceive, Sample>, "detects the const binding");
     static_assert(sub0::handles_v<NonConstReceive, Sample>, "a matching receiver is accepted");
@@ -168,7 +166,7 @@ TEST_CASE("cancellation: publishCancelable stops later receivers; plain publish(
 
     Gate g;
     Controller after{5};
-    const auto bus = sub0::wire(g, after); // B1 gained publishCancelable in the review (it was B2-only)
+    const auto bus = sub0::wire(g, after); // a runtime-bound wiring has publishCancelable too
     gTrace.clear();
     bus.publishCancelable(Sample{6});
     bus.publishCancelable(Sample{7});

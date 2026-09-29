@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_gateway
+// COLLAPSE_REFERENCE: handwritten_gateway
 /** Case: two independent domains, published by ONE publisher that holds both wirings (a gateway feeding two
  *  sessions): same behaviour as two publishers, one per domain. Pattern B1. */
 #include "collapse_case.hpp"

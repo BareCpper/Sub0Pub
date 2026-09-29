@@ -93,8 +93,7 @@ def header_at(tmp, name, ref):
 
 
 def include_sets(tmp, v1_ref, extra_refs):
-    common = [os.path.join(TESTS, d) for d in ("vendor", "bench", "compare", "collapse",
-                                                 os.path.join("design", "broker_config"))]
+    common = [os.path.join(TESTS, d) for d in ("vendor", "bench", "compare", "collapse")]
     sets = {"v1": [header_at(tmp, "v1", v1_ref)] + common, "v2": [os.path.join(ROOT, "include")] + common}
     for i, (_, ref) in enumerate(extra_refs):
         sets[f"extra{i}"] = [header_at(tmp, f"extra{i}", ref)] + common

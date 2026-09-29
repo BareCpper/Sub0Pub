@@ -2,7 +2,7 @@
  *  Sample{v + 1} (same type, re-entrant, bounded by the data). Actuator receives Command, Tail (gain 5)
  *  receives Sample. Bound order relay, actuator, tail: the nested publications complete before Tail sees
  *  the outer Sample.
- *  Pattern A: today's public sub0pub.hpp API (snapshot dispatch: re-entrant publish supported). */
+ *  The runtime broker (Subscribe/Publish) (snapshot dispatch: re-entrant publish supported). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

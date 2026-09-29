@@ -2,7 +2,7 @@
  *
  * Same control conditions as cmp_sub0pub.cpp: the publish entry point and every receive() are out of line,
  * so each variant pays one real call per delivery and the difference is the dispatch around it.
- * Pattern B receivers stop a publication by returning false (publishCancelable); it has no filter() and no
+ * Static-wiring receivers stop a publication by returning false (publishCancelable); it has no filter() and no
  * per-subscriber lifetime, so those rows are n/a except for DynamicPort's add/remove.
  */
 #define ANKERL_NANOBENCH_IMPLEMENT

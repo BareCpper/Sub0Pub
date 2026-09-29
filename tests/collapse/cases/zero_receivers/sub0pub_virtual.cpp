@@ -1,4 +1,4 @@
-/** Case: zero receivers. Pattern A: today's public sub0pub.hpp API (virtual Subscribe, runtime registry). */
+/** Case: zero receivers. The runtime broker (Subscribe/Publish) (virtual Subscribe, runtime registry). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

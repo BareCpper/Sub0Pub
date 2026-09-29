@@ -31,17 +31,16 @@ CORE_VARIANTS = OrderedDict([
     ("Sub0Pub_Bench_ThreadSafe", "ThreadSafe"),
 ])
 IPC_VARIANTS = OrderedDict([("Sub0Pub_Bench_Ipc", "Default")])
-PROTOTYPE_VARIANTS = OrderedDict([("Sub0Pub_Sub0xBench", "sub0x prototype")])
+AXES_VARIANTS = OrderedDict([("Sub0Pub_Bench_Axes", "Configuration axes")])
 
 ROW = re.compile(r"^\|\s*([\d.,]+|-)\s*\|.*\|\s*(?::\w+:\s*)?`([^`]+)`")
 TITLE = re.compile(r"^\|\s*ns/op\s*\|.*\|\s*([^|]+?)\s*$")
 
 
 def find_exe(build_dir, name, required=True):
-    for sub in ("", "design/broker_config"):
-        for candidate in (os.path.join(build_dir, sub, name), os.path.join(build_dir, sub, "Release", name + ".exe")):
-            if os.path.exists(candidate):
-                return candidate
+    for candidate in (os.path.join(build_dir, name), os.path.join(build_dir, "Release", name + ".exe")):
+        if os.path.exists(candidate):
+            return candidate
     if required:
         sys.exit(f"benchmark executable not found: {name} in {build_dir}")
     return None
@@ -149,9 +148,8 @@ def main():
               "(includes ~3 instructions of loop overhead).\n")
     report("Core publish/subscribe by policy", CORE_VARIANTS, build_dir, timing, callgrind)
     report("IPC end-to-end", IPC_VARIANTS, build_dir, timing, callgrind)
-    if find_exe(build_dir, "Sub0Pub_Sub0xBench", required=False):
-        report("Prototype: sub0x per-type configurations (docs/design/BROKER_CUSTOMISATION.md)",
-               PROTOTYPE_VARIANTS, build_dir, timing, callgrind)
+    report("Runtime broker configuration, one option at a time (docs/DESIGN.md)", AXES_VARIANTS, build_dir,
+           timing, callgrind)
 
 
 if __name__ == "__main__":

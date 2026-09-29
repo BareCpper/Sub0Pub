@@ -35,7 +35,7 @@ namespace sub0
             /** header for specified Data type
             */
             template<typename Data>
-            Header( const Data& data )
+            Header( const Data& /*data*/ )
 #if SUB0PUB_TYPEIDNAME
                 : typeId(detail::TypeInfo<Data>::typeId())
 #else

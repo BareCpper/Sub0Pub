@@ -1,6 +1,6 @@
 /** Case: filters (controller always, monitor only for even values). Runtime-bound reference: the same work, with receiver addresses stored at setup and called through,
  *  as a careful engineer writes it when addresses are only known at run time. Equal work for patterns whose
- *  bindings are runtime values (B1 `wire(...)`), which select it with `// SUB0X_REFERENCE: handwritten_runtime`. */
+ *  bindings are runtime values (B1 `wire(...)`), which select it with `// COLLAPSE_REFERENCE: handwritten_runtime`. */
 #include "collapse_case.hpp"
 
 namespace {
