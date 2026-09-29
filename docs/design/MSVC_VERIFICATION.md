@@ -40,6 +40,14 @@ fixed here.
 - `examples/cross_module` is disabled on MSVC (`thread_local` members of `Broker<>` cannot be `dllexport`ed).
 - Per-member layout hash is unavailable on MSVC (fingerprint only); `test_fingerprint.cpp` skips those assertions.
 
+## Continuous validation
+
+The Windows CI job runs the evidence tool on `many_receivers` with `msvc-O2` and `cross_file` with
+`msvc-O2-lto`, uploading their JSON/Markdown reports as `msvc-evidence-smoke`. These runs exercise actual
+compiler discovery, PE/map parsing, checksum comparison and both link modes on the CI toolchain. They
+fail on build/measurement/behavior errors; collapse costs are reported, not yet budget-gated on MSVC.
+The complete manual run below is a separate, compiler-version-specific record.
+
 ## Collapse codegen evidence (`dumpbin`)
 
 `python tests/collapse/collapse_evidence.py --build msvc-O2` (and `msvc-O2-lto` for the cross-file case) runs from

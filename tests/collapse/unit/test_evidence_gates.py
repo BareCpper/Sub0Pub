@@ -17,6 +17,28 @@ spec.loader.exec_module(evidence)
 
 
 class EvidenceGates(unittest.TestCase):
+    def test_msvc_environment_accepts_mixed_case_path(self):
+        responses = [
+            subprocess.CompletedProcess([], 0, "C:/Visual Studio\n", ""),
+            subprocess.CompletedProcess([], 0, "Path=C:/VC/bin\nInclude=C:/VC/include\n", ""),
+        ]
+        with patch.object(evidence.sys, "platform", "win32"), \
+             patch.object(evidence.shutil, "which", side_effect=[None, "C:/VC/bin/cl.exe"]), \
+             patch.object(evidence.os.path, "isfile", return_value=True), \
+             patch.dict(evidence.os.environ, {}, clear=True), \
+             patch.object(evidence, "run", side_effect=responses):
+            evidence.ensure_msvc_environment()
+            self.assertEqual(evidence.os.environ.get("PATH"), "C:/VC/bin")
+            self.assertEqual(evidence.os.environ.get("INCLUDE"), "C:/VC/include")
+
+    def test_msvc_build_reports_compiler_diagnostic(self):
+        output = "compiler banner\nsource.cpp\nsource.cpp(1): fatal error C1083: missing header\n"
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 2, output, "")):
+            exe, error = evidence.build_msvc(evidence.BUILDS["msvc-O2"], "one_receiver", "handwritten", 1, tmp)
+        self.assertIsNone(exe)
+        self.assertEqual(error, "source.cpp(1): fatal error C1083: missing header")
+
     def budget_run(self, change_result=None, change_budget=None):
         reference = {
             "checksum": "same", "instr": {"publish": 10, "setup": 10, "teardown": 10},

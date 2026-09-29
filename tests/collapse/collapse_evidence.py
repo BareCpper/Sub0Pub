@@ -147,7 +147,9 @@ def ensure_msvc_environment():
     candidates = [os.path.join(i.strip(), "VC", "Auxiliary", "Build", "vcvars64.bat") for i in installs if i.strip()]
     for vcvars in (c for c in candidates if os.path.isfile(c)):
         r = run(f'"{vcvars}" >nul 2>nul && set', shell=True)
-        env = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
+        # cmd preserves spellings such as Path/Include; Windows lookup is case-insensitive.
+        env = {key.upper(): value for line in r.stdout.splitlines() if "=" in line
+               for key, value in [line.split("=", 1)] if key}
         if r.returncode == 0 and env.get("PATH"):
             os.environ.update(env)
             if shutil.which("cl"):
@@ -295,7 +297,7 @@ def build_msvc(build_cfg, case, variant, observable, out_dir):
     r = run(cmd)
     if r.returncode != 0:
         lines = (r.stdout + r.stderr).splitlines()
-        err = next((l for l in lines if re.search(r"(error|fatal error) [A-Z]+\d+", l)), (r.stdout + r.stderr).strip()[:200])
+        err = next((l for l in lines if re.search(r"\b(error|fatal error) [A-Z]+\d+", l)), (r.stdout + r.stderr).strip()[:200])
         return None, err
     return exe, None
 
