@@ -12,6 +12,14 @@ include(GNUInstallDirs)
 option(SUB0PUB_BUILD_TESTING "Build unit-tests" ON)
 option(SUB0PUB_BUILD_EXAMPLES "Build examples" OFF)
 
+# Warnings for Sub0Pub's own tests and examples. Not a usage requirement of the Sub0Pub target: a consumer's
+# warning level is its own choice (the headers are kept clean at these levels by the builds below).
+if(MSVC)
+    add_compile_options(/W4 /Zc:preprocessor)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 if(SUB0PUB_BUILD_TESTING AND NOT IS_SUBPROJECT)
     enable_testing()
     add_subdirectory(tests)
@@ -25,12 +33,6 @@ endif()
 add_library(Sub0Pub INTERFACE)
 target_compile_features(Sub0Pub INTERFACE cxx_std_17)
 add_library(Sub0Pub::Sub0Pub ALIAS Sub0Pub)
-
-# Compiler warnings for consumers building with Sub0Pub
-target_compile_options(Sub0Pub INTERFACE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /Zc:preprocessor>
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-)
 
 target_include_directories(Sub0Pub
   INTERFACE
@@ -62,6 +64,7 @@ if (NOT IS_SUBPROJECT)
         "${PROJECT_BINARY_DIR}/Sub0PubConfigVersion.cmake"
         COMPATIBILITY 
             SameMajorVersion
+        ARCH_INDEPENDENT # header-only: usable from any target architecture
     )
 
     install(

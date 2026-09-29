@@ -46,7 +46,7 @@ namespace sub0
 
         /** Initialise from IStream
         */
-        bool open(IStream& stream)
+        bool open(IStream& /*stream*/)
         {
             //TODO: Do this on open or close?
             state_ = !std::is_void<Prefix_t>::value ? State::Prefix : stateAfter(State::Prefix);
@@ -142,7 +142,7 @@ namespace sub0
                 const uint_fast16_t readCount = stream.read(currentBuffer_.buffer, currentBuffer_.bufferSize);
 #endif
                 currentBuffer_.buffer += readCount;
-                currentBuffer_.bufferSize -= readCount;
+                currentBuffer_.bufferSize -= static_cast<uint_least16_t>(readCount); // read() returns at most bufferSize
 
                 /// If buffer not complete then we need to return and await more data
                 if (currentBuffer_.bufferSize > 0)
@@ -156,7 +156,7 @@ namespace sub0
     #if SUB0PUB_STD
                 const uint_fast16_t ignoreCount = static_cast<uint_fast16_t>(stream.read(ignoreBuff, ignoreSize).gcount());
     #else
-                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, ignoreSize);
+                const uint_fast16_t ignoreCount = stream.read(ignoreBuff, static_cast<IStream::StreamSize>(ignoreSize)); // at most sizeof(ignoreBuff)
     #endif
 
                 currentBuffer_.paddingSize -= ignoreCount;
@@ -263,7 +263,7 @@ namespace sub0
 
             if (currentBuffer_.paddingSize < 0)
             {
-                currentBuffer_.bufferSize += currentBuffer_.paddingSize;
+                currentBuffer_.bufferSize = static_cast<uint_least16_t>(currentBuffer_.bufferSize + currentBuffer_.paddingSize);
                 currentBuffer_.paddingSize = 0;
             }
 

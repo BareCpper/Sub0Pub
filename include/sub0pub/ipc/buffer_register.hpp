@@ -104,7 +104,7 @@ namespace sub0
          * @param header Header data to validate against
          * @return True always
         */
-        bool validate(const Header_t& header) const
+        bool validate(const Header_t& /*header*/) const
         {
             return true;
         }

@@ -44,6 +44,9 @@ add_subdirectory(wiring)
 # Header hygiene: every header self-contained, each entry header isolated from the other areas
 add_subdirectory(headers)
 
+# The installed package, as an external find_package(Sub0Pub) project uses it
+add_subdirectory(package)
+
 # Design prototypes (not public API)
 add_subdirectory(design/broker_config)
 add_subdirectory(design/quiescence)

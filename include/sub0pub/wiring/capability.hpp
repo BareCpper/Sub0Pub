@@ -119,18 +119,19 @@ namespace sub0
         template<bool OriginUnique, class R, class T, class Origin>
         inline void deliverExcept(R& r, const T& msg, const Origin& origin) noexcept
         {
+            // No statement follows a skip, so no instantiation holds code it cannot reach (MSVC C4702)
             if constexpr (isOrigin<R, Origin>)
             {
                 if constexpr (OriginUnique)
                 {
                     assert(identity(r) == identity(origin) && "publishFrom: origin is not a bound endpoint");
-                    (void)origin;
-                    return;
+                    (void)r; (void)msg; (void)origin;
                 }
-                else if (identity(r) == identity(origin))
-                    return;
+                else if (identity(r) != identity(origin))
+                    deliver(r, msg);
             }
-            deliver(r, msg);
+            else
+                deliver(r, msg);
         }
 
         /// Origin identified by type alone (publishFrom<Origin>(msg)): the one binding of that type is skipped
