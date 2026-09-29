@@ -56,5 +56,5 @@ Do not silently increase a budget to make cleanup pass.
 5. Green cross-platform and sanitizer CI, unchanged public budget coverage, no prototype-only required build targets.
 6. Squash the cleanup PR into `v2` if a single reviewable release-preparation commit is desired. Preserve tagged v1 history.
 
-MSVC final-link evidence, contention/teardown-tail timing and embedded stack measurement remain distinct evidence
-follow-ups. Removing experiments must not make those gaps disappear from the release notes.
+Contention/teardown-tail timing and embedded stack measurement remain distinct evidence follow-ups; MSVC
+final-link evidence ([design/MSVC_VERIFICATION.md](design/MSVC_VERIFICATION.md)) must be regenerated, not dropped. Removing experiments must not make those gaps disappear from the release notes.

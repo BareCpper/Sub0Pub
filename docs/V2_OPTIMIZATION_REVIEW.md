@@ -12,7 +12,7 @@ has been benchmarked. The public API remains C++17; adopting a newer standard al
 | High | The migration comparison measured `DynamicPort` alone, not the cost of fixed delivery plus dynamic observers. | `cmp_mixed.cpp`: `wire` + DynamicPort and Scoped BrokerPort (Direct/Snapshot), with 0/1/8 dynamic listeners, successful churn and full-table rejection. Separate report table prevents unequal-work comparisons with pure v1 dispatch. |
 | Medium | The basic example announced destruction of a still-live LCD subscriber. | Corrected the lifetime narrative. |
 | Medium | Prototype tests and reports dominate the development tree and default build. They are still dependencies of evidence tools. | Stage removal by dependency and proof, not by deleting every file containing `sub0x`; see [cleanup](V2_CLEANUP.md). |
-| Medium | The legacy MSVC final-link evidence gap remains; throughput under contention is not characterized by uncontended lock benchmarks. | Keep explicit release/evidence follow-ups. A passing Windows correctness build is not a performance result. |
+| Medium | Throughput under contention is not characterized by uncontended lock benchmarks. MSVC final-link evidence is now recorded ([MSVC verification](design/MSVC_VERIFICATION.md)); it has no instruction counts (no callgrind on Windows). | Keep contention an explicit release/evidence follow-up. A passing Windows correctness build is not a performance result. |
 
 ## Where optimization is worthwhile
 
