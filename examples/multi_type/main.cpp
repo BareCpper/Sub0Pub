@@ -1,9 +1,13 @@
-/** Sub0Pub Example: Multi-Type Subscribe
+/** A sensor hub reports measurements and status — multiple message types
  *
- * Demonstrates:
- *   - Publishing multiple types from one class
- *   - Subscribing to multiple types with SubscribeAll
- *   - Type-safe routing — each type goes to its own receive() override
+ * Use when: one component sends several message types and receivers need different subsets.
+ * Demonstrates: multiple Publish<T> bases, SubscribeAll, typed receive() overloads, and
+ * publish(this, message) selecting the appropriate publisher base.
+ * Story: SensorHub emits temperature/humidity data and a status code. Monitor receives both;
+ * StatusLogger receives only the status. The second data report still bypasses StatusLogger.
+ * Keep in mind: selection is by C++ message type, not by an integer topic or inheritance
+ * relationship. Each message type has its own subscription table and configuration.
+ * Run: Sub0Pub_MultiType prints both monitor paths and one status-log delivery.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>

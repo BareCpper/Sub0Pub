@@ -114,7 +114,10 @@ def measure(compiler, tmp, incs, extra_refs):
     rows = OrderedDict()
 
     def collect(exe):
-        for (section, scenario), value in run_baseline.run_callgrind(exe).items():
+        measurements = run_baseline.run_callgrind(exe)
+        if not measurements:
+            sys.exit(f"no instruction measurements from {exe}; install Valgrind headers and rebuild")
+        for (section, scenario), value in measurements.items():
             rows.setdefault(section, {})[scenario] = value
 
     variants = list(HEADER_VARIANTS)
@@ -125,7 +128,7 @@ def measure(compiler, tmp, incs, extra_refs):
         exe = build(compiler, os.path.join(HERE, "cmp_sub0pub.cpp"), incs[header],
                     macros + [f'-DCMP_LABEL="{label}"'], os.path.join(tmp, f"{compiler}_hdr{i}"), HOST_FLAGS)
         collect(exe)
-    for name in ("cmp_config", "cmp_static"):
+    for name in ("cmp_config", "cmp_static", "cmp_mixed"):
         collect(build(compiler, os.path.join(HERE, name + ".cpp"), incs["v2"], [],
                       os.path.join(tmp, f"{compiler}_{name}"), HOST_FLAGS))
     return rows
@@ -179,11 +182,22 @@ def main():
             version = subprocess.run([cxx, "--version"], capture_output=True, text=True).stdout.splitlines()[0]
             rows = measure(cxx, tmp, incs, extra_refs)
             print(f"## instr/op, {name} (`{version}`, `{' '.join(HOST_FLAGS)}`)\n")
-            print("| Implementation | " + " | ".join(SHORT) + " |")
-            print("|---|" + "---:|" * len(SHORT))
-            for label, values in rows.items():
-                print(f"| {label} | " + " | ".join(fmt(values.get(s)) for s in SCENARIOS) + " |")
-            print()
+            def table(selected, scenarios, headings):
+                print("| Implementation | " + " | ".join(headings) + " |")
+                print("|---|" + "---:|" * len(headings))
+                for label, values in selected:
+                    print(f"| {label} | " + " | ".join(fmt(values.get(s)) for s in scenarios) + " |")
+                print()
+
+            table([(k, v) for k, v in rows.items() if not k.startswith("v2 mixed")], SCENARIOS, SHORT)
+            print("### Mixed paths (v2 only)\n")
+            print("Every publish also delivers to one fixed receiver. Counts below name only dynamic listeners; "
+                  "do not compare these rows to the pure-dispatch table as identical work. Churn creates and "
+                  "destroys a second listener while one remains registered; overflow attempts registration "
+                  "with all eight slots occupied.\n")
+            table([(k, v) for k, v in rows.items() if k.startswith("v2 mixed")],
+                  [SCENARIOS[i] for i in (0, 1, 2, 5)] + ["registration rejected at capacity"],
+                  ["fixed + 0", "fixed + 1", "fixed + 8", "churn beside 1", "full registration"])
 
         for tname, target in FP_TARGETS.items():
             if not shutil.which(target["cxx"]):

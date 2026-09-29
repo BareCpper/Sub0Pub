@@ -1,9 +1,12 @@
-/** Sub0Pub Example: Publish Cancellation
+/** A primary handler claims commands — ordered fallback delivery
  *
- * Demonstrates:
- *   - Calling cancel() from within receive() to stop further delivery
- *   - Subsequent publishes are not affected by previous cancellations
- *   - Cancellation is scoped to the current publish cycle
+ * Use when: an earlier receiver can handle a message and prevent later receivers from handling it.
+ * Demonstrates: ThreadLocalContext enabling cancel(), and cancellation scoped to one publication.
+ * Story: PrimaryHandler subscribes before FallbackHandler. It claims commands below 100 and
+ * cancels further delivery. Command 200 reaches the fallback; commands 42 and 7 do not.
+ * Keep in mind: receiver order is part of this pattern. cancel() does not disconnect a receiver
+ * or cancel the next publication. Unlike filter(), it stops later receivers for this publication.
+ * Run: Sub0Pub_Cancellation prints primary handling of 42/7 and fallback handling of 200.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>

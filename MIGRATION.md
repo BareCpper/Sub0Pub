@@ -2,6 +2,9 @@
 
 This document tracks all breaking changes between Sub0Pub v1 and v2. Update this document with any commit that introduces a migration-relevant change.
 
+For runnable static, dynamic and mixed-path migration recipes, see [examples](examples/README.md).
+The [coverage ledger](docs/V2_OPTIMIZATION_REVIEW.md) distinguishes measured paths from remaining evidence gaps.
+
 ---
 
 ## Build Requirements
@@ -67,7 +70,7 @@ New `sub0::SubscribeResult` enum (`Subscribed`, `CapacityExceeded`). `Subscribe<
 
 ### `Subscribe<Data>` and `Publish<Data>` have no virtual destructor
 
-`Subscribe<Data>::~Subscribe()` and `Publish<Data>::~Publish()` are `protected` and non-virtual. Neither class is polymorphic any more, and for global storage a `Publish<Data>` is an empty handle. A subscriber or publisher is destroyed as its own type. Deleting one through a `Subscribe<Data>*` or `Publish<Data>*` is a compile error, where v1 destroyed it virtually.
+`Subscribe<Data>::~Subscribe()` and `Publish<Data>::~Publish()` are `protected` and non-virtual. `Subscribe<Data>` still has virtual delivery callbacks; `Publish<Data>` is non-polymorphic and, for global storage, an empty handle. A subscriber or publisher is destroyed as its own type. Deleting one through a `Subscribe<Data>*` or `Publish<Data>*` is a compile error, where v1 destroyed it virtually.
 
 Because its destructor is protected, a `Publish<Data>` is always a base: declare a publisher as a class derived from it, not as a `sub0::Publish<Data>` variable.
 

@@ -87,3 +87,43 @@ public:
 - Standard library includes sorted alphabetically
 - Project includes use quotes: `#include "sub0pub/sub0pub.hpp"`
 - System includes use angle brackets: `#include <algorithm>`
+
+## Examples: a source-first reading guide
+
+Every C++ sample under `examples/`, including retained/disabled samples, MUST start with a `/** ... */`
+header before includes or pragmas. The entry source is a standalone crib: a developer should be able to
+judge its relevance and follow its story without opening a README or the library headers.
+
+Use these short sections, in this order:
+
+- **Title:** name the activity and the pattern in plain language.
+- **Use when:** the developer's problem this sample helps solve.
+- **Demonstrates:** the relevant public APIs and policy choices, connected to their purpose.
+- **Story:** who publishes, who receives, the important sequence/lifetime changes and the expected result.
+- **Keep in mind:** only the prerequisites, ownership rules or limitations needed to adapt this code safely.
+- **Run:** the executable target and what success looks like (printed output or a zero exit status). Clearly
+  label a disabled/unvalidated sample; never imply that an illustrative sketch is supported or measured.
+
+Aim for 12–25 comment lines per entry source; clarity takes precedence over a hard word count. A companion
+source/header uses the same sections more briefly, explains its part of the story, and points to the entry
+source/target rather than repeating the complete introduction. Keep the header beside the code it describes.
+
+Use concrete activity names for objects. Give independently selectable patterns separate source files and
+executable targets; do not merge alternatives solely because they share a few small receiver types. Keep
+related steps of one story together. Prefer a small self-contained example over forcing readers through
+shared teaching scaffolding; named functions may organize the steps within that story. Below the header,
+prefer self-describing code and a few comments explaining non-obvious contracts. Do not annotate obvious
+C++ line by line, bury the story in assertions, or make unsupported performance/portability claims. Examples
+may explain more than library implementation code: their purpose is teaching, not just regression testing.
+
+When adding or changing a sample, review the header against the actual code and observable result. Ask a
+source-only first-time reader to explain its use case, participants, sequence and limitations; revise any
+ambiguity. Check all affected companion files too, and keep the example index accurate. Build/run enabled
+samples; distinguish those checks from any disabled or platform-specific cases that remain unvalidated.
+
+Organize examples by use case for the current API; do not create a `v2` tier beside supposedly legacy
+samples. Static wiring, runtime subscription, mixed paths and IPC are first-class current APIs. A familiar
+v1-era name is not by itself a compatibility adapter. Keep actual old-contract adapters separate under
+`examples/compatibility/<version>/`, with a header identifying the compatibility contract, its current
+replacement, limitations and removal criteria. Such adapters are explicitly tracked migration debt;
+normal examples must not depend on them. Retain historical benchmark fixtures separately as evidence.

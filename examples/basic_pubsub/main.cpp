@@ -1,9 +1,13 @@
-/** Sub0Pub Example: Basic Publish/Subscribe
+/** Temperature displays — runtime publish/subscribe
  *
- * Demonstrates the core pattern:
- *   - Inherit sub0::Publish<T> to send typed messages
- *   - Inherit sub0::Subscribe<T> to receive them
- *   - Subscribers auto-wire on construction, auto-disconnect on destruction
+ * Use when: objects should discover messages by type and join or leave through their lifetime.
+ * Demonstrates: Publish<float>, Subscribe<float>, publish(), and automatic registration/teardown.
+ * Story: one sensor sends temperatures to LCD and LOG displays. A temporary display joins for
+ * 26 degrees, then leaves its scope; the next reading reaches only LCD and LOG. No publisher
+ * stores a list of displays or calls them individually.
+ * Keep in mind: this uses the default unlocked broker. Subscribers register during construction;
+ * locked subscribers need the explicit lifecycle shown in ../thread_safe_lifetime.cpp instead.
+ * Run: Sub0Pub_BasicPubSub prints each delivery; TMP appears only for the 26-degree reading.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>
@@ -43,11 +47,7 @@ int main()
     std::printf("Publishing 24.1:\n");
     sensor.sample(24.1f);
 
-    // Destroy LCD — LOG still receives
-    {
-        std::printf("\nLCD destroyed, publishing 25.0:\n");
-    }
-    // lcd is still alive here (scope didn't end), let's demo with a block:
+    // Add a temporary subscriber; LCD and LOG stay alive throughout.
     {
         TemperatureDisplay temporary("TMP");
         std::printf("TMP added, publishing 26.0:\n");

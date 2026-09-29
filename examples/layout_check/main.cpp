@@ -1,10 +1,13 @@
-/** Sub0Pub Example: Layout Fingerprinting
+/** Compare message representations before exchanging bytes — layout inspection
  *
- * Demonstrates:
- *   - makeFingerprint<T>() — automatic sizeof/alignof/arity/array check
- *   - makeLayout<T>() — per-member offset+size hash (GCC/Clang)
- *   - Detecting struct version mismatches at connection time
- *   - Comparing layouts between "local" and "remote" peers
+ * Use when: peers plan to serialize raw structures and need a compatibility check first.
+ * Demonstrates: makeFingerprint<T>(), makeLayout<T>(), layout comparison, nested types and arrays.
+ * Story: two versions of SensorData differ by a flags member. Their layouts are printed and
+ * compared; a same-version comparison follows, then a nested particle structure is inspected.
+ * Keep in mind: peers and connection rejection are simulated; this does not perform a handshake
+ * or byte conversion. Matching fingerprints are not proof of semantic compatibility. MSVC lacks
+ * the per-member layout hash used on GCC/Clang, so its comparison is less detailed.
+ * Run: Sub0Pub_LayoutCheck prints fingerprints, a version mismatch and a same-build match.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>

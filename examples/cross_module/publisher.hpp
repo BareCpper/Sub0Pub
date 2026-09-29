@@ -1,3 +1,13 @@
+/** The export boundary of the cross-DLL experiment
+ *
+ * Use when: inspecting the historical broker-sharing approach; main.cpp explains the intended deliveries.
+ * Demonstrates: platform export/import annotations and explicit BrokerImpl template instantiations.
+ * Story: this header declares publishReadings() and tries to expose the float/int broker state
+ * used by the shared-library publisher and executable receivers.
+ * Keep in mind: BrokerImpl is internal API. Export declarations alone do not prove shared state,
+ * shared dispatch context or safe unloading; this is disabled pending a supported public boundary.
+ * Run: companion header for the disabled Sub0Pub_CrossModule targets; not a standalone sample.
+ */
 #pragma once
 
 #include "sub0pub/sub0pub.hpp"
@@ -19,8 +29,7 @@
     #define SUB0PUB_EXAMPLE_EXTERN
 #endif
 
-// Exporting the broker is critical for the instance to become shared across shared library boundaries
-// Note: the thread_local dispatch context (detail::PublishContext) is per-module by design
+// Historical sharing attempt: exports alone do not establish a portable registry/context contract.
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4492) // thread_local with dllexport
@@ -31,4 +40,4 @@ SUB0PUB_EXAMPLE_EXTERN template class SUB0PUB_EXAMPLE_API sub0::detail::BrokerIm
 #pragma warning(pop)
 #endif
 
-SUB0PUB_EXAMPLE_API void doPublisher();
+SUB0PUB_EXAMPLE_API void publishReadings();

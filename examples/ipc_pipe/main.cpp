@@ -1,12 +1,14 @@
-/** Sub0Pub Example: IPC Serialization Pipe
+/** Replay sensor readings through a byte buffer — an in-memory IPC simulation
  *
- * Demonstrates:
- *   - StreamSerializer captures published messages into a byte stream
- *   - StreamDeserializer replays them, re-publishing to local subscribers
- *   - ForwardSubscribe/ForwardPublish connect pub/sub to the stream layer
- *   - The DefaultSerialisation protocol: SUB0 magic + header + payload + newline
- *
- * This simulates an inter-process pipe using an in-memory buffer.
+ * Use when: typed messages must cross a stream boundary and become local publications again.
+ * Demonstrates: StreamSerializer/StreamDeserializer with ForwardSubscribe/ForwardPublish,
+ * custom in-memory stream adapters, and the default binary framing.
+ * Story: the sending scope serializes two sensor readings and two heartbeats, then ends.
+ * The receiving scope reads those bytes and republishes them to a display and heartbeat monitor.
+ * Ending the sending scope first prevents the serializer from capturing the replay again.
+ * Keep in mind: this runs in one process, not through an OS pipe. Real peers must agree on
+ * byte order, struct layout and type identity; the byte buffer must outlive its reader.
+ * Run: Sub0Pub_IpcPipe prints the byte count, two remote readings and two heartbeats.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>
