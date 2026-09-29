@@ -28,6 +28,15 @@
 #endif
 #endif
 
+// MSVC's /O2 inliner stops at a delivery chain of many receivers (evidence: MSVC_VERIFICATION.md); the hot
+// delivery functions ask for inlining explicitly there. Everywhere else this is plain `inline`, so the GCC, Clang
+// and Cortex-M33 code is unchanged.
+#if defined(_MSC_VER) && !defined(__clang__)
+#define SUB0X_INLINE __forceinline
+#else
+#define SUB0X_INLINE inline
+#endif
+
 namespace sub0x
 {
     namespace detail
@@ -55,7 +64,7 @@ namespace sub0x
 
         /// Deliver to one receiver: nothing at all if it does not handle T; its filter only if it declares one
         template<class R, class T>
-        inline void deliver(R& r, const T& msg) noexcept
+        SUB0X_INLINE void deliver(R& r, const T& msg) noexcept
         {
             if constexpr (accepts<R, T>::value)
             {
@@ -150,7 +159,7 @@ namespace sub0x
 
         /// Deliver to every bound receiver that handles T, in bound order
         template<class T>
-        void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
+        SUB0X_INLINE void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
 
         /// Ingress from one of the bound receivers (e.g. a transport endpoint): every other receiver gets it
         template<class T, class Origin>
@@ -179,7 +188,7 @@ namespace sub0x
         using Indices = std::index_sequence_for<Bound...>;
 
         template<class T, std::size_t... I>
-        void publish(const T& msg, std::index_sequence<I...>) const noexcept
+        SUB0X_INLINE void publish(const T& msg, std::index_sequence<I...>) const noexcept
         {
             (detail::deliver(detail::receiver(std::get<I>(bound_)), msg), ...);
         }
@@ -361,7 +370,7 @@ namespace sub0x
     struct StaticWiring
     {
         template<class T>
-        static void publish(const T& msg) noexcept
+        static SUB0X_INLINE void publish(const T& msg) noexcept
         {
             (detail::deliver(detail::receiver(*Bound), msg), ...);
         }

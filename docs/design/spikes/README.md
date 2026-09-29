@@ -77,7 +77,6 @@ Spike reports were checked, not trusted. These corrections were made on integrat
 ## Still open
 
 - `disconnectLater()` (K4) ported onto the handshake's active-dispatch list and measured.
-- MSVC evidence (`dumpbin`) (COLLAPSE_EVIDENCE.md plan).
 - Phase 2 of #9: #8's broker specialisation selecting the static structure per message type or domain.
 - Issue #11 (`SUB0PUB_TYPEIDNAME` does not compile), found by the embedded spike.
 - From the scores review: the clang `Wiring`-in-aggregate cost (K23), and a

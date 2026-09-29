@@ -1,0 +1,574 @@
+[
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 13,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131560,
+   "data": 8164,
+   "bss": 2856,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten_erased",
+  "path": {
+   "instructions": 9,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143560,
+   "data": 8704,
+   "bss": 2896,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "handwritten_runtime",
+  "path": {
+   "instructions": 16,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131632,
+   "data": 8164,
+   "bss": 2880,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 59,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 143464,
+   "data": 8512,
+   "bss": 3016,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 753,
+  "retained_sub0_only_bytes": 753,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [
+   "public: virtual bool __cdecl sub0::Subscribe<struct app::Sample>::filter(struct app::Sample const & __ptr64) __ptr64",
+   "public: virtual __cdecl sub0::Subscribe<struct app::Sample>::~Subscribe<struct app::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Publish<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Subscribe<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "const sub0::Publish<struct app::Sample>::`vftable'",
+   "const sub0::Subscribe<struct app::Sample>::`vftable'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "const sub0::Subscribe<struct app::Sample>::`RTTI Complete Object Locator'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "sub0::Publish<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Array'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Array'",
+   "const sub0::Publish<struct app::Sample>::`RTTI Complete Object Locator'",
+   "private: static class sub0::detail::Broker<struct app::Sample> const * __ptr64 const __ptr64 sub0::detail::Broker<struct app::Sample>::threadCurrent_",
+   "private: static bool sub0::detail::Broker<struct app::Sample>::threadCanceled_",
+   "class sub0::Publish<struct app::Sample> `RTTI Type Descriptor'",
+   "class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'",
+   "private: static struct sub0::detail::Broker<struct app::Sample>::State sub0::detail::Broker<struct app::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "pure virtual",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0pub_virtual_lean",
+  "path": {
+   "instructions": 51,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143424,
+   "data": 8512,
+   "bss": 3016,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 753,
+  "retained_sub0_only_bytes": 753,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [
+   "public: virtual bool __cdecl sub0::Subscribe<struct app::Sample>::filter(struct app::Sample const & __ptr64) __ptr64",
+   "public: virtual __cdecl sub0::Subscribe<struct app::Sample>::~Subscribe<struct app::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Publish<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Subscribe<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "const sub0::Publish<struct app::Sample>::`vftable'",
+   "const sub0::Subscribe<struct app::Sample>::`vftable'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "const sub0::Subscribe<struct app::Sample>::`RTTI Complete Object Locator'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "sub0::Publish<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Array'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Array'",
+   "const sub0::Publish<struct app::Sample>::`RTTI Complete Object Locator'",
+   "private: static class sub0::detail::Broker<struct app::Sample> const * __ptr64 const __ptr64 sub0::detail::Broker<struct app::Sample>::threadCurrent_",
+   "private: static bool sub0::detail::Broker<struct app::Sample>::threadCanceled_",
+   "class sub0::Publish<struct app::Sample> `RTTI Type Descriptor'",
+   "class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'",
+   "private: static struct sub0::detail::Broker<struct app::Sample>::State sub0::detail::Broker<struct app::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "pure virtual",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 16,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131632,
+   "data": 8164,
+   "bss": 2880,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 13,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131568,
+   "data": 8164,
+   "bss": 2864,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "observable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 9,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143560,
+   "data": 8704,
+   "bss": 2896,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=3262170576 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten",
+  "path": {
+   "instructions": 3,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131496,
+   "data": 8164,
+   "bss": 2856,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten_erased",
+  "path": {
+   "instructions": 9,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143512,
+   "data": 8704,
+   "bss": 2896,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "handwritten_runtime",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131552,
+   "data": 8164,
+   "bss": 2880,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual",
+  "path": {
+   "instructions": 59,
+   "direct_calls": 1,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": [
+    "memcpy"
+   ]
+  },
+  "sections": {
+   "text": 143432,
+   "data": 8512,
+   "bss": 3016,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 753,
+  "retained_sub0_only_bytes": 753,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [
+   "public: virtual bool __cdecl sub0::Subscribe<struct app::Sample>::filter(struct app::Sample const & __ptr64) __ptr64",
+   "public: virtual __cdecl sub0::Subscribe<struct app::Sample>::~Subscribe<struct app::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Publish<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Subscribe<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "const sub0::Publish<struct app::Sample>::`vftable'",
+   "const sub0::Subscribe<struct app::Sample>::`vftable'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "const sub0::Subscribe<struct app::Sample>::`RTTI Complete Object Locator'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "sub0::Publish<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Array'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Array'",
+   "const sub0::Publish<struct app::Sample>::`RTTI Complete Object Locator'",
+   "private: static class sub0::detail::Broker<struct app::Sample> const * __ptr64 const __ptr64 sub0::detail::Broker<struct app::Sample>::threadCurrent_",
+   "private: static bool sub0::detail::Broker<struct app::Sample>::threadCanceled_",
+   "class sub0::Publish<struct app::Sample> `RTTI Type Descriptor'",
+   "class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'",
+   "private: static struct sub0::detail::Broker<struct app::Sample>::State sub0::detail::Broker<struct app::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "pure virtual",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0pub_virtual_lean",
+  "path": {
+   "instructions": 51,
+   "direct_calls": 0,
+   "indirect_calls": 2,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143392,
+   "data": 8512,
+   "bss": 3016,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 753,
+  "retained_sub0_only_bytes": 753,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [
+   "public: virtual bool __cdecl sub0::Subscribe<struct app::Sample>::filter(struct app::Sample const & __ptr64) __ptr64",
+   "public: virtual __cdecl sub0::Subscribe<struct app::Sample>::~Subscribe<struct app::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Publish<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0::Subscribe<struct app::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "const sub0::Publish<struct app::Sample>::`vftable'",
+   "const sub0::Subscribe<struct app::Sample>::`vftable'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "const sub0::Subscribe<struct app::Sample>::`RTTI Complete Object Locator'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
+   "sub0::Publish<struct app::Sample>::`RTTI Class Hierarchy Descriptor'",
+   "sub0::Publish<struct app::Sample>::`RTTI Base Class Array'",
+   "sub0::Subscribe<struct app::Sample>::`RTTI Base Class Array'",
+   "const sub0::Publish<struct app::Sample>::`RTTI Complete Object Locator'",
+   "private: static class sub0::detail::Broker<struct app::Sample> const * __ptr64 const __ptr64 sub0::detail::Broker<struct app::Sample>::threadCurrent_",
+   "private: static bool sub0::detail::Broker<struct app::Sample>::threadCanceled_",
+   "class sub0::Publish<struct app::Sample> `RTTI Type Descriptor'",
+   "class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'",
+   "private: static struct sub0::detail::Broker<struct app::Sample>::State sub0::detail::Broker<struct app::Sample>::state_"
+  ],
+  "dependencies": [
+   "TLS",
+   "operator delete",
+   "pure virtual",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b1_wire",
+  "path": {
+   "instructions": 4,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131552,
+   "data": 8164,
+   "bss": 2880,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b2_static",
+  "path": {
+   "instructions": 3,
+   "direct_calls": 0,
+   "indirect_calls": 0,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 131504,
+   "data": 8164,
+   "bss": 2864,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ },
+ {
+  "build": "msvc-O2-lto",
+  "case": "cross_file",
+  "form": "removable",
+  "variant": "sub0x_b3_sink",
+  "path": {
+   "instructions": 9,
+   "direct_calls": 0,
+   "indirect_calls": 1,
+   "functions": [
+    "collapse_publish"
+   ],
+   "external": []
+  },
+  "sections": {
+   "text": 143512,
+   "data": 8704,
+   "bss": 2896,
+   "init_array": 0
+  },
+  "retained_sub0_bytes": 0,
+  "retained_sub0_only_bytes": 0,
+  "retained_sub0x_bytes": 0,
+  "retained_sub0": [],
+  "dependencies": [
+   "operator delete",
+   "atexit"
+  ],
+  "checksum": "state=0 args=1000 io=0 publishes=1000"
+ }
+]

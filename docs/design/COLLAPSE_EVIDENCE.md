@@ -61,8 +61,8 @@ measurement, not argued for.
    before the scores review, templated callees were cut off the path (COLLAPSE_SCORES.md, "Defects found").
 
 Named builds: `gcc-O2` and `clang-O2` (x86-64, run natively and under callgrind), and `cm33-gcc-Os`
-(arm-none-eabi GCC 13, Cortex-M33 as on the nRF54 application core, final ELF only). Still to add: MSVC
-(ELF-equivalent evidence via `dumpbin`), an LTO on/off pair for the cross-file case, and RISC-V once a
+(arm-none-eabi GCC 13, Cortex-M33 as on the nRF54 application core, final ELF only). MSVC (`msvc-O2`, `msvc-O2-lto`, from the PE image with
+`dumpbin` and the linker map, no callgrind: see [MSVC_VERIFICATION.md](MSVC_VERIFICATION.md)) is done. Still to add: an LTO on/off pair for the cross-file case, and RISC-V once a
 toolchain with libstdc++ is available.
 
 ```bash
@@ -221,7 +221,7 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
   is the "specific Sub0Pub-compliant manner" of coding the issue anticipated.
 - **B2 requires static storage duration** (addresses are template arguments). B1 covers dynamic
   lifetimes at the measured binding cost.
-- **Not yet in pattern B:** MSVC evidence (`dumpbin`). B3 rows for the new cases were added by the scores review. Cancellation and the
+- **Not yet in pattern B:** nothing on MSVC ([MSVC_VERIFICATION.md](MSVC_VERIFICATION.md)); B3 rows for the new cases were added by the scores review. Cancellation and the
   static-to-dynamic bridge are done ([spikes/README.md](spikes/README.md)).
 - **Choosing runtime binding or type erasure has a price** (runtime binding: publish up to +8, RAM up to
   +32 B; erasure: up to +22, +40 B, against static code), but it is the price of the choice, identical in
@@ -248,7 +248,7 @@ The face-offs behind points 3-5 are recorded in [spikes/README.md](spikes/README
 - **Phase 1: sandbox (first round done, above).** Next:
   - ~~the static-to-dynamic bridge; cancellation in the static path; publisher ergonomics alternatives~~
     (done, [spikes/README.md](spikes/README.md));
-  - MSVC evidence;
+  - ~~MSVC evidence~~ (done, [MSVC_VERIFICATION.md](MSVC_VERIFICATION.md));
   - ~~the equal-work runtime-address reference for B1~~ (done, with `handwritten_erased` and
     `handwritten_registry`: see "Fairness review").
 - **Phase 2:** broker specialisation (#8) selects the chosen static structure per message type or domain,
