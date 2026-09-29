@@ -59,14 +59,14 @@ One publisher, one subscriber, one publish site ([perf/compare-v1-v2-2026-09.md]
 
 | Implementation | text / data / bss (bytes) | Thread-local storage | Other link-time dependencies |
 |---|---|---|---|
-| v2 default | 228 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
-| v2 Full | 394 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
+| v2 default | 224 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 Full | 390 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
 | v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 | v1.0 | 418 / 4 / 76 | yes | `operator delete` |
 
 Each further message type instantiates its own table and dispatch loop (K17). `measure_footprint.py` reports the
 cost of each configuration option from the same scenario, and the marginal cost of a second subscriber, publish site
-and message type.
+and message type: [perf/footprint-2026-09.md](perf/footprint-2026-09.md).
 
 ## Not yet measured
 

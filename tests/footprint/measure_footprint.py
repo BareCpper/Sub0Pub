@@ -77,7 +77,7 @@ def compile_obj(target, scenario, policy_flags, out_dir, src_dir=HERE, extra=())
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         first_error = next((l for l in r.stderr.splitlines() if "error" in l), r.stderr.strip()[:120])
-        return None, first_error.strip()
+        return None, first_error.replace(os.path.dirname(INCLUDE) + os.sep, "").strip()  # repository-relative
     return obj, None
 
 

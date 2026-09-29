@@ -107,9 +107,18 @@ static wiring (K22), two links of one transport type (K18, K23), cancellation co
 `DynamicPort`'s out-of-line `receive()` (K21), and the `BrokerPort` bridge's setup, teardown and RAM (the price of
 its policy).
 
-**MSVC.** Every variant behaves identically to its reference. Against the same criteria (no instruction counts),
-`wire` variants meet all of them in 40 of 46 case × form checks (GCC 43, Clang 41), `StaticWiring` in 26 of 28 (GCC
-27, Clang 27) and `Sink` in 20 of 20 (Clang 11). The remaining failures are the same cases GCC and Clang fail, plus:
+Every static-wiring variant against its reference, case × form checks meeting every criterion (with and without
+LTO):
+
+| Build | `wire` (`sub0_b1_*`) | `StaticWiring` (`sub0_b2_*`) | `Sink` (`sub0_b3_*`) |
+|---|---:|---:|---:|
+| GCC 13 `-O2` | 49 / 52 | 32 / 34 | 22 / 22 |
+| Clang 18 `-O2` | 47 / 52 | 33 / 34 | 12 / 22 ¹ |
+| arm-none-eabi GCC 13 `-Os` (Cortex-M33) | 50 / 52 | 33 / 34 | 22 / 22 |
+| MSVC 19.51 `/O2` (no instruction counts) | 46 / 52 | 29 / 34 | 22 / 22 |
+
+**MSVC.** Every variant behaves identically to its reference. The failures are the cases GCC and Clang fail
+(`transport_two_links` K18, `cancellation_filtered` K24), plus:
 
 - `many_receivers`, `wire`: the 32-binding wiring keeps out-of-line Sub0Pub code (path equal, text +304 B); GCC
   collapses it fully. The `Publisher` mixin form is +6 path instructions (observable).
@@ -131,4 +140,7 @@ python tests/collapse/collapse_evidence.py --build msvc-O2                      
 
 The GCC, Clang and Cortex-M33 builds need `g++`, `clang++`, `arm-none-eabi-g++` and valgrind; on Windows the tool
 finds the newest Visual Studio itself. CI runs the full gate on Linux and a smoke run of both MSVC builds on Windows,
-and publishes the reports as artifacts. Stored reports: [perf/collapse/](perf/collapse/).
+and publishes the reports as artifacts. Stored reports (September 2026): GCC, Clang and Cortex-M33
+[perf/collapse/public-api-2026-09.md](perf/collapse/public-api-2026-09.md); MSVC
+[perf/collapse/msvc-2026-09.md](perf/collapse/msvc-2026-09.md) and
+[perf/collapse/msvc-lto-2026-09.md](perf/collapse/msvc-lto-2026-09.md); JSON beside each.

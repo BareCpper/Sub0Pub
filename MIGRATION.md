@@ -384,7 +384,7 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 95 (80) |
 | v2 Full (`SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`) | 80 (73) | 290 (262) | 102 (91) | 54 (41) |
 | v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
-| v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 297 (292) |
+| v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 293 (290) |
 | v2 static wiring (`StaticWiring`, `wire()`) | 8–9 (7–9) | 37 (37–40) | 15–16 (8–10) | n/a |
 | hand-written direct calls | 9 (7) | 37 (37) | 15 (8) | n/a |
 
@@ -393,15 +393,15 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | text / data / bss (bytes) | Needs thread-local storage | Other link-time dependencies |
 |---|---|---|---|
 | **v1.0** | 418 / 4 / 76 | yes | `operator delete` |
-| v2 default | 228 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
-| v2 Full | 394 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
+| v2 default | 224 / 4 / 58 | no | `memmove`, `__cxa_pure_virtual` |
+| v2 Full | 390 / 4 / 62 | yes | `memcpy`, `memmove`, `__cxa_pure_virtual` |
 | v2 `StaticWiring` | 12 / 0 / 4 | no | none |
 
 ### What this means when migrating
 
 - **The default costs less than v1.0.** It publishes to 1 and 8 subscribers in 34 and 104 instructions, against
   v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (36 against 31 on clang). The
-  embedded image is 228 bytes against 418, and needs neither thread-local storage nor `operator delete`.
+  embedded image is 224 bytes against 418, and needs neither thread-local storage nor `operator delete`.
 - **What you give up by default, you get back by opting in.** The default has no snapshot, no `cancel()`, no
   `filter()` and no lock. v1.0 had cancel and filter always on. Code that needs one of them is told:
   - `filter()` or `cancel()` without the opt-in does not compile;
