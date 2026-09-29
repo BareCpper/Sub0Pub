@@ -17,8 +17,11 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | - | - | - | 13 (+0) | 0/0 | 135932 (+0) | 5688 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | - | - | - | 9 (-4) | 0/1 | 148464 (+12532) | 5728 (+40) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | - | - | - | 16 (+3) | 0/0 | 135996 (+64) | 5712 (+24) | 0/0 | - | reference; FAIL: publish path, no extra RAM |
-| sub0pub_virtual | ok | - | - | - | 59 (+46) | 1/2 | 147804 (+11872) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0pub_virtual_lean | ok | - | - | - | 51 (+38) | 0/2 | 147756 (+11824) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0_b1_wire (vs handwritten_runtime) | ok | - | - | - | 16 (+0) | 0/0 | 135996 (+0) | 5712 (+0) | 0/0 | - | PASS |
+| sub0_b2_static | ok | - | - | - | 13 (+0) | 0/0 | 135932 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
+| sub0_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148464 (+0) | 5728 (+0) | 0/0 | - | PASS |
+| sub0pub_virtual | ok | - | - | - | 20 (+7) | 0/1 | 137312 (+1380) | 6064 (+376) | 456/0 | pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0pub_virtual_lean | ok | - | - | - | 20 (+7) | 0/1 | 137312 (+1380) | 6064 (+376) | 456/0 | pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
 | sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 16 (+0) | 0/0 | 135996 (+0) | 5712 (+0) | 0/0 | - | PASS |
 | sub0x_b2_static | ok | - | - | - | 13 (+0) | 0/0 | 135932 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
 | sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148464 (+0) | 5728 (+0) | 0/0 | - | PASS |
@@ -30,8 +33,11 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 | handwritten | ok | - | - | - | 3 (+0) | 0/0 | 135868 (+0) | 5688 (+0) | 0/0 | - | reference |
 | handwritten_erased | ok | - | - | - | 9 (+6) | 0/1 | 148416 (+12548) | 5728 (+40) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
 | handwritten_runtime | ok | - | - | - | 4 (+1) | 0/0 | 135916 (+48) | 5712 (+24) | 0/0 | - | reference; FAIL: no extra RAM |
-| sub0pub_virtual | ok | - | - | - | 59 (+56) | 1/2 | 147772 (+11904) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0pub_virtual_lean | ok | - | - | - | 51 (+48) | 0/2 | 147724 (+11856) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0_b1_wire (vs handwritten_runtime) | ok | - | - | - | 4 (+0) | 0/0 | 135916 (+0) | 5712 (+0) | 0/0 | - | PASS |
+| sub0_b2_static | ok | - | - | - | 3 (+0) | 0/0 | 135868 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
+| sub0_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148416 (+0) | 5728 (+0) | 0/0 | - | PASS |
+| sub0pub_virtual | ok | - | - | - | 20 (+17) | 0/1 | 137280 (+1412) | 6064 (+376) | 456/0 | pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0pub_virtual_lean | ok | - | - | - | 20 (+17) | 0/1 | 137280 (+1412) | 6064 (+376) | 456/0 | pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
 | sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 4 (+0) | 0/0 | 135916 (+0) | 5712 (+0) | 0/0 | - | PASS |
 | sub0x_b2_static | ok | - | - | - | 3 (+0) | 0/0 | 135868 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
 | sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148416 (+0) | 5728 (+0) | 0/0 | - | PASS |
@@ -61,29 +67,60 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 
 </details>
 
+<details><summary>msvc-O2-lto: largest symbols added by sub0_b1_wire (bytes)</summary>
+
+- 24 `class collapse::Slot<struct `anonymous namespace'::Sensor<class sub0::Wiring<struct app::Controller,struct app::Controller,struct app::Logger> > > `anonymous namespace'::sensor`
+- 4 `class collapse::Slot<struct app::Logger> `anonymous namespace'::logger`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerB`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerA`
+
+</details>
+
+<details><summary>msvc-O2-lto: largest symbols added by sub0_b2_static (bytes)</summary>
+
+- 1180 `__volatile_metadata`
+- 8 `__scrt_ucrt_dll_is_in_use`
+- 4 `class collapse::Slot<struct `anonymous namespace'::Sensor<struct sub0::StaticWiring<&class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerA,&class collapse::Slot<struct app::Controller> A0xff0ae43e::controllerB,&class collapse::Slot<struct app::Logger> A0xff0ae43e::logger> > > `anonymous namespace'::sensor`
+- 4 `class collapse::Slot<struct app::Logger> `anonymous namespace'::logger`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerB`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerA`
+
+</details>
+
+<details><summary>msvc-O2-lto: largest symbols added by sub0_b3_sink (bytes)</summary>
+
+- 64 `private: static __cdecl <lambda_5176b4e72f099bdab8ee92f0dbd06ba6>::<lambda_invoker_cdecl>(void const * __ptr64,struct app::Sample const & __ptr64)`
+- 24 `class collapse::Slot<class sub0::Wiring<struct app::Controller,struct app::Controller,struct app::Logger> > `anonymous namespace'::bus`
+- 16 `class collapse::Slot<struct app::Sensor> `anonymous namespace'::sensor`
+- 4 `class collapse::Slot<struct app::Logger> `anonymous namespace'::logger`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerB`
+- 4 `class collapse::Slot<struct app::Controller> `anonymous namespace'::controllerA`
+
+</details>
+
 <details><summary>msvc-O2-lto: largest symbols added by sub0pub_virtual (bytes)</summary>
 
-- 4352 `struct A0x8417fefe::_Removing::_Tables<256,16> const `anonymous namespace'::_Removing::_Tables_2_sse`
-- 2304 `struct A0x8417fefe::_Removing::_Tables<256,8> const `anonymous namespace'::_Removing::_Tables_4_avx`
-- 2304 `struct A0x8417fefe::_Removing::_Tables<256,8> const `anonymous namespace'::_Removing::_Tables_1_sse`
-- 1292 `__volatile_metadata`
-- 470 `$$000000`
-- 272 `collapse_setup`
-- 272 `struct A0x8417fefe::_Removing::_Tables<16,16> const `anonymous namespace'::_Removing::_Tables_4_sse`
-- 224 `collapse_publish`
+- 1180 `__volatile_metadata`
+- 368 `collapse_teardown`
+- 256 `collapse_setup`
+- 152 `SetSmallXmm`
+- 80 `collapse_publish`
+- 80 `class sub0::detail::SubscriberInterface<struct app::Sample,0> `RTTI Type Descriptor'`
+- 72 `private: static struct sub0::detail::Table<struct app::Sample,struct sub0::detail::BuiltinT<8,1,2,0,struct sub0::NoLock> > sub0::detail::BrokerImpl<struct app::Sample,struct sub0::detail::BuiltinT<8,1,2,0,struct sub0::NoLock> >::global_`
+- 56 `class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'`
 
 </details>
 
 <details><summary>msvc-O2-lto: largest symbols added by sub0pub_virtual_lean (bytes)</summary>
 
-- 4352 `struct A0x8417fefe::_Removing::_Tables<256,16> const `anonymous namespace'::_Removing::_Tables_2_sse`
-- 2304 `struct A0x8417fefe::_Removing::_Tables<256,8> const `anonymous namespace'::_Removing::_Tables_4_avx`
-- 2304 `struct A0x8417fefe::_Removing::_Tables<256,8> const `anonymous namespace'::_Removing::_Tables_1_sse`
-- 1300 `__volatile_metadata`
-- 470 `$$000000`
-- 272 `collapse_setup`
-- 272 `struct A0x8417fefe::_Removing::_Tables<16,16> const `anonymous namespace'::_Removing::_Tables_4_sse`
-- 224 `void const * __ptr64 __cdecl `anonymous namespace'::_Finding::_Find_impl<struct `anonymous namespace'::_Finding::_Find_traits_8,0,unsigned __int64>(void const * __ptr64,void const * __ptr64 const,unsigned __int64)`
+- 1188 `__volatile_metadata`
+- 368 `collapse_teardown`
+- 256 `collapse_setup`
+- 152 `SetSmallXmm`
+- 80 `collapse_publish`
+- 80 `class sub0::detail::SubscriberInterface<struct app::Sample,0> `RTTI Type Descriptor'`
+- 72 `private: static struct sub0::detail::Table<struct app::Sample,struct sub0::detail::BuiltinT<8,1,2,0,struct sub0::NoLock> > sub0::detail::BrokerImpl<struct app::Sample,struct sub0::detail::BuiltinT<8,1,2,0,struct sub0::NoLock> >::global_`
+- 56 `class sub0::Subscribe<struct app::Sample> `RTTI Type Descriptor'`
 
 </details>
 

@@ -1055,7 +1055,7 @@ def main():
         with open(args.json, "w") as fh:
             json.dump(serial, fh, indent=1)
 
-    toolchains = OrderedDict((n, run([b["cxx"], "--version"]).stdout.splitlines()[0]) for n, b in builds.items())
+    toolchains = OrderedDict((n, compiler_version(b)) for n, b in builds.items())
     if args.write_budgets:
         recorded = {"budgets": OrderedDict()}
         if os.path.exists(args.write_budgets):  # a partial selection updates only the rows it measured
