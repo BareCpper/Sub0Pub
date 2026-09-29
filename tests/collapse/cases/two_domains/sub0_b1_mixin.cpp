@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: two independent domains. Pattern B1 through the public CRTP publisher mixin sub0::Publisher<Derived, Out> (the recommended
  *  publisher form when the topology is not known where the publisher is written); otherwise as sub0_b1_wire. */
 #include "collapse_case.hpp"

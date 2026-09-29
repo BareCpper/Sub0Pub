@@ -1,4 +1,4 @@
-/** Prototype tests: one Data type used from several translation units shares one table and one configuration */
+/** One Data type used from several translation units shares one table and one configuration */
 #include "doctest.h"
 #include "app_types.hpp"
 

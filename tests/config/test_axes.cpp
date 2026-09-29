@@ -1,4 +1,4 @@
-/** Prototype tests: the guarantee each policy option claims (docs/design/AXIS_SCORES.md, "Coverage").
+/** The guarantee each configuration option claims (docs/DESIGN.md, "Per-type configuration").
  * One behaviour per test, per option, where no other test demonstrated it. */
 #include "doctest.h"
 #include "sub0pub/sub0pub.hpp"
@@ -134,7 +134,7 @@ TEST_CASE("axes: StaticContext, cancel() stops the rest of the current publicati
 }
 
 // --- Lock + ThreadLocalContext: concurrent publishers are isolated from each other's cancel() ---
-// (Lock + StaticContext is rejected at compile time: compile_fail/cf_lock_static_context.cpp.)
+// (Lock + StaticContext is rejected at compile time: compile_fail/cf_config_lock_static_context.cpp.)
 
 TEST_CASE("axes: Lock, one publisher thread's cancel() never affects another thread's publication") {
     Probe<LockedMsg> gate;
@@ -188,8 +188,8 @@ TEST_CASE("axes: Lock, concurrent publishers with subscribe/unsubscribe churn: s
     CHECK(stableCount.load() == 3 * cN);
 }
 
-// --- Lifetime during dispatch (review findings on #8/#10, 2026-09) ---
-// Snapshot + NoContext is rejected at compile time (compile_fail/cf_snapshot_no_context.cpp): without a dispatch frame a
+// --- Lifetime during dispatch ---
+// Snapshot + NoContext is rejected at compile time (compile_fail/cf_config_snapshot_no_context.cpp): without a dispatch frame a
 // subscriber destroyed during a Snapshot dispatch stayed in that dispatch's snapshot (ASan: heap-use-after-free).
 
 namespace {

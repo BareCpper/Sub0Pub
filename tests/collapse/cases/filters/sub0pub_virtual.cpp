@@ -1,4 +1,4 @@
-/** Case: default and runtime filters. Pattern A: today's public sub0pub.hpp API (filter() is virtual). */
+/** Case: default and runtime filters. The runtime broker (Subscribe/Publish) (filter() is virtual). */
 #define SUB0PUB_FILTER true // filter() is opt-in; this case measures it (types are local to this TU)
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"

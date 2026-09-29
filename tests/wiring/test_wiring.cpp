@@ -1,8 +1,6 @@
-/** Pattern B sandbox (tests/collapse/sandbox/): guarantees and limitations that the collapse cases cannot show,
- *  because a case must behave exactly like its hand-written reference (docs/design/COLLAPSE_SCORES.md,
- *  "Coverage review"). Each test demonstrates one row of the guarantees table; tests named "limitation" pin a
- *  documented compromise (known issues K14 and K18-K24 in docs/design/BROKER_CUSTOMISATION.md section 8), so a
- *  change of behaviour is noticed. */
+/** Static wiring: guarantees and limitations that the collapse cases cannot show, because a case must behave
+ *  exactly like its hand-written reference (docs/EVIDENCE.md). Tests named "limitation" pin a documented
+ *  limitation (K14, K18-K24 in docs/DESIGN.md, "Known limitations"), so a change of behaviour is noticed. */
 #include "doctest.h"
 #include "sub0pub/sub0pub.hpp"
 

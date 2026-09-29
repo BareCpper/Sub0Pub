@@ -1,4 +1,4 @@
-/** Case: dynamic subscriptions. Pattern A: today's public sub0pub.hpp API (runtime registry). */
+/** Case: dynamic subscriptions. The runtime broker (Subscribe/Publish) (runtime registry). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

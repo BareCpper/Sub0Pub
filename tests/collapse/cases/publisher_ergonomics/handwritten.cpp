@@ -1,4 +1,4 @@
-/** Case: publisher ergonomics face-off (issue #9). Same topology as multi_receivers (controllerA gain 3,
+/** Case: publisher spelling. Same topology as multi_receivers (controllerA gain 3,
  *  controllerB gain 5, logger; dispatch order A, B, logger). Reference: direct calls. */
 #include "collapse_case.hpp"
 

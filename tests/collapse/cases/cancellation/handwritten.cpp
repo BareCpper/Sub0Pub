@@ -1,9 +1,9 @@
-/** Case: receiver-controlled early stop of the current publication (issue #9 static-cancellation spike).
+/** Case: receiver-controlled early stop of the current publication.
  *  Receivers in bound order: Gate (does its own work first, then cancels the rest of the publication when
  *  value % 3 == 0), Controller (gain 3), Logger. Reference: direct calls with an early return after Gate's
  *  decision — Controller and Logger are simply not called for cancelled publications. The decision is returned
- *  by value, as a careful engineer would write it (an earlier revision stored it in a Gate member, which set
- *  the bar 3 instructions and 8 B of RAM too low). */
+ *  by value, as a careful engineer would write it (storing it in a Gate member would cost 3 instructions and 8 B
+ *  of RAM, and set the bar too low). */
 #include "collapse_case.hpp"
 
 namespace {

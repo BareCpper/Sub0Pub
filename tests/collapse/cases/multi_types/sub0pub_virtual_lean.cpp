@@ -1,7 +1,7 @@
 /** Case: two message types in one wiring. Controller handles Sample and Command, Logger only Sample,
  *  Actuator only Command. Each publication sends Sample{v} then Command{v ^ 0xF}; bound order
  *  controller, logger, actuator, so Sample reaches controller then logger, Command controller then actuator.
- *  Pattern A at its leanest macros. Controller subscribes to both types (two bases). */
+ *  The runtime broker at its leanest macros. Controller subscribes to both types (two bases). */
 // Today's API at its leanest settings (fair comparison): direct dispatch, no assertion checks
 #define SUB0PUB_REENTRANT_SAFE false
 #define SUB0PUB_ASSERT false

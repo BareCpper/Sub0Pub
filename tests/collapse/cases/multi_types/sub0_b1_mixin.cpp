@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: two message types in one wiring. Controller handles Sample and Command, Logger only Sample,
  *  Actuator only Command. Each publication sends Sample{v} then Command{v ^ 0xF}; bound order
  *  controller, logger, actuator, so Sample reaches controller then logger, Command controller then actuator.

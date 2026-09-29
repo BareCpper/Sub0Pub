@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_erased
+// COLLAPSE_REFERENCE: handwritten_erased
 #include "receivers.hpp"
 
 namespace {

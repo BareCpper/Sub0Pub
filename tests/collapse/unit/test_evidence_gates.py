@@ -44,7 +44,7 @@ class EvidenceGates(unittest.TestCase):
             "checksum": "same", "instr": {"publish": 10, "setup": 10, "teardown": 10},
             "path": {"instructions": 10, "direct_calls": 0, "indirect_calls": 0},
             "sections": {"text": 100, "data": 0, "bss": 0, "init_array": 0},
-            "retained_sub0_bytes": 0, "retained_sub0_only_bytes": 0, "retained_sub0x_bytes": 0,
+            "retained_sub0_bytes": 0,
             "dependencies": [], "symbols": {},
         }
         result = copy.deepcopy(reference)

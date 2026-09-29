@@ -1,7 +1,7 @@
 #pragma once
 /** Case: cross-file application (receivers in another translation unit, external linkage).
  *  Runtime-bound reference: receiver addresses stored at setup and called through, receivers implemented in
- *  another TU (equal work for B1, selected with `// SUB0X_REFERENCE: handwritten_runtime`). Built with and without LTO. */
+ *  another TU (equal work for B1, selected with `// COLLAPSE_REFERENCE: handwritten_runtime`). Built with and without LTO. */
 #include "collapse_case.hpp"
 
 namespace app {

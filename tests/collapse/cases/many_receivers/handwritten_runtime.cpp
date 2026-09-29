@@ -1,6 +1,6 @@
 /** Case: 32 receivers of one type. Runtime-bound reference: the publisher holds the receivers' addresses,
  *  stored at setup, and calls through each one in order (unrolled, as `wire(...)` delivers). Equal work for B1,
- *  which selects it with `// SUB0X_REFERENCE: handwritten_runtime`. */
+ *  which selects it with `// COLLAPSE_REFERENCE: handwritten_runtime`. */
 #include "collapse_case.hpp"
 #include "many.hpp"
 

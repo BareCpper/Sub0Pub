@@ -6,8 +6,7 @@ add_subdirectory(ipc_pipe)
 add_subdirectory(layout_check)
 add_subdirectory(minimal_sub0pub)
 
-# cross_module disabled: thread_local members in Broker<> cannot be dllexport'd on MSVC.
-# Cross-DLL support requires deeper design work (Phase 4).
+# cross_module disabled: cross-module (DLL / shared library) use is not supported yet (cross_module/README.md).
 # add_subdirectory(cross_module)
 
 # Focused examples of the current API: return nonzero on a broken contract, including Release builds.

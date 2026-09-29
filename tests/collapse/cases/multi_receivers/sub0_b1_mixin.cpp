@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: multiple receivers including a repeated type (bound order = delivery order).
  *  Pattern B1 through the public CRTP publisher mixin sub0::Publisher<Derived, Out> (the recommended
  *  publisher form when the topology is not known where the publisher is written); otherwise as sub0_b1_wire. */

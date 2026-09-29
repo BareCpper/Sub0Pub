@@ -1,7 +1,7 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: concrete transport endpoint. Pattern B1 as sub0_b1_wire, but ingress names the transport object itself
- *  as its origin (what a radio's receive callback has at hand), not its Forward adapter. Before the scores review
- *  this echoed the ingress back out through the radio (behaviour mismatch); see COLLAPSE_SCORES.md "Defects". */
+ *  as its origin (what a radio's receive callback has at hand), not its Forward adapter. Pins the fix for an echo:
+ *  the transport and its adapter are the same origin, so ingress is not sent back out through the radio. */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

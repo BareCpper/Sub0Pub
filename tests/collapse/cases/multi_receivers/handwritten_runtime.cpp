@@ -1,7 +1,7 @@
 /** Case: multiple receivers including a repeated type. Runtime-bound reference: what a careful engineer writes
  *  when receiver addresses are only known at run time. The publisher holds the receivers' addresses, stored at
  *  setup, and calls through them in subscription order. Equal work for patterns whose bindings are runtime
- *  values (B1 `wire(...)`), which select it with `// SUB0X_REFERENCE: handwritten_runtime`. */
+ *  values (B1 `wire(...)`), which select it with `// COLLAPSE_REFERENCE: handwritten_runtime`. */
 #include "collapse_case.hpp"
 
 namespace {

@@ -1,5 +1,5 @@
 #pragma once
-/** Collapse evidence harness (issue #9): shared contract for every case variant
+/** Collapse evidence harness (docs/EVIDENCE.md): shared contract for every case variant
  *
  * A case is one application scenario implemented several ways (variants): `handwritten.cpp` is the
  * equal-work reference without Sub0Pub; the other files implement the same behaviour through a Sub0Pub

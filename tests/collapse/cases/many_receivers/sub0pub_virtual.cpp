@@ -1,4 +1,4 @@
-/** Case: 32 receivers of one type. Pattern A: today's public sub0pub.hpp API,
+/** Case: 32 receivers of one type. The runtime broker (Subscribe/Publish),
  *  with a 32-entry subscription table. */
 #define SUB0PUB_MAX_SUBSCRIPTIONS 32
 #include "collapse_case.hpp"

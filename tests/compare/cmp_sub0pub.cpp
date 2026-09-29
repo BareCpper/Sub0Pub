@@ -10,7 +10,7 @@
 
 #include "cmp_common.hpp"
 
-// filter() and cancel() are opt-in in a header that defines SUB0PUB_CANCEL; v1.0 and v2 before Phase 2 always had them
+// filter() and cancel() are opt-in in a header that defines SUB0PUB_CANCEL; v1.0 always had them
 #if defined(SUB0PUB_CANCEL)
 #define CMP_FILTER SUB0PUB_FILTER
 #define CMP_CANCEL (SUB0PUB_CANCEL || SUB0PUB_REENTRANT_SAFE || SUB0PUB_THREAD_SAFE)

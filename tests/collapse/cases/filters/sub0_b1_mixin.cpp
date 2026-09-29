@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: default and runtime filters: Controller declares an always-true filter (must compile away); EvenMonitor's runtime filter keeps its branch.
  *  Pattern B1 through the public CRTP publisher mixin sub0::Publisher<Derived, Out> (the recommended
  *  publisher form when the topology is not known where the publisher is written); otherwise as sub0_b1_wire. */

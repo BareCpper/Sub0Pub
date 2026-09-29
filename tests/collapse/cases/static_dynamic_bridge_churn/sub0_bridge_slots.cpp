@@ -2,7 +2,7 @@
  *  logger); two dynamic probes (offsets 11 and 13) subscribed at setup; a third, transient probe (offset 17)
  *  exists only for publications where (v & 3) == 0 (subscribed before, unsubscribed after). Order:
  *  controller, logger, then dynamic subscribers in subscription order.
- *  Alternative B: a DynamicPort bound into the static wiring (public API, include/sub0pub/sub0pub.hpp). */
+ *  A DynamicPort bound into the static wiring (public API, include/sub0pub/sub0pub.hpp). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

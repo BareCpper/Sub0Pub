@@ -1,4 +1,4 @@
-/** Static/dynamic bridge, alternative B: a DynamicPort bound into the static wiring owns a minimal
+/** Static/dynamic bridge through a DynamicPort: a DynamicPort bound into the static wiring owns a minimal
  *  fixed-capacity slot array itself -- no broker dependency, no policy (public API, include/sub0pub/sub0pub.hpp). */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"

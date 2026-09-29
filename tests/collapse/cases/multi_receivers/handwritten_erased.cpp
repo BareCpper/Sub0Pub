@@ -1,6 +1,6 @@
 /** Case: multiple receivers including a repeated type. Type-erased reference: a non-template publisher written by hand the C way -- a context pointer to a node
  *  holding the receivers' addresses (stored at setup) plus a function pointer that delivers to them. Equal work for
- *  `Sink<T>` (B3), which selects it with `// SUB0X_REFERENCE: handwritten_erased`. */
+ *  `Sink<T>` (B3), which selects it with `// COLLAPSE_REFERENCE: handwritten_erased`. */
 #include "collapse_case.hpp"
 
 namespace {

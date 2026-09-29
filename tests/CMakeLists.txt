@@ -36,6 +36,7 @@ sub0pub_add_bench(Sub0Pub_Bench_Checked    bench/bench_core.cpp SUB0PUB_REENTRAN
 sub0pub_add_bench(Sub0Pub_Bench_Full       bench/bench_core.cpp SUB0PUB_REENTRANT_SAFE=true SUB0PUB_CANCEL=true SUB0PUB_FILTER=true)
 sub0pub_add_bench(Sub0Pub_Bench_ThreadSafe bench/bench_core.cpp SUB0PUB_THREAD_SAFE=true SUB0PUB_FILTER=true)
 sub0pub_add_bench(Sub0Pub_Bench_Ipc        bench/bench_ipc.cpp)
+sub0pub_add_bench(Sub0Pub_Bench_Axes       bench/bench_axes.cpp) # each configuration option alone (docs/DESIGN.md)
 
 # Per-Data configuration and static wiring (public API: sub0pub/config.hpp, sub0pub/broker/, sub0pub/wiring/)
 add_subdirectory(config)
@@ -47,12 +48,8 @@ add_subdirectory(headers)
 # The installed package, as an external find_package(Sub0Pub) project uses it
 add_subdirectory(package)
 
-# Design prototypes (not public API)
-add_subdirectory(design/broker_config)
-add_subdirectory(design/quiescence)
-
-# Collapse evidence cases (issue #9)
+# Collapse evidence: every variant behaves exactly like its hand-written reference (docs/EVIDENCE.md)
 add_subdirectory(collapse)
 
-# v1 vs v2 comparison (MIGRATION.md "Performance evidence")
+# v1 vs v2 comparison (MIGRATION.md)
 add_subdirectory(compare)

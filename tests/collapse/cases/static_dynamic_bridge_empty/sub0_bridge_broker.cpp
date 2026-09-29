@@ -1,6 +1,6 @@
-// SUB0X_REFERENCE: handwritten_registry
-/** Static/dynamic bridge, alternative A, empty dynamic side: the BrokerPort and its Domain are still bound
- *  and constructed, but no dynamic subscriber is ever added. Checks whether an unused #8 registry collapses. */
+// COLLAPSE_REFERENCE: handwritten_registry
+/** Static/dynamic bridge through a BrokerPort, empty dynamic side: the BrokerPort and its Domain are still bound
+ *  and constructed, but no dynamic subscriber is ever added. Checks whether an unused runtime broker collapses. */
 #include "collapse_case.hpp"
 #include "sub0pub/sub0pub.hpp"
 

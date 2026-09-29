@@ -1,4 +1,4 @@
-/** Worked example required by the PR #8 API review before any API freeze:
+/** Worked example of the runtime broker's endpoints:
  *   two isolated sessions and the same message type, two transport implementations, ingress and egress,
  *   transport rejection, teardown during delivery (same thread and cross-thread), and an application-defined
  *   broker implementation. Everything below is application code except the public header.

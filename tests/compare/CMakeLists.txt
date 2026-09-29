@@ -4,8 +4,7 @@ set(SUB0PUB_COMPARE_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/../bench"
     "${CMAKE_CURRENT_SOURCE_DIR}/../vendor"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../collapse"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../design/broker_config")
+    "${CMAKE_CURRENT_SOURCE_DIR}/../collapse")
 
 foreach(name cmp_sub0pub cmp_config cmp_static cmp_mixed)
     add_executable(Sub0Pub_Compare_${name} ${name}.cpp)

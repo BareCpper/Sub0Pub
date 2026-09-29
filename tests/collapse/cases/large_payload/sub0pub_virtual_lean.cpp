@@ -1,6 +1,6 @@
 /** Case: a large payload (64-byte Frame, 16 words, word i = v + i) delivered to a controller (reads words 0
  *  and 15) and a logger (xors word 7 with its count), by const reference.
- *  Pattern A at its leanest macros. */
+ *  The runtime broker at its leanest macros. */
 // Today's API at its leanest settings (fair comparison): direct dispatch, no assertion checks
 #define SUB0PUB_REENTRANT_SAFE false
 #define SUB0PUB_ASSERT false

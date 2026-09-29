@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: two links of one transport type. Each publication goes to a controller and out through radio A
  *  and radio B; a message then arrives on radio A (ingress) and goes to the controller and out through B
  *  only (split horizon between two endpoints of the same type).

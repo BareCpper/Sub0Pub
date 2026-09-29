@@ -1,7 +1,6 @@
-/** Publisher ergonomics face-off (issue #9), runtime-bound reference: the publisher holds its receivers'
- *  addresses, stored at setup, and calls through them in order (controller A, controller B, logger). Equal work
- *  for every alternative that binds at run time (alt1-5, alt7, alt8); alt6 binds statically and is compared
- *  with `handwritten`. */
+/** Case: publisher spelling. Runtime-bound reference: the publisher holds its receivers' addresses, stored at
+ *  setup, and calls through them in order (controller A, controller B, logger). Equal work for a publisher that
+ *  binds its output at run time. */
 #include "collapse_case.hpp"
 
 namespace {

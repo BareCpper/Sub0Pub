@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_erased
+// COLLAPSE_REFERENCE: handwritten_erased
 /** Case: 32 receivers of one type. Pattern B3: non-template publisher holding a type-erased Sink<Sample> into a
  *  typed wiring of 32 receivers. */
 #include "collapse_case.hpp"

@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_erased
+// COLLAPSE_REFERENCE: handwritten_erased
 /** Case: two independent domains. Pattern B3: one non-template publisher type, one instance per domain, each
  *  holding a Sink<Sample> into its domain's typed wiring. */
 #include "collapse_case.hpp"

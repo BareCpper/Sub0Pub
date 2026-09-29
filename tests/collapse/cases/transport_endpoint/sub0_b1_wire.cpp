@@ -1,4 +1,4 @@
-// SUB0X_REFERENCE: handwritten_runtime
+// COLLAPSE_REFERENCE: handwritten_runtime
 /** Case: concrete transport endpoint. Pattern B1: typed wiring with a typed Forward<Radio> endpoint binding;
  *  ingress via publishFrom(endpoint) skips the endpoint (split horizon). */
 #include "collapse_case.hpp"
