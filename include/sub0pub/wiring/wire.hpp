@@ -48,7 +48,7 @@ namespace sub0
 
         /// Deliver to every bound receiver that handles T, in bound order
         template<class T>
-        void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
+        SUB0PUB_FORCE_INLINE void publish(const T& msg) const noexcept { publish(msg, Indices{}); }
 
         /// As publish(), stopping at the first receiver whose bool receive() returns false
         template<class T>
@@ -73,7 +73,7 @@ namespace sub0
         using Indices = std::index_sequence_for<Bound...>;
 
         template<class T, std::size_t... I>
-        void publish(const T& msg, std::index_sequence<I...>) const noexcept
+        SUB0PUB_FORCE_INLINE void publish(const T& msg, std::index_sequence<I...>) const noexcept
         {
             (detail::wiring::deliver(detail::wiring::receiver(std::get<I>(bound_)), msg), ...);
         }
@@ -114,7 +114,7 @@ namespace sub0
     {
         /// Deliver to every bound receiver that handles T, in bound order
         template<class T>
-        static void publish(const T& msg) noexcept
+        static SUB0PUB_FORCE_INLINE void publish(const T& msg) noexcept
         {
             (detail::wiring::deliver(detail::wiring::receiver(*Bound), msg), ...);
         }

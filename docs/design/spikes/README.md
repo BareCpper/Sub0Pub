@@ -77,7 +77,6 @@ Spike reports were checked, not trusted. These corrections were made on integrat
 ## Still open
 
 - `disconnectLater()` (K4) ported onto the handshake's active-dispatch list and measured.
-- MSVC evidence (`dumpbin`) (COLLAPSE_EVIDENCE.md plan).
 - ~~Phase 2 of #9~~ **Done:** the per-type broker (#8) and the static wiring are public API in `include/sub0pub/` (`MIGRATION.md`). Still open from it: a broker configuration that selects a static structure per message type or domain.
 - Issue #11 (`SUB0PUB_TYPEIDNAME` does not compile), found by the embedded spike.
 - From the scores review: the clang `Wiring`-in-aggregate cost (K23), and a

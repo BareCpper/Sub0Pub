@@ -304,6 +304,12 @@ Without snapshot dispatch, a `receive()` that subscribes or unsubscribes (or des
 
 The `SUB0PUB_*` policy macros must agree in every translation unit that uses a type. Setting them differently in one translation unit is only valid for types local to it.
 
+### `SUB0PUB_FORCE_INLINE` (new in v2, internal)
+
+Defined by `sub0pub/config_macros.hpp` for the static-wiring delivery chain: `__forceinline` on MSVC, plain `inline`
+on every other compiler. It is not a configuration option (it has no `#ifndef` override). It is listed here only so
+a project defining a macro of the same name sees the collision.
+
 ### `SUB0_STRINGIFY` renamed to `SUB0PUB_STRINGIFY`
 
 The macro was renamed for prefix consistency. The old name no longer exists.

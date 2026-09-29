@@ -41,6 +41,17 @@ jobs:
         run: cmake --build --preset ci-msvc
       - name: Test
         run: ctest --preset ci-msvc
+      - name: MSVC final-image evidence (static fan-out)
+        run: python tests/collapse/collapse_evidence.py --build msvc-O2 --case many_receivers --json msvc-fanout.json > msvc-fanout.md
+      - name: MSVC final-image evidence (cross-file LTCG)
+        run: python tests/collapse/collapse_evidence.py --build msvc-O2-lto --case cross_file --json msvc-ltcg.json > msvc-ltcg.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: msvc-evidence-smoke
+          path: |
+            msvc-fanout.*
+            msvc-ltcg.*
 
   build-macos:
     runs-on: macos-latest

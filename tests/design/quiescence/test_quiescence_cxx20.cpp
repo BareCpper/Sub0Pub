@@ -51,6 +51,11 @@ TEST_CASE("quiescence: mechanism 2b (refcount + C++20 atomic wait/notify) teardo
             qx::rcw::publish(SharedRcw{published.fetch_add(1, std::memory_order_relaxed)});
     });
 
+    // Teardown must overlap publishing: a late-scheduled publisher thread could otherwise publish nothing before
+    // the loop ends, leaving the race untested and the CHECK below failing (as test_endpoints.cpp)
+    while (published.load(std::memory_order_relaxed) == 0)
+        std::this_thread::yield();
+
     for (int i = 0; i < 2000; ++i)
     {
         GuardedT a;
@@ -67,10 +72,18 @@ TEST_CASE("quiescence: mechanism 2b starvation bound (wake-ups, not spins) under
 {
     using IdleT = Idle<qx::rcw::Subscribe<StarveRcw>, StarveRcw>;
     std::atomic<bool> stop{false};
+    std::atomic<bool> publishing{false};
     std::thread publisher([&] {
         while (!stop.load(std::memory_order_relaxed))
+        {
             qx::rcw::publish(StarveRcw{0});
+            publishing.store(true, std::memory_order_relaxed);
+        }
     });
+
+    // Measure only while publishing: otherwise "0 wake-ups" can mean the publisher had not started yet
+    while (!publishing.load(std::memory_order_relaxed))
+        std::this_thread::yield();
 
     uint64_t maxIters = 0;
     for (int i = 0; i < 500; ++i)
