@@ -1,63 +1,112 @@
-/** Keep the fixed path direct; attach optional runtime observers at one explicit boundary. */
+/** A controller always receives readings. Optional diagnostic receivers can come and go beside it. */
 #include "sub0pub/wiring.hpp"
 #include "sub0pub/wiring/broker_port.hpp"
 
-struct Sample { unsigned value; };
-struct Controller
-{
-    unsigned total = 0;
-    void receive(const Sample& sample) noexcept { total += sample.value; }
-};
-struct Probe final : sub0::DynamicPort<Sample, 1>::Receiver
-{
-    unsigned total = 0;
-    void receive(const Sample& sample) noexcept override { total += sample.value; }
-};
+struct TemperatureReading { int celsius; };
 
-struct SessionSample
+struct CoolingController
 {
-    unsigned value;
-    using sub0_config = sub0::config<sub0::Scoped, sub0::Snapshot>;
-};
-struct SessionController
-{
-    unsigned total = 0;
-    void receive(const SessionSample& sample) noexcept { total += sample.value; }
-};
-struct SessionProbe final : sub0::Subscribe<SessionSample>
-{
-    using Subscribe::Subscribe;
-    unsigned count = 0;
-    void receive(const SessionSample&) noexcept override
+    unsigned readingsReceived = 0;
+    bool fanRunning = false;
+
+    void receive(const TemperatureReading& reading) noexcept
     {
-        ++count;
-        disconnect(); // Choose BrokerPort + Snapshot when a callback must remove itself.
+        fanRunning = reading.celsius >= 21;
+        ++readingsReceived;
     }
 };
 
+using DiagnosticPort = sub0::DynamicPort<TemperatureReading, 1>;
+
+struct DiagnosticProbe final : DiagnosticPort::Receiver
+{
+    unsigned readingsReceived = 0;
+    void receive(const TemperatureReading&) noexcept override { ++readingsReceived; }
+};
+
+bool attachAndRemoveAProbe()
+{
+    CoolingController controller;
+    DiagnosticPort diagnostics;
+    auto wiring = sub0::wire(controller, diagnostics);
+
+    wiring.publish(TemperatureReading{20}); // The controller works even with no diagnostic receiver.
+    if (controller.readingsReceived != 1)
+        return false;
+
+    DiagnosticProbe probe;
+    DiagnosticProbe waitingProbe;
+    if (!diagnostics.tryAdd(&probe) || diagnostics.tryAdd(&waitingProbe))
+        return false;
+
+    wiring.publish(TemperatureReading{21});
+    if (controller.readingsReceived != 2 || probe.readingsReceived != 1)
+        return false;
+
+    // DynamicPort borrows unique, non-null receivers. Remove before destruction, outside delivery.
+    // Adding, removing and publishing must not run concurrently.
+    diagnostics.remove(&probe);
+    wiring.publish(TemperatureReading{22});
+
+    return controller.readingsReceived == 3 && controller.fanRunning && probe.readingsReceived == 1;
+}
+
+struct SessionTemperatureReading
+{
+    int celsius;
+    using sub0_config = sub0::config<sub0::Scoped, sub0::Snapshot>;
+};
+
+struct SessionCoolingController
+{
+    unsigned readingsReceived = 0;
+    bool fanRunning = false;
+
+    void receive(const SessionTemperatureReading& reading) noexcept
+    {
+        fanRunning = reading.celsius >= 21;
+        ++readingsReceived;
+    }
+};
+
+struct OneShotProbe final : sub0::Subscribe<SessionTemperatureReading>
+{
+    using Subscribe::Subscribe;
+    unsigned readingsReceived = 0;
+
+    void receive(const SessionTemperatureReading&) noexcept override
+    {
+        ++readingsReceived;
+        disconnect(); // BrokerPort with Snapshot permits removal during a callback.
+    }
+};
+
+bool letProbesDisconnectThemselves()
+{
+    sub0::Domain<SessionTemperatureReading> diagnosticSession;
+    SessionCoolingController controller;
+    sub0::BrokerPort<SessionTemperatureReading> diagnostics(diagnosticSession);
+    auto wiring = sub0::wire(controller, diagnostics);
+
+    OneShotProbe firstProbe(diagnosticSession);
+    OneShotProbe secondProbe(diagnosticSession);
+    wiring.publish(SessionTemperatureReading{20});
+    if (firstProbe.readingsReceived != 1 || secondProbe.readingsReceived != 1)
+        return false;
+
+    wiring.publish(SessionTemperatureReading{21}); // Both probes have disconnected; the controller remains wired.
+    if (controller.readingsReceived != 2 || !controller.fanRunning)
+        return false;
+    diagnosticSession.close();
+    wiring.publish(SessionTemperatureReading{22}); // Closing the diagnostic session leaves the fixed path intact.
+
+    return controller.readingsReceived == 3 && controller.fanRunning &&
+        firstProbe.readingsReceived == 1 && secondProbe.readingsReceived == 1;
+}
+
 int main()
 {
-    Controller controller;
-    sub0::DynamicPort<Sample, 1> port;
-    auto bus = sub0::wire(controller, port);
-    bus.publish(Sample{1}); // Empty dynamic side still delivers to controller.
-    Probe probe, overflow;
-    if (!port.tryAdd(&probe) || port.tryAdd(&overflow)) return 1;
-    bus.publish(Sample{2});
-    // DynamicPort does not own receivers: remove before destruction, never during delivery.
-    // Do not register null/duplicate pointers or access it concurrently.
-    port.remove(&probe);
-    bus.publish(Sample{3});
-    if (controller.total != 6 || probe.total != 2) return 2;
-
-    sub0::Domain<SessionSample> domain;
-    SessionController fixed;
-    sub0::BrokerPort<SessionSample> brokerPort(domain);
-    auto sessionBus = sub0::wire(fixed, brokerPort);
-    SessionProbe first(domain), second(domain);
-    sessionBus.publish(SessionSample{1}); // Both self-remove safely.
-    sessionBus.publish(SessionSample{2}); // Fixed path remains active.
-    domain.close();
-    sessionBus.publish(SessionSample{3}); // Closing dynamic scope does not close fixed wiring.
-    return fixed.total == 6 && first.count == 1 && second.count == 1 ? 0 : 3;
+    if (!attachAndRemoveAProbe()) return 1;
+    if (!letProbesDisconnectThemselves()) return 2;
+    return 0;
 }

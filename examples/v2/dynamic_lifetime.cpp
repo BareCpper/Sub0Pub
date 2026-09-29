@@ -1,63 +1,77 @@
-/** Migrating v1 lifetimes: bounded registration, opt-in filter/cancel, snapshot mutation, locked teardown. */
+/** A recording session has two subscriber slots. A one-shot recorder frees its slot for a waiting recorder. */
 #include "sub0pub/broker.hpp"
-#include <atomic>
-#include <mutex>
 
-struct Sample
+struct TemperatureReading
 {
-    unsigned value;
-    using sub0_config = sub0::config<sub0::Scoped, sub0::Capacity<2>, sub0::Snapshot, sub0::Filter>;
+    int celsius;
+    using sub0_config = sub0::config<sub0::Scoped, sub0::Capacity<2>, sub0::Snapshot>;
 };
-struct Source final : sub0::Publish<Sample> { using Publish::Publish; };
-struct Observer final : sub0::Subscribe<Sample>
+
+struct TemperatureSensor final : sub0::Publish<TemperatureReading>
+{
+    using Publish::Publish;
+
+    void measure(int celsius) noexcept { sub0::publish(*this, TemperatureReading{celsius}); }
+};
+
+struct TemperatureRecorder final : sub0::Subscribe<TemperatureReading>
 {
     using Subscribe::Subscribe;
-    unsigned count = 0;
-    bool stop = false;
-    bool detach = false;
-    bool filter(const Sample& sample) noexcept override { return sample.value != 0; }
-    void receive(const Sample&) noexcept override
+    unsigned readingsReceived = 0;
+    int lastCelsius = 0;
+
+    void receive(const TemperatureReading& reading) noexcept override
     {
-        ++count;
-        if (stop) cancel();
-        if (detach) disconnect(); // Requires Snapshot; Direct cannot mutate its active table.
+        lastCelsius = reading.celsius;
+        ++readingsReceived;
     }
 };
 
-struct LockedSample
+struct FirstReadingRecorder final : sub0::Subscribe<TemperatureReading>
 {
-    using sub0_config = sub0::config<sub0::LockWith<std::mutex>>;
-};
-struct LockedSource final : sub0::Publish<LockedSample> {};
-struct LockedObserver final : sub0::Subscribe<LockedSample>
-{
-    std::atomic<unsigned> count{0}; // Several publishing threads may enter receive().
-    LockedObserver() noexcept { trySubscribe(); } // Most-derived construction is complete.
-    ~LockedObserver() { disconnect(); } // Wait for callbacks before derived state is destroyed.
-    void receive(const LockedSample&) noexcept override { ++count; }
+    using Subscribe::Subscribe;
+    unsigned readingsReceived = 0;
+    int lastCelsius = 0;
+
+    void receive(const TemperatureReading& reading) noexcept override
+    {
+        lastCelsius = reading.celsius;
+        ++readingsReceived;
+        disconnect(); // Snapshot lets a callback remove itself without skipping the next receiver.
+    }
 };
 
 int main()
 {
-    sub0::Domain<Sample> domain; // Outlives every publisher/subscriber bound to it.
-    Source source(domain);
-    Observer first(domain), second(domain), overflow(domain);
-    if (overflow.trySubscribe() != sub0::SubscribeResult::CapacityExceeded) return 1;
-    sub0::publish(source, Sample{0}); // Both filters reject.
-    first.stop = true;
-    sub0::publish(source, Sample{1}); // Only first receives.
-    first.stop = false;
-    first.detach = true;
-    sub0::publish(source, Sample{1}); // Self-removal does not skip second.
-    if (overflow.trySubscribe() != sub0::SubscribeResult::Subscribed) return 2;
-    sub0::publish(source, Sample{1});
-    if (first.count != 2 || second.count != 2 || overflow.count != 1) return 3;
-    domain.close();
-    sub0::publish(source, Sample{1}); // Closed domain drops publication.
-    if (overflow.trySubscribe() != sub0::SubscribeResult::Closed || overflow.count != 1) return 4;
+    // The session owns the subscription table and must outlive every handle bound to it.
+    sub0::Domain<TemperatureReading> session;
+    TemperatureSensor thermometer(session);
 
-    LockedSource lockedSource;
-    LockedObserver lockedObserver;
-    sub0::publish(lockedSource, LockedSample{});
-    return lockedObserver.count.load() == 1 ? 0 : 5;
+    // Unlocked subscribers register during construction, in this order.
+    FirstReadingRecorder firstReading(session);
+    TemperatureRecorder continuousRecorder(session);
+    TemperatureRecorder waitingRecorder(session);
+    if (waitingRecorder.trySubscribe() != sub0::SubscribeResult::CapacityExceeded)
+        return 1;
+
+    thermometer.measure(20);
+    if (firstReading.readingsReceived != 1 || continuousRecorder.readingsReceived != 1)
+        return 2;
+
+    // The one-shot recorder is still alive, but has released its slot.
+    if (firstReading.isSubscribed() || waitingRecorder.trySubscribe() != sub0::SubscribeResult::Subscribed)
+        return 3;
+
+    thermometer.measure(21);
+    if (firstReading.readingsReceived != 1 || continuousRecorder.readingsReceived != 2 ||
+        waitingRecorder.readingsReceived != 1)
+        return 4;
+
+    session.close(); // Detaches subscribers; existing handles stay alive but cannot resume the session.
+    thermometer.measure(22);
+    if (waitingRecorder.trySubscribe() != sub0::SubscribeResult::Closed)
+        return 5;
+
+    return continuousRecorder.readingsReceived == 2 && waitingRecorder.readingsReceived == 1 &&
+        firstReading.lastCelsius == 20 && continuousRecorder.lastCelsius == 21 && waitingRecorder.lastCelsius == 21 ? 0 : 6;
 }

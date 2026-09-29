@@ -1,66 +1,104 @@
-/** Static and runtime transport boundaries: split horizon and explicit acceptance reports. */
+/** Deliver readings locally and to a link, without echoing incoming readings back to that link. */
 #include "sub0pub/wiring.hpp"
 #include "sub0pub/broker.hpp"
 
-struct Sample
+struct TemperatureReading
 {
-    unsigned value;
+    int celsius;
+    // Routes need a publish context to track the incoming link and report send results.
     using sub0_config = sub0::config<sub0::Scoped, sub0::ThreadLocalContext>;
 };
-struct Link
+
+struct TelemetryLink
 {
-    unsigned sent = 0;
-    bool full = false;
-    sub0::SendResult send(const Sample&) noexcept
+    unsigned readingsAccepted = 0;
+    bool queueFull = false;
+
+    sub0::SendResult send(const TemperatureReading&) noexcept
     {
-        if (full) return sub0::SendResult::Full;
-        ++sent; // A real transport copies/serializes the message before returning Accepted.
+        if (queueFull)
+            return sub0::SendResult::Full;
+
+        ++readingsAccepted; // A real link copies/serializes here; acceptance is not remote delivery.
         return sub0::SendResult::Accepted;
     }
 };
-struct Local
+
+struct TemperatureDisplay
 {
-    unsigned count = 0;
-    void receive(const Sample&) noexcept { ++count; }
+    unsigned readingsReceived = 0;
+    void receive(const TemperatureReading&) noexcept { ++readingsReceived; }
 };
-struct Observer final : sub0::Subscribe<Sample>
+
+bool forwardWithoutEcho()
+{
+    TelemetryLink link;
+    TemperatureDisplay display;
+    sub0::Forward<TelemetryLink> forward(link);
+    auto wiring = sub0::wire(display, forward);
+
+    wiring.publish(TemperatureReading{20}); // Outgoing: display and link.
+    wiring.publishFrom(link, TemperatureReading{21}); // Incoming: display only.
+
+    // Forward ignores send results. Use a Route when the publisher needs a rejection report.
+    return display.readingsReceived == 2 && link.readingsAccepted == 1;
+}
+
+// The same forwarding pattern with receiver and transport addresses fixed in the wiring type.
+TelemetryLink fixedLink;
+TemperatureDisplay fixedDisplay;
+sub0::StaticForward<&fixedLink> fixedForward;
+using FixedWiring = sub0::StaticWiring<&fixedDisplay, &fixedForward>;
+
+bool forwardThroughFixedAddresses()
+{
+    FixedWiring::publish(TemperatureReading{20});
+    FixedWiring::publishFrom(fixedLink, TemperatureReading{21});
+    return fixedDisplay.readingsReceived == 2 && fixedLink.readingsAccepted == 1;
+}
+
+struct SubscribedTemperatureDisplay final : sub0::Subscribe<TemperatureReading>
 {
     using Subscribe::Subscribe;
-    unsigned count = 0;
-    void receive(const Sample&) noexcept override { ++count; }
+    unsigned readingsReceived = 0;
+    void receive(const TemperatureReading&) noexcept override { ++readingsReceived; }
 };
-struct Source final : sub0::Publish<Sample> { using Publish::Publish; };
 
-Link fixedLink;
-Local fixedLocal;
-sub0::StaticForward<&fixedLink> fixedForward;
-using FixedBus = sub0::StaticWiring<&fixedLocal, &fixedForward>;
+struct TemperatureSensor final : sub0::Publish<TemperatureReading>
+{
+    using Publish::Publish;
+};
+
+bool reportWhenTheLinkIsFull()
+{
+    TelemetryLink link;
+    sub0::Domain<TemperatureReading> session;
+    SubscribedTemperatureDisplay display(session);
+    TemperatureSensor thermometer(session);
+    sub0::Route<TemperatureReading, TelemetryLink> route(session, link);
+    if (!route.isSubscribed()) // A route uses a subscriber slot too.
+        return false;
+
+    sub0::PublishReport acceptedReport;
+    sub0::publish(thermometer, TemperatureReading{20}, acceptedReport);
+    if (acceptedReport.accepted != 1 || display.readingsReceived != 1)
+        return false;
+
+    link.queueFull = true;
+    sub0::PublishReport rejectedReport;
+    sub0::publish(thermometer, TemperatureReading{21}, rejectedReport);
+    if (rejectedReport.rejected != 1 || rejectedReport.lastRejection != sub0::SendResult::Full ||
+        display.readingsReceived != 2) // Local delivery continues despite the full link.
+        return false;
+
+    route.inject(TemperatureReading{22}); // Incoming traffic still reaches the display and is not echoed.
+    return display.readingsReceived == 3 && link.readingsAccepted == 1;
+}
 
 int main()
 {
-    FixedBus::publish(Sample{1});
-    FixedBus::publishFrom(fixedLink, Sample{2});
-    if (fixedLocal.count != 2 || fixedLink.sent != 1) return 4;
-    Link link;
-    Local local;
-    sub0::Forward<Link> forward(link);
-    auto bus = sub0::wire(local, forward);
-    bus.publish(Sample{1});
-    bus.publishFrom(link, Sample{2}); // Ingress goes local, never back to this link.
-    if (local.count != 2 || link.sent != 1) return 1;
-    // Forward ignores send() results: handle backpressure in the transport, or use Route below.
-
-    sub0::Domain<Sample> domain;
-    Observer observer(domain);
-    Source source(domain);
-    sub0::Route<Sample, Link> route(domain, link);
-    if (!route.isSubscribed()) return 2; // Routes consume subscription capacity too.
-    sub0::PublishReport accepted;
-    sub0::publish(source, Sample{3}, accepted);
-    link.full = true;
-    sub0::PublishReport rejected;
-    sub0::publish(source, Sample{4}, rejected); // Local delivery survives rejection.
-    route.inject(Sample{5}); // No echo to link.
-    return observer.count == 3 && link.sent == 2 && accepted.accepted == 1 &&
-        rejected.rejected == 1 && rejected.lastRejection == sub0::SendResult::Full ? 0 : 3;
+    if (!forwardWithoutEcho()) return 1;
+    if (!forwardThroughFixedAddresses()) return 2;
+    if (!reportWhenTheLinkIsFull()) return 3;
+    return 0;
 }
