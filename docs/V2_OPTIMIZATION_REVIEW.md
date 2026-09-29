@@ -48,17 +48,17 @@ This is a map of supported use-case families, not a claim of an exhaustive Carte
 | Use case | Runnable example | Correctness coverage | Performance coverage |
 |---|---|---|---|
 | Runtime 0/1/many listeners and RAII | basic_pubsub; dynamic_lifetime | test_pubsub, test_defaults | cmp_sub0pub, bench_core; collapse dynamic_subscriptions |
-| Static addresses and runtime addresses, fixed types | local_wiring / static_addresses / sink_output / static_cancellation | wiring/test_wiring | cmp_static; collapse zero_receivers, one_receiver, multi_receivers |
-| Publisher mixin; type-erased output | local_wiring / static_addresses / sink_output / static_cancellation | wiring tests; collapse behavior checks | collapse `sub0_b1_mixin`, `sub0_b3_sink` |
-| Multiple message types and nested dispatch | local_wiring / static_addresses / sink_output / static_cancellation; multi_type | wiring/test_wiring; config/test_axes | collapse multi_types; bench_core nested |
-| Filtering and cancellation | filtering; cancellation | test_cancel; config/test_axes; wiring/test_wiring | cmp_config/cmp_static/cmp_sub0pub; bench_core; collapse cancellation |
-| Capacity failure and retry | dynamic_lifetime; dynamic_diagnostics / scoped_diagnostics | test_capacity_bounded; wiring/test_wiring | cmp_mixed full-table rejection (new) |
-| Subscription churn outside dispatch | basic_pubsub; dynamic_diagnostics / scoped_diagnostics | public broker/wiring tests | cmp_mixed (new); collapse static_dynamic_bridge_churn |
+| Static addresses and runtime addresses, fixed types | local_wiring; static_addresses | wiring/test_wiring | cmp_static; collapse zero_receivers, one_receiver, multi_receivers |
+| Publisher mixin; type-erased output | local_wiring / static_addresses (mixin); sink_output (`Sink`) | wiring tests; collapse behavior checks | collapse `sub0_b1_mixin`, `sub0_b3_sink` |
+| Multiple message types and nested dispatch | local_wiring; multi_type (types only; no nested-dispatch recipe) | wiring/test_wiring; config/test_axes | collapse multi_types; bench_core nested |
+| Filtering and cancellation | filtering; cancellation; static_cancellation | test_cancel; config/test_axes; wiring/test_wiring | cmp_config/cmp_static/cmp_sub0pub; bench_core; collapse cancellation |
+| Capacity failure and retry | dynamic_lifetime (retry); dynamic_diagnostics (rejection) | test_capacity_bounded; wiring/test_wiring | cmp_mixed full-table rejection (new) |
+| Subscription churn outside dispatch | basic_pubsub; dynamic_diagnostics | public broker/wiring tests | cmp_mixed (new); collapse static_dynamic_bridge_churn |
 | Removal/destruction during dispatch | dynamic_lifetime; scoped_diagnostics | config/test_axes and ASan; wiring/test_wiring | Snapshot steady-state measured; callback-mutation cost not separately budgeted |
-| Scoped isolation and close | dynamic_lifetime | config/test_endpoints | collapse two_domains; cmp_mixed scoped steady-state (new); close latency not separately budgeted |
+| Scoped isolation and close | dynamic_lifetime; scoped_diagnostics; route_reports | config/test_endpoints | collapse two_domains; cmp_mixed scoped steady-state (new); close latency not separately budgeted |
 | Locked registration and teardown | thread_safe_lifetime | config/test_axes, test_endpoints; TSan | cmp_config/bench_core uncontended; contention/teardown-tail benchmark still needed |
-| Static + DynamicPort (empty/populated/churn) | dynamic_diagnostics / scoped_diagnostics | wiring/test_wiring; collapse checks | cmp_mixed (new); collapse bridge/empty/churn |
-| Static + BrokerPort (Direct/Snapshot) | dynamic_diagnostics / scoped_diagnostics | wiring/test_wiring; collapse checks | cmp_mixed (new); collapse bridge/empty/churn (Direct) |
+| Static + DynamicPort (empty/populated/churn) | dynamic_diagnostics | wiring/test_wiring; collapse checks | cmp_mixed (new); collapse bridge/empty/churn |
+| Static + BrokerPort (Direct/Snapshot) | scoped_diagnostics (Snapshot) | wiring/test_wiring; collapse checks | cmp_mixed (new); collapse bridge/empty/churn (Direct) |
 | Transport split horizon, multiple routes, rejection | link_forwarding / static_link_forwarding / route_reports | config/test_endpoints; wiring/test_wiring | collapse transport_endpoint; rejection-specific cost still needed |
 | Binary IPC and layout | ipc_pipe; layout_check | test_serialization; test_fingerprint | bench_ipc, footprint |
 | Cross-translation-unit wiring | multi_type; public multi-TU tests | config/test_multi_tu_*; collapse cross_file | collapse with/without LTO |

@@ -3,8 +3,8 @@
  * Use when: a runtime publisher needs transport acceptance/rejection feedback and an ingress path.
  * Demonstrates: Scoped Domain, Route, PublishReport and inject(), with ThreadLocalContext.
  * Story: a first reading is accepted by the link. The simulated queue then becomes full:
- * the next send is reported rejected, but the local display still receives it. An injected
- * incoming reading also reaches the display without being echoed out through that route.
+ * the next send is reported rejected, but the local display still receives it. Once the queue
+ * drains, an injected incoming reading reaches the display without being echoed out through that route.
  * Keep in mind: a Route uses a subscriber slot; check registration. The Domain and transport
  * must outlive their bound handles. Acceptance is not remote delivery; immediate echo
  * suppression does not prevent arbitrary network cycles.
@@ -68,6 +68,8 @@ bool reportWhenTheLinkIsFull()
         display.readingsReceived != 2) // Local delivery continues despite the full link.
         return false;
 
+    // With the queue drained an echo would be accepted and counted, so the check below can detect one.
+    link.queueFull = false;
     route.inject(TemperatureReading{22}); // Incoming traffic still reaches the display and is not echoed.
     return display.readingsReceived == 3 && link.readingsAccepted == 1;
 }
