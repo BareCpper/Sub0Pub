@@ -62,7 +62,8 @@ This is a map of supported use-case families, not a claim of an exhaustive Carte
 | Transport split horizon, multiple routes, rejection | transport_paths | config/test_endpoints; wiring/test_wiring | collapse transport_endpoint; rejection-specific cost still needed |
 | Binary IPC and layout | ipc_pipe; layout_check | test_serialization; test_fingerprint | bench_ipc, footprint |
 | Cross-translation-unit wiring | multi_type; public multi-TU tests | config/test_multi_tu_*; collapse cross_file | collapse with/without LTO |
-| Cross-DLL ABI / arbitrary ISR invocation | Not supported recipes | No portable guarantee | Not a release performance claim |
+| Cross-DLL state sharing and lifetime | Preserved [cross_module](../examples/cross_module/README.md), currently disabled | Public-API shared-state and unload tests still needed; separate-TU tests are insufficient | Shared-library dispatch measurement still needed |
+| Arbitrary ISR invocation | No supported recipe | No portable guarantee | Not a release performance claim |
 
 ## Reproduce
 

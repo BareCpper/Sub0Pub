@@ -22,9 +22,12 @@ Apply only after Stage 1 is green. Keep this separate from functional optimizati
 | `tests/collapse/sandbox/`, sandbox unit and compile-fail tests | Port any unmatched checks to `tests/wiring`; remove corresponding CMake targets | Public wiring guarantees and misuse diagnostics |
 | `sub0x_*` and `sub0pub_spike` collapse variants; `sub0pub_variants/` | Discovery/scoring scripts, prototype reference selectors, feature probes used only by removed variants | Every `sub0_*`/`sub0pub_virtual*` case, hand-written reference and all 510 public budget rows |
 | `tests/footprint/spike/` and abandoned language experiments | Footprint/report scripts and links | Public host/Cortex-M measurements, documented C++17 baseline |
-| `examples/cross_module/` (disabled, unsupported MSVC DLL example) | examples/CMakeLists and any README links | Explicit unsupported cross-DLL contract; supported separate-TU test |
 | Phase 0/1 generated reports, prototype scorecards, resolved review-response notes | Replace live links with current design/migration/evidence summaries; identify historical commit for archaeology | One current decision record, public report + raw data, v1 comparison and reproducible commands |
 | Legacy `configure` / `cmake-install.sh` if superseded | Check downstream use and documented preset/install commands | Fresh checkout configure/build/install and a find_package consumer test |
+
+Retain `examples/cross_module/`: it represents an unresolved shared-library use case, not a superseded
+experiment. Its disabled build is a support gap to close; separate-translation-unit tests do not prove
+cross-DLL state sharing or safe module unloading. See its [status](../examples/cross_module/README.md).
 
 Do not remove the v1 comparison harness, compatibility umbrella header, known-limitations documentation,
 hand-written benchmark references or negative lifetime tests as “legacy”. They prove behavior users rely on.
