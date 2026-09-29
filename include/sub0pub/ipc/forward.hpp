@@ -34,8 +34,10 @@ namespace sub0
          */
         inline void receive( const Data& data ) noexcept override
         {
-            // Qualified, so the call is not virtual: the class that forward_receiver_t names, else Target itself
-            static_cast<Target*>(this)->utility::detected_or_t<Target, forward_receiver_t, Target>::receive(data);
+            // Qualified, so the call is not virtual: the class that forward_receiver_t names, else Target itself.
+            // maybe_unused: Clang's -Wunused-local-typedef does not count the qualified call as a use
+            using ForwardReceiver_t [[maybe_unused]] = utility::detected_or_t<Target, forward_receiver_t, Target>;
+            static_cast<Target*>(this)->ForwardReceiver_t::receive(data);
         }
     };
 
