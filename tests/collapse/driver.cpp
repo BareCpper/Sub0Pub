@@ -39,8 +39,12 @@ namespace
     {
 #if defined(__GNUC__)
         asm volatile("" : "+r"(v));
-#endif
         return v;
+#else
+        // MSVC x64 has no inline assembly: a volatile round trip is the equivalent optimisation barrier
+        volatile uint32_t barrier = v;
+        return barrier;
+#endif
     }
 }
 
