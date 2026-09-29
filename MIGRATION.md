@@ -3,7 +3,7 @@
 This document tracks all breaking changes between Sub0Pub v1 and v2. Update this document with any commit that introduces a migration-relevant change.
 
 For runnable static, dynamic and mixed-path migration recipes, see [examples](examples/README.md).
-The [coverage ledger](docs/V2_OPTIMIZATION_REVIEW.md) distinguishes measured paths from remaining evidence gaps.
+[docs/DESIGN.md](docs/DESIGN.md) explains when to use static wiring, the runtime broker, or both.
 
 ---
 
@@ -140,7 +140,7 @@ The options are:
 
 Every translation unit must resolve the same configuration for a type: resolving it differently is an ODR violation. A debug-build check (`SUB0PUB_CHECK_CONFIG`) reports mismatches it observes. Types local to one translation unit may use different `SUB0PUB_*` macros in different units: `sub0::config<Opts...>` is an alias of `sub0::with<Default, Opts...>`, so it names a different type wherever the default differs.
 
-**Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Scored options: [docs/design/AXIS_SCORES.md](docs/design/AXIS_SCORES.md).
+**Action:** None for the mechanism itself; see "The default is the cheapest dispatch" below for what the default now includes. Options and what each costs: [docs/DESIGN.md](docs/DESIGN.md#per-type-configuration-of-the-runtime-broker).
 
 ### Static wiring (new)
 
@@ -152,7 +152,7 @@ Every translation unit must resolve the same configuration for a type: resolving
 - `DynamicPort<T, N>` and `BrokerPort<T>` bring runtime subscribers into a static wiring;
 - `handles_v<R, T>` asserts that a receiver handles a message.
 
-**Action:** None. Scored forms: [docs/design/COLLAPSE_SCORES.md](docs/design/COLLAPSE_SCORES.md).
+**Action:** None. Measured forms: [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
 ### The library is split into focused headers
 

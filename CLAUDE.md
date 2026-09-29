@@ -14,7 +14,8 @@ Benchmarks are built alongside tests but not run by ctest:
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
 python3 tests/bench/run_baseline.py   # all policies + IPC, with callgrind instr/op (Linux)
 python3 tests/footprint/measure_footprint.py  # code size / RAM, host + Cortex-M33
-python3 tests/compare/compare_versions.py     # v1.0 vs v2 vs prototypes (MIGRATION.md evidence)
+python3 tests/compare/compare_versions.py     # v1.0 vs v2 (MIGRATION.md evidence)
+python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json  # final-link gate (docs/EVIDENCE.md)
 ```
 Compare against `docs/PERFORMANCE_BASELINE.md`: instr/op is the regression bar; ns/op is noisy.
 
@@ -52,6 +53,12 @@ legacy merely because their names existed in v1. See `STYLE_GUIDE.md` for placem
 - Performance-sensitive changes should be validated with `Sub0Pub_Bench` / `run_baseline.py` against `docs/PERFORMANCE_BASELINE.md`
 - Tests must pass locally before committing: `ctest --preset default`
 - A git pre-push hook runs tests automatically — set up with: `git config core.hooksPath .githooks`
+
+## Design and evidence
+- `docs/DESIGN.md` records the design, its decisions and its known limitations (K-numbers); `docs/EVIDENCE.md` how
+  collapse is measured. Keep both current with the code: a changed decision or limitation updates them in the same commit.
+- Design research (prototypes, face-offs, dated reports) is preserved at the tag `v2-research-archive`. New exploratory
+  work lives on its own branch; the release tree carries only the public API, its tests, evidence and documentation.
 
 ## Branch Strategy
 - `develop` — stable v1 baseline

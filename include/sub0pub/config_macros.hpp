@@ -40,7 +40,7 @@
 
 /** Inlining for the static-wiring delivery chain (sub0pub/wiring): not a configuration option.
  * MSVC's /O2 inliner stops at a delivery chain of many receivers and leaves StaticWiring::publish out of line
- * (32 receivers: 169 publish-path instructions against 69 hand-written; docs/design/MSVC_VERIFICATION.md), so the
+ * (32 receivers: 169 publish-path instructions against 69 hand-written; docs/EVIDENCE.md), so the
  * wiring asks for inlining explicitly there. Every other compiler gets plain `inline`, so their code is unchanged.
  */
 #if defined(_MSC_VER) && !defined(__clang__)

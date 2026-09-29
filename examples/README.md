@@ -34,16 +34,6 @@ ctest --preset default -R Sub0Pub_Example_
 
 The eleven focused recipes return a failure code when their checks fail, including with `NDEBUG`.
 The minimal example also checks its result; the other enabled introductory examples print their story.
-These are teaching examples, not performance evidence. Cross-DLL support remains an explicit, retained gap.
-See [migration](../MIGRATION.md), [coverage and optimization review](../docs/V2_OPTIMIZATION_REVIEW.md),
-and [release cleanup gates](../docs/V2_CLEANUP.md).
-
-Follow the mandatory [sample-header convention](../STYLE_GUIDE.md#examples-a-source-first-reading-guide).
-Keep one independently useful pattern per sample; split alternatives a developer would select separately.
-Use activity-based names and short comments for non-obvious contracts. Review with a source-only first reader,
-so the header and code together explain who publishes, who receives, and how their lifetimes relate.
-
-Backwards compatibility is a separate concern: any future v1 adapter examples belong under
-`examples/compatibility/v1/`, explicitly labelled with the old contract, its current replacement, and the
-planned removal criteria. No separate v1 API adapter is currently provided; the runtime broker examples
-use the current API even where familiar names such as `Publish` and `Subscribe` remain.
+These are teaching examples, not performance evidence; cross-module (DLL) use is not supported yet.
+See [the design](../docs/DESIGN.md) for choosing between the structures, and [migration](../MIGRATION.md) for v1 users.
+New examples follow the [sample-header convention](../STYLE_GUIDE.md#examples-a-source-first-reading-guide).
