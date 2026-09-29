@@ -55,6 +55,11 @@ void crossThreadTeardown()
             NS::publish(Data{published.fetch_add(1, std::memory_order_relaxed)});
     });
 
+    // Teardown must overlap publishing: a late-scheduled publisher thread (sanitizers, loaded CI runner) could
+    // otherwise publish nothing before the loop ends, leaving the race untested (as test_endpoints.cpp)
+    while (published.load(std::memory_order_relaxed) == 0)
+        std::this_thread::yield();
+
     for (int i = 0; i < 2000; ++i)
     {
         GuardedT a;
@@ -66,10 +71,7 @@ void crossThreadTeardown()
     publisher.join();
     // The real assertion is reaching here at all with no ASan/TSan report: 2000 stack + 2000 heap
     // subscribers were constructed, activated, raced against continuous publishing, and torn down.
-    // published>0 is best-effort (under heavy sanitizer instrumentation the publisher thread can be
-    // scheduled late enough to publish nothing before the loop above already finished).
-    WARN(published.load() > 0);
-    CHECK(true);
+    CHECK(published.load() > 0);
 }
 
 struct HsNs { template<class D> using Subscribe = qx::hs::Subscribe<D>; template<class D> static void publish(const D& d) noexcept { qx::hs::publish(d); } };
