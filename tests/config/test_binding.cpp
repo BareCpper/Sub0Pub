@@ -115,7 +115,7 @@ TEST_CASE("config: scoped domains isolate the same Data type (issue #5)") {
     CHECK(subB.received == 0);   // no cross-talk
 }
 
-// Registry fingerprints effective values, not type names (review finding 2)
+// Registry fingerprints effective values, not type names
 namespace {
 struct NamedA : sub0::with<sub0::Builtin, sub0::Capacity<3>> {};
 struct NamedB : sub0::with<sub0::Builtin, sub0::Capacity<3>> {};
@@ -126,7 +126,7 @@ static_assert(sub0::detail::configFingerprint<NamedA>() != sub0::detail::configF
 
 extern int gViolations;
 
-TEST_CASE("config: cancel() from another domain's subscriber does not cancel this domain's dispatch (review finding 3)") {
+TEST_CASE("config: cancel() from another domain's subscriber does not cancel this domain's dispatch") {
     sub0::Domain<Session> a, b;
     Sink<Session> subB(b);
 

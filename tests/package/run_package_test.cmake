@@ -15,8 +15,18 @@ run(${CMAKE_COMMAND} --install "${SUB0PUB_BINARY_DIR}" --prefix "${WORK_DIR}/pre
 
 set(configure ${CMAKE_COMMAND} -S "${CONSUMER_SOURCE_DIR}" -B "${WORK_DIR}/build" -G "${GENERATOR}"
     "-DCMAKE_PREFIX_PATH=${WORK_DIR}/prefix" "-DCMAKE_BUILD_TYPE=${CONFIG}" "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}")
+# The consumer builds with the same tools as this project
 if(GENERATOR_PLATFORM)
     list(APPEND configure -A "${GENERATOR_PLATFORM}")
+endif()
+if(GENERATOR_TOOLSET)
+    list(APPEND configure -T "${GENERATOR_TOOLSET}")
+endif()
+if(MAKE_PROGRAM)
+    list(APPEND configure "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}")
+endif()
+if(TOOLCHAIN_FILE)
+    list(APPEND configure "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}")
 endif()
 run(${configure})
 run(${CMAKE_COMMAND} --build "${WORK_DIR}/build" --config ${CONFIG})

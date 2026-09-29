@@ -13,4 +13,12 @@ endif()
 enable_testing()
 add_executable(consumer main.cpp)
 target_link_libraries(consumer PRIVATE Sub0Pub::Sub0Pub)
+# The headers must stay warning-free for a strict consumer. An imported target's include directory is a system one,
+# whose warnings the compiler hides; see them, as a consumer including the headers by a plain path does
+set_target_properties(consumer PROPERTIES NO_SYSTEM_FROM_IMPORTED ON)
+if(MSVC)
+    target_compile_options(consumer PRIVATE /W4 /WX)
+else()
+    target_compile_options(consumer PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
 add_test(NAME consumer COMMAND consumer)

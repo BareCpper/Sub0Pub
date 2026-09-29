@@ -110,7 +110,7 @@ refer to them.
 
 | # | Limitation | Price | Route to removing it |
 |---|---|---|---|
-| K1 | Teardown safety on create + destroy: a registration flag and, with a publish context, a check for dispatches in progress | create + destroy 46 instructions in the default (v1.0: 48) | skip the check when no dispatch of the table is active on this thread |
+| K1 | Teardown safety on create + destroy: a registration flag and, with a publish context, a check for dispatches in progress | create + destroy 47 instructions in the default (v1.0: 48; GCC, compare-v1-v2 report) | skip the check when no dispatch of the table is active on this thread |
 | K2 | Types with a publish context carry a dispatch frame (origin, report, snapshot) even without routes | Snapshot, 1 subscriber: +2; Direct, 0 subscribers: +7 | a minimal frame for types without routes |
 | K3 | Locked types pay a handshake per subscriber per publish, and a second lock acquisition | `std::mutex`, 1 / 8 subscribers: 260 / 554 instructions per publish | per-subscriber reference counts or epochs, if they can pass the same lifetime tests |
 | K4 | Concurrent `disconnect()` blocks for at most one callback on another thread; two receivers disconnecting each other at once from different threads deadlock | a usage rule | a non-blocking `disconnectLater()` for use inside receivers |

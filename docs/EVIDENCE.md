@@ -13,17 +13,19 @@ support.
 - `handwritten_<kind>.cpp` are references for patterns that do more than direct calls, so each pattern is judged
   against what a careful engineer writes for the same job: `handwritten_runtime` (receiver addresses stored at setup
   and called through), `handwritten_erased` (a context pointer plus a function pointer), `handwritten_registry` (a
-  hand-written dynamic registry), `handwritten_gateway` (one object holding two sessions' receivers). A variant
+  hand-written dynamic registry), `handwritten_gateway` (one object holding two sessions' receivers),
+  `handwritten_loop` (a loop over an array of receivers, pricing the unrolled fan-out). A variant
   selects one with a leading `// COLLAPSE_REFERENCE: handwritten_<kind>` line. Each extra reference is itself
   reported against `handwritten`, which prices the choice (runtime binding, type erasure, a registry) independently
   of any library.
-- Every other file or directory implements the same behaviour through the public API (a *variant*):
+- Every other file or directory implements the same behaviour through the public API (a *variant*). Case comments
+  call the three static-wiring forms patterns B1, B2 and B3:
 
 | Variant | Structure |
 |---|---|
-| `sub0_b1_*` | `wire(...)`: runtime addresses, static types (`sub0_b1_mixin`: through the `Publisher` mixin) |
-| `sub0_b2_*` | `StaticWiring<&...>`: static storage |
-| `sub0_b3_*` | `Sink<T>`: a type-erased port |
+| `sub0_b1_*` (B1) | `wire(...)`: runtime addresses, static types (`sub0_b1_mixin`: through the `Publisher` mixin) |
+| `sub0_b2_*` (B2) | `StaticWiring<&...>`: static storage |
+| `sub0_b3_*` (B3) | `Sink<T>`: a type-erased port |
 | `sub0_bridge_*` | a static wiring with a `DynamicPort` (`slots`) or `BrokerPort` (`broker`) for runtime subscribers |
 | `sub0_dynamic_*` | the runtime broker with a `Domain` or `Route` |
 | `sub0pub_virtual`, `sub0pub_virtual_lean` | the runtime broker through `Subscribe`/`Publish`, default and leanest macros |

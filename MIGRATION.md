@@ -380,8 +380,8 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 | Implementation | publish, 1 subscriber | publish, 8 subscribers | 8, first cancels | create + destroy |
 |---|---:|---:|---:|---:|
 | **v1.0** | 60 (60) | 221 (214) | 60 (57) | 48 (31) |
-| v2 default | 34 (31) | 104 (101) | n/a (opt-in) | 47 (36) |
-| v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 95 (80) |
+| v2 default | 34 (31) | 104 (101) | n/a (opt-in) | 47 (35) |
+| v2 default, debug build checks | 60 (59) | 144 (150) | n/a (opt-in) | 91 (79) |
 | v2 Full (`SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`) | 80 (73) | 290 (262) | 102 (91) | 54 (41) |
 | v1.0 ThreadSafe | 130 (133) | 291 (287) | 130 (130) | 204 (192) |
 | v2 ThreadSafe (with `SUB0PUB_FILTER`) | 260 (266) | 554 (516) | 301 (281) | 293 (290) |
@@ -400,7 +400,7 @@ operation under callgrind, the repository's regression bar, not wall-clock time.
 ### What this means when migrating
 
 - **The default costs less than v1.0.** It publishes to 1 and 8 subscribers in 34 and 104 instructions, against
-  v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (36 against 31 on clang). The
+  v1.0's 60 and 221. Creating and destroying a subscriber costs 47 against 48 on gcc (35 against 31 on clang). The
   embedded image is 224 bytes against 418, and needs neither thread-local storage nor `operator delete`.
 - **What you give up by default, you get back by opting in.** The default has no snapshot, no `cancel()`, no
   `filter()` and no lock. v1.0 had cancel and filter always on. Code that needs one of them is told:

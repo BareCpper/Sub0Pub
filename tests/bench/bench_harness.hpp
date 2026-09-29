@@ -5,7 +5,7 @@
  * Under valgrind --tool=callgrind: each scenario is executed a fixed number of times between
  * CALLGRIND_ZERO_STATS and CALLGRIND_DUMP_STATS_AT(name). The per-dump instruction totals divided
  * by the iteration count give deterministic instructions/op, independent of machine noise, which
- * makes them usable as a regression bar. See tests/bench/run_baseline.sh.
+ * makes them usable as a regression bar. See tests/bench/run_baseline.py.
  */
 #include "nanobench.h"
 

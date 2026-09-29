@@ -101,6 +101,11 @@ jobs:
         run: python3 tests/compare/compare_versions.py > migration-comparison.md
       - name: Footprint (host and Cortex-M33, each configuration option)
         run: python3 tests/footprint/measure_footprint.py > footprint.md
+      - name: Benchmark baseline (instr/op, docs/PERFORMANCE_BASELINE.md)
+        run: |
+          cmake --preset default
+          cmake --build --preset default --target Sub0Pub_Bench Sub0Pub_Bench_Checked Sub0Pub_Bench_Full Sub0Pub_Bench_ThreadSafe Sub0Pub_Bench_Ipc Sub0Pub_Bench_Axes
+          python3 tests/bench/run_baseline.py build/tests --no-timing > baseline.md
       - name: Summary
         if: always()
         run: cat collapse-evidence.md >> "$GITHUB_STEP_SUMMARY"
@@ -112,4 +117,5 @@ jobs:
             collapse-evidence.*
             migration-comparison.md
             footprint.md
+            baseline.md
 

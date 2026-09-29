@@ -22,7 +22,7 @@ target_include_directories(Sub0Pub_Tests PRIVATE
 
 add_test(NAME Sub0Pub_Tests COMMAND Sub0Pub_Tests)
 
-# Performance benchmarks (not run by ctest; see tests/bench/run_baseline.sh)
+# Performance benchmarks (not run by ctest; see tests/bench/run_baseline.py)
 # The core benchmark is built once per macro policy so policies are compared on identical scenarios.
 function(sub0pub_add_bench name source)
     add_executable(${name} ${source})
