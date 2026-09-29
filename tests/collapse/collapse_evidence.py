@@ -34,7 +34,6 @@ feature (the same probes as tests/collapse/CMakeLists.txt). Cost criterion verdi
 pattern A (today's API) is expected to fail them; that is the gap.
 """
 import argparse
-import glob
 import json
 import os
 import re
@@ -129,11 +128,15 @@ def ensure_msvc_environment():
     A no-op elsewhere and when cl is already available (developer prompt)."""
     if sys.platform != "win32" or shutil.which("cl"):
         return
-    roots = [os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")]
-    found = sorted(glob.glob(os.path.join(r, "Microsoft Visual Studio", "*", "*", "VC", "Auxiliary", "Build", "vcvars64.bat"))
-                   for r in roots if r)
-    candidates = sorted((p for group in found for p in group), reverse=True)
-    for vcvars in candidates:
+    # vswhere knows which installation is newest; directory names do not sort (`2022` is older than `18`).
+    # -prerelease: a preview or Insiders channel install (VS 18 here) is otherwise invisible to it
+    installer = os.path.join(os.environ.get("ProgramFiles(x86)", ""), "Microsoft Visual Studio", "Installer", "vswhere.exe")
+    installs = []
+    if os.path.isfile(installer):
+        installs = run([installer, "-latest", "-prerelease", "-products", "*", "-requires",
+                        "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "-property", "installationPath"]).stdout.splitlines()
+    candidates = [os.path.join(i.strip(), "VC", "Auxiliary", "Build", "vcvars64.bat") for i in installs if i.strip()]
+    for vcvars in (c for c in candidates if os.path.isfile(c)):
         r = run(f'"{vcvars}" >nul 2>nul && set', shell=True)
         env = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
         if r.returncode == 0 and env.get("PATH"):
@@ -371,7 +374,7 @@ def disassemble(build_cfg, exe):
 # ---- MSVC: linker map and dumpbin /disasm ----------------------------------------------------------------------
 
 MAP_SECTION = re.compile(r"^ ([0-9a-f]{4}):([0-9a-f]{8}) ([0-9a-f]{8})H (\S+)\s+(CODE|DATA)\s*$")
-MAP_PUBLIC = re.compile(r"^ ([0-9a-f]{4}):([0-9a-f]{8})\s+(\S+)\s+([0-9a-f]{16})\s+(?:[fi]\s+)*(\S+)\s*$")
+MAP_PUBLIC = re.compile(r"^ ([0-9a-f]{4}):([0-9a-f]{8})\s+(\S+)\s+([0-9a-f]{16})\s+((?:[fi]\s+)*)(\S+)\s*$")
 DUMPBIN_LABEL = re.compile(r"^(\S.*):$")
 DUMPBIN_INSN = re.compile(r"^\s+([0-9A-F]{16}): (?:[0-9A-F]{2} ?)+\s+(\S.*)$")
 X64_REGISTER = re.compile(r"^(r(?:[0-9]+|[abcd]x|[sd]i|[sb]p)[dwb]?|e?[abcd]x|e?[sd]i|e?[sb]p|[abcd][lh]|[sd]il|[sb]pl|[cdefgs]s)$")
@@ -386,8 +389,9 @@ def read_map(exe):
 
 def parse_map(text):
     """Parse an MSVC linker map: sections [(segment, offset, length, name)] and symbols [(segment, offset, name,
-    address, object)] from `Publics by Value` and `Static symbols` (the object is `lib:obj` for library code)."""
-    sections_, symbols_ = [], []
+    address, object)] from `Publics by Value` and `Static symbols` (the object is `lib:obj` for library code), and
+    the names the map flags `f` (functions)."""
+    sections_, symbols_, functions = [], [], set()
     for line in text.splitlines():
         m = MAP_SECTION.match(line)
         if m:
@@ -395,8 +399,10 @@ def parse_map(text):
             continue
         m = MAP_PUBLIC.match(line)
         if m and int(m.group(1), 16) != 0:
-            symbols_.append((int(m.group(1), 16), int(m.group(2), 16), m.group(3), int(m.group(4), 16), m.group(5)))
-    return {"sections": sections_, "symbols": symbols_}
+            symbols_.append((int(m.group(1), 16), int(m.group(2), 16), m.group(3), int(m.group(4), 16), m.group(6)))
+            if "f" in m.group(5).split():
+                functions.add(m.group(3))
+    return {"sections": sections_, "symbols": symbols_, "functions": functions}
 
 
 def map_symbol_sizes(info):
@@ -469,17 +475,21 @@ def msvc_branch_operand(mnemonic, operands, starts, library):
 
 
 def msvc_section_sizes(info):
-    """text = code plus read-only data (segments 1-2, as GNU size counts them), data and bss from the writable
-    segment (`.bss` is its own map entry), init = the pointers in `.CRT$XC*` (dynamic initialisers), ignoring the
-    begin/end markers."""
+    """By section name, as GNU size counts an ELF: data = `.data*` and `.tls*` (writable), bss = `.bss`, text =
+    everything else (code, read-only data, and the unwind tables `.pdata`/`.xdata`, as `.eh_frame` is text in an
+    ELF). The debug directory (`.rdata$zzzdbg`, which holds the PDB path) is left out: its size follows the output
+    file name, not the code. init = the pointers in `.CRT$XC*` (dynamic initialisers), without the begin/end
+    markers."""
     out = {"text": 0, "data": 0, "bss": 0, "init_array": 0}
-    for seg, _, length, name in info["sections"]:
-        if seg <= 2:
-            out["text"] += length
+    for _, _, length, name in info["sections"]:
+        if name == ".rdata$zzzdbg":
+            continue
+        if name.startswith((".data", ".tls")):
+            out["data"] += length
         elif name == ".bss":
             out["bss"] += length
         else:
-            out["data"] += length
+            out["text"] += length
         if re.match(r"\.CRT\$XC(?![AZ])", name):
             out["init_array"] += length
     return out
@@ -571,6 +581,10 @@ def publish_path(build_cfg, funcs, names=None, root="collapse_publish"):
                         stack.append(tail)
                 elif arch == "x86" and mnemonic.startswith("jmp") and "*" in operands:
                     indirect += 1
+                elif arch == "x86" and mnemonic.startswith("jmp") and branch_address(operands) == 0 and "<" in operands:
+                    # an external tail call: MSVC notation for a library function or an import (parse_dumpbin)
+                    direct += 1
+                    external.add(re.search(r"<(.*)>\s*$", operands).group(1))
     return {"instructions": instructions, "direct_calls": direct, "indirect_calls": indirect,
             "functions": [names[f] for f in seen], "external": sorted(external)}
 
@@ -623,6 +637,8 @@ SELF_TEST_MSVC_MAP = """
  0002:00000110 00000008H .CRT$XCZ                DATA
  0003:00000000 00000040H .data                   DATA
  0003:00000040 00000020H .bss                    DATA
+ 0002:00000118 00000040H .rdata$zzzdbg           DATA
+ 0004:00000000 00000018H .pdata                  DATA
 
   Address         Publics by Value              Rva+Base               Lib:Object
 
@@ -649,7 +665,9 @@ collapse_publish:
   0000000140001016: 74 E8              je          0000000140001000
   0000000140001018: 5B                 pop         rbx
   0000000140001019: E9 62 00 00 00     jmp         ?publish@?$Wiring@UA@@@sub0x@@QEBAXAEBUE@@@Z
-  000000014000101E: CC CC CC CC CC CC                                ������
+  000000014000101E: E9 3D 00 00 00     jmp         memcpy
+  0000000140001023: FF 25 00 20 00 00  jmp         qword ptr [__imp_free]
+  0000000140001029: CC CC CC CC CC CC                                ......
 ?deliver@detail@sub0x@@YAXAEAUController@?A0x1@@AEBUSample@2@@Z:
   0000000140001040: 8B 07              mov         eax,dword ptr [rcx]
   0000000140001042: C3                 ret
@@ -678,18 +696,24 @@ def self_test():
     assert "operator>>(A const&, B const&)" in arm["functions"], arm
     info = parse_map(SELF_TEST_MSVC_MAP)
     msvc = publish_path({"arch": "x86"}, *parse_dumpbin(SELF_TEST_MSVC, info))
-    # collapse_publish 9 + deliver 2 (padding nop dropped) + Wiring::publish 3; memcpy (library) is external
-    assert msvc["instructions"] == 9 + 2 + 3, msvc
-    assert msvc["direct_calls"] == 4 and msvc["indirect_calls"] == 2, msvc
+    # collapse_publish 11 + deliver 2 (padding nop dropped) + Wiring::publish 3; memcpy (library) is external, and
+    # so are the tail jumps to it and to an import
+    assert msvc["instructions"] == 11 + 2 + 3, msvc
+    assert msvc["direct_calls"] == 6 and msvc["indirect_calls"] == 2, msvc
     assert msvc["external"] == ["__imp_free", "memcpy"], msvc
-    assert msvc_section_sizes(info) == {"text": 0x418, "data": 0x40, "bss": 0x20, "init_array": 8}, msvc_section_sizes(info)
+    assert msvc_section_sizes(info) == {"text": 0x430, "data": 0x40, "bss": 0x20, "init_array": 8}, msvc_section_sizes(info)
     sizes = map_symbol_sizes(info)
     assert sizes["?g_state@collapse@@3IA"] == 4 and sizes["collapse_publish"] == 0x40, sizes
     # a variable whose TYPE mentions sub0x is application state; a function or variable IN sub0x is retained code
-    assert msvc_sub0_kind("?bus@?A0x1@@3V?$Slot@V?$Wiring@UA@@@sub0x@@@collapse@@A") is None
-    assert msvc_sub0_kind("?g_canceled@detail@sub0x@@3_NA") == "sub0x"
-    assert msvc_sub0_kind("?f@?$Widget@H@sub0@@QEAAXXZ") == "sub0"
-    assert msvc_sub0_kind("$unwind$?f@?$Widget@H@sub0@@QEAAXXZ") is None
+    assert msvc_sub0_kind("?bus@?A0x1@@3V?$Slot@V?$Wiring@UA@@@sub0x@@@collapse@@A", False) is None
+    assert msvc_sub0_kind("?g_canceled@detail@sub0x@@3_NA", False) == "sub0x"
+    assert msvc_sub0_kind("?f@?$Widget@H@sub0@@QEAAXXZ", True) == "sub0"
+    assert msvc_sub0_kind("$unwind$?f@?$Widget@H@sub0@@QEAAXXZ", True) is None
+    # a function whose template argument is &variable contains `@@3`; it is still retained sub0x code
+    assert msvc_sub0_kind("??$publish@USample@?A0x1@@@?$StaticWiring@$1?relay@?A0x1@@3V?$Slot@URelay@?A0x1@@@"
+                          "collapse@@A@sub0x@@SAXAEBUSample@?A0x1@@@Z", True) == "sub0x"
+    assert info["functions"] == {"collapse_publish", "?deliver@detail@sub0x@@YAXAEAUController@?A0x1@@AEBUSample@2@@Z",
+                                 "memcpy", "?publish@?$Wiring@UA@@@sub0x@@QEBAXAEBUE@@@Z"}, info["functions"]
     print("self-test passed")
     return 0
 
@@ -707,15 +731,17 @@ def sections(build_cfg, exe):
     return {"text": text, "data": data, "bss": bss, "init_array": init}
 
 
-def msvc_sub0_kind(name):
+def msvc_sub0_kind(name, is_function):
     """'sub0', 'sub0x' or None for a decorated name, by what the symbol IS, as far as an ELF's demangled name says.
     Unwind records (`$unwind$f`) describe a function that is reported itself. A variable's decorated name embeds its
     TYPE (`?bus@?A0x1@@3V?$Slot@V?$Wiring@...@sub0x@@@collapse@@A`), while an ELF variable name is only its own
-    qualified name, so for a variable (`@@3` marker) only the part before the marker is searched. Functions keep the
-    whole name, as the demangled ELF names do (template arguments included)."""
+    qualified name, so for a variable only the part before its `@@3` storage marker is searched. A function keeps the
+    whole name, as the demangled ELF names do (template arguments included). Whether a symbol is a function comes
+    from the map's `f` flag: a function name contains `@@3` too when a template argument is the address of a
+    variable (`StaticWiring<&relay>`)."""
     if name.startswith("$"):
         return None
-    head = name.split("@@3", 1)[0] + "@@" if "@@3" in name else name
+    head = name if is_function or "@@3" not in name else name.split("@@3", 1)[0] + "@@"
     if SUB0_ONLY_MSVC.search(head):
         return "sub0"
     return "sub0x" if SUB0_NAMESPACE_MSVC.search(head) else None
@@ -726,7 +752,7 @@ def symbols_msvc(exe):
     info = parse_map(read_map(exe))
     sizes = map_symbol_sizes(info)
     library = library_symbols(info)
-    kinds = {n: msvc_sub0_kind(n) for n in sizes if n not in library}
+    kinds = {n: msvc_sub0_kind(n, n in info["functions"]) for n in sizes if n not in library}
     retained = [(sizes[n], n) for n, k in kinds.items() if k]
     only = sum(sizes[n] for n, k in kinds.items() if k == "sub0")
     names = set(sizes)

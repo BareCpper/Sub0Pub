@@ -14,27 +14,27 @@ Final-link evidence per case, build and form; every variant is compared with `ha
 
 | variant | checksum | publish instr | setup instr | teardown instr | path instr | calls (direct/indirect) | text | data+bss | retained sub0/sub0x (B) | added deps | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| handwritten | ok | - | - | - | 13 (+0) | 0/0 | 131560 (+0) | 11020 (+0) | 0/0 | - | reference |
-| handwritten_erased | ok | - | - | - | 9 (-4) | 0/1 | 143560 (+12000) | 11600 (+580) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
-| handwritten_runtime | ok | - | - | - | 16 (+3) | 0/0 | 131632 (+72) | 11044 (+24) | 0/0 | - | reference; FAIL: publish path, no extra RAM |
-| sub0pub_virtual | ok | - | - | - | 59 (+46) | 1/2 | 143464 (+11904) | 11528 (+508) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0pub_virtual_lean | ok | - | - | - | 51 (+38) | 0/2 | 143424 (+11864) | 11528 (+508) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 16 (+0) | 0/0 | 131632 (+0) | 11044 (+0) | 0/0 | - | PASS |
-| sub0x_b2_static | ok | - | - | - | 13 (+0) | 0/0 | 131568 (+8) | 11028 (+8) | 0/0 | - | FAIL: no extra RAM |
-| sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 143560 (+0) | 11600 (+0) | 0/0 | - | PASS |
+| handwritten | ok | - | - | - | 13 (+0) | 0/0 | 135932 (+0) | 5688 (+0) | 0/0 | - | reference |
+| handwritten_erased | ok | - | - | - | 9 (-4) | 0/1 | 148464 (+12532) | 5728 (+40) | 0/0 | - | reference; FAIL: no extra indirect calls, no extra RAM |
+| handwritten_runtime | ok | - | - | - | 16 (+3) | 0/0 | 135996 (+64) | 5712 (+24) | 0/0 | - | reference; FAIL: publish path, no extra RAM |
+| sub0pub_virtual | ok | - | - | - | 59 (+46) | 1/2 | 147804 (+11872) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0pub_virtual_lean | ok | - | - | - | 51 (+38) | 0/2 | 147756 (+11824) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 16 (+0) | 0/0 | 135996 (+0) | 5712 (+0) | 0/0 | - | PASS |
+| sub0x_b2_static | ok | - | - | - | 13 (+0) | 0/0 | 135932 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
+| sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148464 (+0) | 5728 (+0) | 0/0 | - | PASS |
 
 ### msvc-O2-lto, removable work
 
 | variant | checksum | publish instr | setup instr | teardown instr | path instr | calls (direct/indirect) | text | data+bss | retained sub0/sub0x (B) | added deps | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| handwritten | ok | - | - | - | 3 (+0) | 0/0 | 131496 (+0) | 11020 (+0) | 0/0 | - | reference |
-| handwritten_erased | ok | - | - | - | 9 (+6) | 0/1 | 143512 (+12016) | 11600 (+580) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
-| handwritten_runtime | ok | - | - | - | 4 (+1) | 0/0 | 131552 (+56) | 11044 (+24) | 0/0 | - | reference; FAIL: no extra RAM |
-| sub0pub_virtual | ok | - | - | - | 59 (+56) | 1/2 | 143432 (+11936) | 11528 (+508) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0pub_virtual_lean | ok | - | - | - | 51 (+48) | 0/2 | 143392 (+11896) | 11528 (+508) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
-| sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 4 (+0) | 0/0 | 131552 (+0) | 11044 (+0) | 0/0 | - | PASS |
-| sub0x_b2_static | ok | - | - | - | 3 (+0) | 0/0 | 131504 (+8) | 11028 (+8) | 0/0 | - | FAIL: no extra RAM |
-| sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 143512 (+0) | 11600 (+0) | 0/0 | - | PASS |
+| handwritten | ok | - | - | - | 3 (+0) | 0/0 | 135868 (+0) | 5688 (+0) | 0/0 | - | reference |
+| handwritten_erased | ok | - | - | - | 9 (+6) | 0/1 | 148416 (+12548) | 5728 (+40) | 0/0 | - | reference; FAIL: publish path, no extra indirect calls, no extra RAM |
+| handwritten_runtime | ok | - | - | - | 4 (+1) | 0/0 | 135916 (+48) | 5712 (+24) | 0/0 | - | reference; FAIL: no extra RAM |
+| sub0pub_virtual | ok | - | - | - | 59 (+56) | 1/2 | 147772 (+11904) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0pub_virtual_lean | ok | - | - | - | 51 (+48) | 0/2 | 147724 (+11856) | 6112 (+424) | 753/0 | TLS, pure virtual | FAIL: publish path, no extra indirect calls, no extra RAM, no Sub0Pub retained, no extra dependencies |
+| sub0x_b1_wire (vs handwritten_runtime) | ok | - | - | - | 4 (+0) | 0/0 | 135916 (+0) | 5712 (+0) | 0/0 | - | PASS |
+| sub0x_b2_static | ok | - | - | - | 3 (+0) | 0/0 | 135868 (+0) | 5696 (+8) | 0/0 | - | FAIL: no extra RAM |
+| sub0x_b3_sink (vs handwritten_erased) | ok | - | - | - | 9 (+0) | 0/1 | 148416 (+0) | 5728 (+0) | 0/0 | - | PASS |
 
 <details><summary>msvc-O2-lto: largest symbols added by handwritten_erased (bytes)</summary>
 

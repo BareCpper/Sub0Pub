@@ -14,8 +14,8 @@
    "external": []
   },
   "sections": {
-   "text": 131624,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -44,8 +44,8 @@
    "external": []
   },
   "sections": {
-   "text": 131664,
-   "data": 8164,
+   "text": 136020,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -74,8 +74,8 @@
    "external": []
   },
   "sections": {
-   "text": 131624,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -104,8 +104,8 @@
    "external": []
   },
   "sections": {
-   "text": 131656,
-   "data": 8164,
+   "text": 136020,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -134,8 +134,8 @@
    "external": []
   },
   "sections": {
-   "text": 131632,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -164,8 +164,8 @@
    "external": []
   },
   "sections": {
-   "text": 131624,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -194,8 +194,8 @@
    "external": []
   },
   "sections": {
-   "text": 131624,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -224,8 +224,8 @@
    "external": []
   },
   "sections": {
-   "text": 131864,
-   "data": 8176,
+   "text": 136120,
+   "data": 2840,
    "bss": 2856,
    "init_array": 0
   },
@@ -257,8 +257,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -287,8 +287,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -317,8 +317,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -347,8 +347,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -377,8 +377,8 @@
    "external": []
   },
   "sections": {
-   "text": 131592,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -407,8 +407,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -437,8 +437,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -467,8 +467,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -497,8 +497,8 @@
    "external": []
   },
   "sections": {
-   "text": 131784,
-   "data": 8164,
+   "text": 136028,
+   "data": 2840,
    "bss": 2856,
    "init_array": 0
   },
@@ -530,8 +530,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -560,8 +560,8 @@
    "external": []
   },
   "sections": {
-   "text": 131648,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -590,8 +590,8 @@
    "external": []
   },
   "sections": {
-   "text": 131664,
-   "data": 8164,
+   "text": 136020,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -620,8 +620,8 @@
    "external": []
   },
   "sections": {
-   "text": 131664,
-   "data": 8164,
+   "text": 136020,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -650,8 +650,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -680,8 +680,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -710,8 +710,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -742,8 +742,8 @@
    "external": []
   },
   "sections": {
-   "text": 131672,
-   "data": 8176,
+   "text": 136056,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -773,8 +773,8 @@
    "external": []
   },
   "sections": {
-   "text": 143640,
-   "data": 8716,
+   "text": 148556,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -805,8 +805,8 @@
    "external": []
   },
   "sections": {
-   "text": 131728,
-   "data": 8176,
+   "text": 136104,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -837,8 +837,8 @@
    ]
   },
   "sections": {
-   "text": 143464,
-   "data": 8512,
+   "text": 147804,
+   "data": 3096,
    "bss": 3016,
    "init_array": 0
   },
@@ -891,8 +891,8 @@
    "external": []
   },
   "sections": {
-   "text": 143440,
-   "data": 8512,
+   "text": 147772,
+   "data": 3096,
    "bss": 3016,
    "init_array": 0
   },
@@ -947,8 +947,8 @@
    "external": []
   },
   "sections": {
-   "text": 131728,
-   "data": 8176,
+   "text": 136104,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -979,8 +979,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8176,
+   "text": 136056,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -1010,8 +1010,8 @@
    "external": []
   },
   "sections": {
-   "text": 143648,
-   "data": 8716,
+   "text": 148564,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -1042,8 +1042,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8176,
+   "text": 136024,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -1073,8 +1073,8 @@
    "external": []
   },
   "sections": {
-   "text": 143608,
-   "data": 8716,
+   "text": 148524,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -1105,8 +1105,8 @@
    "external": []
   },
   "sections": {
-   "text": 131696,
-   "data": 8176,
+   "text": 136072,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -1137,8 +1137,8 @@
    ]
   },
   "sections": {
-   "text": 143432,
-   "data": 8512,
+   "text": 147772,
+   "data": 3096,
    "bss": 3016,
    "init_array": 0
   },
@@ -1191,8 +1191,8 @@
    "external": []
   },
   "sections": {
-   "text": 143408,
-   "data": 8512,
+   "text": 147740,
+   "data": 3096,
    "bss": 3016,
    "init_array": 0
   },
@@ -1247,8 +1247,8 @@
    "external": []
   },
   "sections": {
-   "text": 131696,
-   "data": 8176,
+   "text": 136072,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -1279,8 +1279,8 @@
    "external": []
   },
   "sections": {
-   "text": 131648,
-   "data": 8176,
+   "text": 136024,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -1310,8 +1310,8 @@
    "external": []
   },
   "sections": {
-   "text": 143616,
-   "data": 8716,
+   "text": 148532,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -1340,8 +1340,8 @@
    "external": []
   },
   "sections": {
-   "text": 132384,
-   "data": 8344,
+   "text": 136776,
+   "data": 2976,
    "bss": 2920,
    "init_array": 0
   },
@@ -1374,8 +1374,8 @@
    ]
   },
   "sections": {
-   "text": 143584,
-   "data": 8580,
+   "text": 147936,
+   "data": 3136,
    "bss": 2952,
    "init_array": 0
   },
@@ -1430,8 +1430,8 @@
    ]
   },
   "sections": {
-   "text": 143552,
-   "data": 8580,
+   "text": 147904,
+   "data": 3136,
    "bss": 2952,
    "init_array": 0
   },
@@ -1487,8 +1487,8 @@
    ]
   },
   "sections": {
-   "text": 143296,
-   "data": 8552,
+   "text": 147652,
+   "data": 3112,
    "bss": 2952,
    "init_array": 0
   },
@@ -1538,8 +1538,8 @@
    ]
   },
   "sections": {
-   "text": 142864,
-   "data": 8540,
+   "text": 147336,
+   "data": 3088,
    "bss": 2936,
    "init_array": 0
   },
@@ -1583,8 +1583,8 @@
    "external": []
   },
   "sections": {
-   "text": 132352,
-   "data": 8344,
+   "text": 136744,
+   "data": 2976,
    "bss": 2920,
    "init_array": 0
   },
@@ -1617,8 +1617,8 @@
    ]
   },
   "sections": {
-   "text": 143552,
-   "data": 8580,
+   "text": 147904,
+   "data": 3136,
    "bss": 2952,
    "init_array": 0
   },
@@ -1673,8 +1673,8 @@
    ]
   },
   "sections": {
-   "text": 143520,
-   "data": 8580,
+   "text": 147872,
+   "data": 3136,
    "bss": 2952,
    "init_array": 0
   },
@@ -1730,8 +1730,8 @@
    ]
   },
   "sections": {
-   "text": 143264,
-   "data": 8552,
+   "text": 147620,
+   "data": 3112,
    "bss": 2952,
    "init_array": 0
   },
@@ -1781,8 +1781,8 @@
    ]
   },
   "sections": {
-   "text": 142832,
-   "data": 8540,
+   "text": 147304,
+   "data": 3088,
    "bss": 2936,
    "init_array": 0
   },
@@ -1826,8 +1826,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -1856,8 +1856,8 @@
    "external": []
   },
   "sections": {
-   "text": 143496,
-   "data": 8704,
+   "text": 148400,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -1886,8 +1886,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -1918,8 +1918,8 @@
    ]
   },
   "sections": {
-   "text": 143376,
-   "data": 8544,
+   "text": 147708,
+   "data": 3136,
    "bss": 2968,
    "init_array": 0
   },
@@ -1970,8 +1970,8 @@
    "external": []
   },
   "sections": {
-   "text": 143352,
-   "data": 8544,
+   "text": 147676,
+   "data": 3136,
    "bss": 2968,
    "init_array": 0
   },
@@ -2022,8 +2022,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -2052,8 +2052,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -2082,8 +2082,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -2112,8 +2112,8 @@
    "external": []
   },
   "sections": {
-   "text": 143504,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -2144,8 +2144,8 @@
    ]
   },
   "sections": {
-   "text": 143248,
-   "data": 8552,
+   "text": 147612,
+   "data": 3112,
    "bss": 2968,
    "init_array": 0
   },
@@ -2192,8 +2192,8 @@
    "external": []
   },
   "sections": {
-   "text": 142760,
-   "data": 8528,
+   "text": 147236,
+   "data": 3088,
    "bss": 2952,
    "init_array": 0
   },
@@ -2238,8 +2238,8 @@
    "external": []
   },
   "sections": {
-   "text": 131520,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -2268,8 +2268,8 @@
    "external": []
   },
   "sections": {
-   "text": 143464,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -2298,8 +2298,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -2330,8 +2330,8 @@
    ]
   },
   "sections": {
-   "text": 143344,
-   "data": 8544,
+   "text": 147676,
+   "data": 3136,
    "bss": 2968,
    "init_array": 0
   },
@@ -2382,8 +2382,8 @@
    "external": []
   },
   "sections": {
-   "text": 143320,
-   "data": 8544,
+   "text": 147644,
+   "data": 3136,
    "bss": 2968,
    "init_array": 0
   },
@@ -2434,8 +2434,8 @@
    "external": []
   },
   "sections": {
-   "text": 131536,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -2464,8 +2464,8 @@
    "external": []
   },
   "sections": {
-   "text": 131520,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -2494,8 +2494,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -2524,8 +2524,8 @@
    "external": []
   },
   "sections": {
-   "text": 143456,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -2556,8 +2556,8 @@
    ]
   },
   "sections": {
-   "text": 143216,
-   "data": 8552,
+   "text": 147580,
+   "data": 3112,
    "bss": 2968,
    "init_array": 0
   },
@@ -2604,8 +2604,8 @@
    "external": []
   },
   "sections": {
-   "text": 142728,
-   "data": 8528,
+   "text": 147204,
+   "data": 3088,
    "bss": 2952,
    "init_array": 0
   },
@@ -2650,8 +2650,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -2680,8 +2680,8 @@
    "external": []
   },
   "sections": {
-   "text": 143616,
-   "data": 8704,
+   "text": 148512,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -2710,8 +2710,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -2742,8 +2742,8 @@
    ]
   },
   "sections": {
-   "text": 143480,
-   "data": 8544,
+   "text": 147804,
+   "data": 3136,
    "bss": 2984,
    "init_array": 0
   },
@@ -2794,8 +2794,8 @@
    "external": []
   },
   "sections": {
-   "text": 143448,
-   "data": 8544,
+   "text": 147772,
+   "data": 3136,
    "bss": 2984,
    "init_array": 0
   },
@@ -2846,8 +2846,8 @@
    "external": []
   },
   "sections": {
-   "text": 131672,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -2876,8 +2876,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -2906,8 +2906,8 @@
    "external": []
   },
   "sections": {
-   "text": 143608,
-   "data": 8704,
+   "text": 148512,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -2938,8 +2938,8 @@
    ]
   },
   "sections": {
-   "text": 143496,
-   "data": 8564,
+   "text": 147872,
+   "data": 3112,
    "bss": 2968,
    "init_array": 0
   },
@@ -2986,8 +2986,8 @@
    "external": []
   },
   "sections": {
-   "text": 142904,
-   "data": 8528,
+   "text": 147372,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -3031,8 +3031,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -3061,8 +3061,8 @@
    "external": []
   },
   "sections": {
-   "text": 143568,
-   "data": 8704,
+   "text": 148464,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -3091,8 +3091,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -3123,8 +3123,8 @@
    ]
   },
   "sections": {
-   "text": 143448,
-   "data": 8544,
+   "text": 147772,
+   "data": 3136,
    "bss": 2984,
    "init_array": 0
   },
@@ -3175,8 +3175,8 @@
    "external": []
   },
   "sections": {
-   "text": 143416,
-   "data": 8544,
+   "text": 147740,
+   "data": 3136,
    "bss": 2984,
    "init_array": 0
   },
@@ -3227,8 +3227,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -3257,8 +3257,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -3287,8 +3287,8 @@
    "external": []
   },
   "sections": {
-   "text": 143560,
-   "data": 8704,
+   "text": 148464,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -3319,8 +3319,8 @@
    ]
   },
   "sections": {
-   "text": 143464,
-   "data": 8564,
+   "text": 147840,
+   "data": 3112,
    "bss": 2968,
    "init_array": 0
   },
@@ -3367,8 +3367,8 @@
    "external": []
   },
   "sections": {
-   "text": 142872,
-   "data": 8528,
+   "text": 147340,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -3412,8 +3412,8 @@
    "external": []
   },
   "sections": {
-   "text": 132216,
-   "data": 8164,
+   "text": 136580,
+   "data": 2832,
    "bss": 2968,
    "init_array": 0
   },
@@ -3442,8 +3442,8 @@
    "external": []
   },
   "sections": {
-   "text": 145000,
-   "data": 8716,
+   "text": 149908,
+   "data": 2832,
    "bss": 3240,
    "init_array": 0
   },
@@ -3472,8 +3472,8 @@
    "external": []
   },
   "sections": {
-   "text": 131912,
-   "data": 8164,
+   "text": 136276,
+   "data": 2832,
    "bss": 2968,
    "init_array": 0
   },
@@ -3503,8 +3503,8 @@
    "external": []
   },
   "sections": {
-   "text": 133088,
-   "data": 8176,
+   "text": 137456,
+   "data": 2832,
    "bss": 3224,
    "init_array": 0
   },
@@ -3535,8 +3535,8 @@
    ]
   },
   "sections": {
-   "text": 145248,
-   "data": 8484,
+   "text": 149560,
+   "data": 3088,
    "bss": 3896,
    "init_array": 0
   },
@@ -3587,8 +3587,8 @@
    "external": []
   },
   "sections": {
-   "text": 145200,
-   "data": 8484,
+   "text": 149512,
+   "data": 3088,
    "bss": 3896,
    "init_array": 0
   },
@@ -3640,8 +3640,8 @@
    "external": []
   },
   "sections": {
-   "text": 133384,
-   "data": 8176,
+   "text": 137760,
+   "data": 2832,
    "bss": 3224,
    "init_array": 0
   },
@@ -3674,15 +3674,17 @@
    "external": []
   },
   "sections": {
-   "text": 132264,
-   "data": 8164,
+   "text": 136628,
+   "data": 2832,
    "bss": 2984,
    "init_array": 0
   },
-  "retained_sub0_bytes": 0,
+  "retained_sub0_bytes": 400,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 0,
-  "retained_sub0": [],
+  "retained_sub0x_bytes": 400,
+  "retained_sub0": [
+   "public: void __cdecl `anonymous namespace'::Sensor<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::c0,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c1,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c2,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c3,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c4,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c5,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c6,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c7,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c8,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c9,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c10,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c11,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c12,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c13,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c14,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c15,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c16,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c17,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c18,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c19,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c20,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c21,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c22,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c23,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c24,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c25,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c26,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c27,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c28,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c29,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c30,&class collapse::Slot<struct `anonymous namespace'::Controller> A0xc71eff26::c31> >::send(unsigned int) __ptr64"
+  ],
   "dependencies": [
    "operator delete",
    "atexit"
@@ -3704,8 +3706,8 @@
    "external": []
   },
   "sections": {
-   "text": 144936,
-   "data": 8704,
+   "text": 149840,
+   "data": 2832,
    "bss": 3240,
    "init_array": 0
   },
@@ -3736,8 +3738,8 @@
    ]
   },
   "sections": {
-   "text": 145776,
-   "data": 8504,
+   "text": 150132,
+   "data": 3064,
    "bss": 3896,
    "init_array": 0
   },
@@ -3784,8 +3786,8 @@
    "external": []
   },
   "sections": {
-   "text": 145208,
-   "data": 8480,
+   "text": 149676,
+   "data": 3040,
    "bss": 3880,
    "init_array": 0
   },
@@ -3829,8 +3831,8 @@
    "external": []
   },
   "sections": {
-   "text": 131848,
-   "data": 8164,
+   "text": 136212,
+   "data": 2832,
    "bss": 2968,
    "init_array": 0
   },
@@ -3859,8 +3861,8 @@
    "external": []
   },
   "sections": {
-   "text": 144248,
-   "data": 8716,
+   "text": 149156,
+   "data": 2832,
    "bss": 3240,
    "init_array": 0
   },
@@ -3889,8 +3891,8 @@
    "external": []
   },
   "sections": {
-   "text": 131880,
-   "data": 8164,
+   "text": 136244,
+   "data": 2832,
    "bss": 2968,
    "init_array": 0
   },
@@ -3919,8 +3921,8 @@
    "external": []
   },
   "sections": {
-   "text": 132336,
-   "data": 8176,
+   "text": 136704,
+   "data": 2832,
    "bss": 3224,
    "init_array": 0
   },
@@ -3951,8 +3953,8 @@
    ]
   },
   "sections": {
-   "text": 145232,
-   "data": 8484,
+   "text": 149544,
+   "data": 3088,
    "bss": 3896,
    "init_array": 0
   },
@@ -4003,8 +4005,8 @@
    "external": []
   },
   "sections": {
-   "text": 145184,
-   "data": 8484,
+   "text": 149496,
+   "data": 3088,
    "bss": 3896,
    "init_array": 0
   },
@@ -4055,8 +4057,8 @@
    "external": []
   },
   "sections": {
-   "text": 132632,
-   "data": 8176,
+   "text": 137008,
+   "data": 2832,
    "bss": 3224,
    "init_array": 0
   },
@@ -4087,8 +4089,8 @@
    "external": []
   },
   "sections": {
-   "text": 131848,
-   "data": 8164,
+   "text": 136212,
+   "data": 2832,
    "bss": 2968,
    "init_array": 0
   },
@@ -4117,8 +4119,8 @@
    "external": []
   },
   "sections": {
-   "text": 144200,
-   "data": 8704,
+   "text": 149104,
+   "data": 2832,
    "bss": 3240,
    "init_array": 0
   },
@@ -4149,8 +4151,8 @@
    ]
   },
   "sections": {
-   "text": 145760,
-   "data": 8504,
+   "text": 150116,
+   "data": 3064,
    "bss": 3896,
    "init_array": 0
   },
@@ -4197,8 +4199,8 @@
    "external": []
   },
   "sections": {
-   "text": 145192,
-   "data": 8480,
+   "text": 149660,
+   "data": 3040,
    "bss": 3880,
    "init_array": 0
   },
@@ -4242,8 +4244,8 @@
    "external": []
   },
   "sections": {
-   "text": 131592,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -4272,8 +4274,8 @@
    "external": []
   },
   "sections": {
-   "text": 143584,
-   "data": 8704,
+   "text": 148480,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -4302,8 +4304,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -4334,8 +4336,8 @@
    ]
   },
   "sections": {
-   "text": 143480,
-   "data": 8544,
+   "text": 147804,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4388,8 +4390,8 @@
    ]
   },
   "sections": {
-   "text": 143480,
-   "data": 8544,
+   "text": 147804,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4440,8 +4442,8 @@
    "external": []
   },
   "sections": {
-   "text": 143456,
-   "data": 8544,
+   "text": 147772,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4492,8 +4494,8 @@
    "external": []
   },
   "sections": {
-   "text": 131672,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -4522,8 +4524,8 @@
    "external": []
   },
   "sections": {
-   "text": 131592,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -4552,8 +4554,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -4582,8 +4584,8 @@
    "external": []
   },
   "sections": {
-   "text": 143576,
-   "data": 8704,
+   "text": 148480,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -4614,8 +4616,8 @@
    ]
   },
   "sections": {
-   "text": 143352,
-   "data": 8552,
+   "text": 147708,
+   "data": 3112,
    "bss": 3000,
    "init_array": 0
   },
@@ -4662,8 +4664,8 @@
    "external": []
   },
   "sections": {
-   "text": 142792,
-   "data": 8528,
+   "text": 147260,
+   "data": 3088,
    "bss": 3000,
    "init_array": 0
   },
@@ -4707,8 +4709,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -4737,8 +4739,8 @@
    "external": []
   },
   "sections": {
-   "text": 143520,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -4767,8 +4769,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -4799,8 +4801,8 @@
    ]
   },
   "sections": {
-   "text": 143448,
-   "data": 8544,
+   "text": 147772,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4853,8 +4855,8 @@
    ]
   },
   "sections": {
-   "text": 143448,
-   "data": 8544,
+   "text": 147772,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4905,8 +4907,8 @@
    "external": []
   },
   "sections": {
-   "text": 143424,
-   "data": 8544,
+   "text": 147740,
+   "data": 3136,
    "bss": 3016,
    "init_array": 0
   },
@@ -4957,8 +4959,8 @@
    "external": []
   },
   "sections": {
-   "text": 131592,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -4987,8 +4989,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5017,8 +5019,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5047,8 +5049,8 @@
    "external": []
   },
   "sections": {
-   "text": 143512,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -5079,8 +5081,8 @@
    ]
   },
   "sections": {
-   "text": 143320,
-   "data": 8552,
+   "text": 147676,
+   "data": 3112,
    "bss": 3000,
    "init_array": 0
   },
@@ -5127,8 +5129,8 @@
    "external": []
   },
   "sections": {
-   "text": 142760,
-   "data": 8528,
+   "text": 147228,
+   "data": 3088,
    "bss": 3000,
    "init_array": 0
   },
@@ -5172,8 +5174,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5202,8 +5204,8 @@
    "external": []
   },
   "sections": {
-   "text": 143640,
-   "data": 8704,
+   "text": 148544,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -5232,8 +5234,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -5264,8 +5266,8 @@
    ]
   },
   "sections": {
-   "text": 144960,
-   "data": 8768,
+   "text": 149332,
+   "data": 3320,
    "bss": 3112,
    "init_array": 0
   },
@@ -5345,8 +5347,8 @@
    "external": []
   },
   "sections": {
-   "text": 144888,
-   "data": 8768,
+   "text": 149252,
+   "data": 3320,
    "bss": 3112,
    "init_array": 0
   },
@@ -5426,8 +5428,8 @@
    "external": []
   },
   "sections": {
-   "text": 131640,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -5456,8 +5458,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5486,8 +5488,8 @@
    "external": []
   },
   "sections": {
-   "text": 143640,
-   "data": 8704,
+   "text": 148544,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -5519,8 +5521,8 @@
    ]
   },
   "sections": {
-   "text": 144952,
-   "data": 8868,
+   "text": 149416,
+   "data": 3328,
    "bss": 3080,
    "init_array": 0
   },
@@ -5588,8 +5590,8 @@
    "external": []
   },
   "sections": {
-   "text": 144000,
-   "data": 8796,
+   "text": 148528,
+   "data": 3296,
    "bss": 3080,
    "init_array": 0
   },
@@ -5652,8 +5654,8 @@
    "external": []
   },
   "sections": {
-   "text": 131520,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5682,8 +5684,8 @@
    "external": []
   },
   "sections": {
-   "text": 143560,
-   "data": 8704,
+   "text": 148464,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -5712,8 +5714,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -5744,8 +5746,8 @@
    ]
   },
   "sections": {
-   "text": 144896,
-   "data": 8768,
+   "text": 149268,
+   "data": 3320,
    "bss": 3112,
    "init_array": 0
   },
@@ -5825,8 +5827,8 @@
    "external": []
   },
   "sections": {
-   "text": 144824,
-   "data": 8768,
+   "text": 149188,
+   "data": 3320,
    "bss": 3112,
    "init_array": 0
   },
@@ -5906,8 +5908,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -5936,8 +5938,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -5966,8 +5968,8 @@
    "external": []
   },
   "sections": {
-   "text": 143560,
-   "data": 8704,
+   "text": 148464,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -5999,8 +6001,8 @@
    ]
   },
   "sections": {
-   "text": 144888,
-   "data": 8868,
+   "text": 149352,
+   "data": 3328,
    "bss": 3080,
    "init_array": 0
   },
@@ -6068,8 +6070,8 @@
    "external": []
   },
   "sections": {
-   "text": 143936,
-   "data": 8796,
+   "text": 148464,
+   "data": 3296,
    "bss": 3080,
    "init_array": 0
   },
@@ -6133,8 +6135,8 @@
    "external": []
   },
   "sections": {
-   "text": 131736,
-   "data": 8188,
+   "text": 136124,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -6164,8 +6166,8 @@
    "external": []
   },
   "sections": {
-   "text": 131808,
-   "data": 8188,
+   "text": 136188,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -6197,8 +6199,8 @@
    ]
   },
   "sections": {
-   "text": 144960,
-   "data": 8816,
+   "text": 149372,
+   "data": 3320,
    "bss": 3096,
    "init_array": 0
   },
@@ -6280,8 +6282,8 @@
    ]
   },
   "sections": {
-   "text": 144960,
-   "data": 8816,
+   "text": 149372,
+   "data": 3320,
    "bss": 3096,
    "init_array": 0
   },
@@ -6361,8 +6363,8 @@
    "external": []
   },
   "sections": {
-   "text": 131800,
-   "data": 8188,
+   "text": 136188,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -6394,15 +6396,17 @@
    "external": []
   },
   "sections": {
-   "text": 131736,
-   "data": 8188,
+   "text": 136124,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
-  "retained_sub0_bytes": 0,
+  "retained_sub0_bytes": 112,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 0,
-  "retained_sub0": [],
+  "retained_sub0x_bytes": 112,
+  "retained_sub0": [
+   "public: static void __cdecl sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Relay> `anonymous namespace'::relay,&class collapse::Slot<struct `anonymous namespace'::Actuator> A0xaa84cffc::actuator,&class collapse::Slot<struct `anonymous namespace'::Tail> A0xaa84cffc::tail>::publish<struct `anonymous namespace'::Sample>(struct `anonymous namespace'::Sample const & __ptr64)"
+  ],
   "dependencies": [
    "operator delete",
    "atexit"
@@ -6427,8 +6431,8 @@
    ]
   },
   "sections": {
-   "text": 145144,
-   "data": 9004,
+   "text": 149624,
+   "data": 3440,
    "bss": 3064,
    "init_array": 0
   },
@@ -6501,8 +6505,8 @@
    "external": []
   },
   "sections": {
-   "text": 144048,
-   "data": 8920,
+   "text": 148588,
+   "data": 3408,
    "bss": 3064,
    "init_array": 0
   },
@@ -6570,8 +6574,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8188,
+   "text": 135996,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -6600,8 +6604,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -6633,8 +6637,8 @@
    ]
   },
   "sections": {
-   "text": 144928,
-   "data": 8816,
+   "text": 149340,
+   "data": 3320,
    "bss": 3096,
    "init_array": 0
   },
@@ -6716,8 +6720,8 @@
    ]
   },
   "sections": {
-   "text": 144928,
-   "data": 8816,
+   "text": 149340,
+   "data": 3320,
    "bss": 3096,
    "init_array": 0
   },
@@ -6796,8 +6800,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -6827,15 +6831,17 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8188,
+   "text": 135996,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
-  "retained_sub0_bytes": 0,
+  "retained_sub0_bytes": 32,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 0,
-  "retained_sub0": [],
+  "retained_sub0x_bytes": 32,
+  "retained_sub0": [
+   "public: static void __cdecl sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Relay> `anonymous namespace'::relay,&class collapse::Slot<struct `anonymous namespace'::Actuator> A0xaa84cffc::actuator,&class collapse::Slot<struct `anonymous namespace'::Tail> A0xaa84cffc::tail>::publish<struct `anonymous namespace'::Sample>(struct `anonymous namespace'::Sample const & __ptr64)"
+  ],
   "dependencies": [
    "operator delete",
    "atexit"
@@ -6860,8 +6866,8 @@
    ]
   },
   "sections": {
-   "text": 145096,
-   "data": 9004,
+   "text": 149576,
+   "data": 3440,
    "bss": 3064,
    "init_array": 0
   },
@@ -6934,8 +6940,8 @@
    "external": []
   },
   "sections": {
-   "text": 144000,
-   "data": 8920,
+   "text": 148540,
+   "data": 3408,
    "bss": 3064,
    "init_array": 0
   },
@@ -7002,8 +7008,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7032,8 +7038,8 @@
    "external": []
   },
   "sections": {
-   "text": 143480,
-   "data": 8704,
+   "text": 148384,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -7062,8 +7068,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7094,8 +7100,8 @@
    ]
   },
   "sections": {
-   "text": 142936,
-   "data": 8484,
+   "text": 147256,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7148,8 +7154,8 @@
    ]
   },
   "sections": {
-   "text": 142944,
-   "data": 8484,
+   "text": 147256,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7200,8 +7206,8 @@
    "external": []
   },
   "sections": {
-   "text": 142912,
-   "data": 8484,
+   "text": 147224,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7252,8 +7258,8 @@
    "external": []
   },
   "sections": {
-   "text": 131560,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7282,8 +7288,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7312,8 +7318,8 @@
    "external": []
   },
   "sections": {
-   "text": 143480,
-   "data": 8704,
+   "text": 148384,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -7344,8 +7350,8 @@
    ]
   },
   "sections": {
-   "text": 142872,
-   "data": 8480,
+   "text": 147212,
+   "data": 3064,
    "bss": 2952,
    "init_array": 0
   },
@@ -7392,8 +7398,8 @@
    "external": []
   },
   "sections": {
-   "text": 142312,
-   "data": 8456,
+   "text": 146756,
+   "data": 3040,
    "bss": 2952,
    "init_array": 0
   },
@@ -7437,8 +7443,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7467,8 +7473,8 @@
    "external": []
   },
   "sections": {
-   "text": 143464,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -7497,8 +7503,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7529,8 +7535,8 @@
    ]
   },
   "sections": {
-   "text": 142920,
-   "data": 8484,
+   "text": 147240,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7583,8 +7589,8 @@
    ]
   },
   "sections": {
-   "text": 142928,
-   "data": 8484,
+   "text": 147240,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7635,8 +7641,8 @@
    "external": []
   },
   "sections": {
-   "text": 142896,
-   "data": 8484,
+   "text": 147208,
+   "data": 3088,
    "bss": 2968,
    "init_array": 0
   },
@@ -7687,8 +7693,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7717,8 +7723,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7747,8 +7753,8 @@
    "external": []
   },
   "sections": {
-   "text": 143464,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -7779,8 +7785,8 @@
    ]
   },
   "sections": {
-   "text": 142856,
-   "data": 8480,
+   "text": 147196,
+   "data": 3064,
    "bss": 2952,
    "init_array": 0
   },
@@ -7827,8 +7833,8 @@
    "external": []
   },
   "sections": {
-   "text": 142296,
-   "data": 8456,
+   "text": 146740,
+   "data": 3040,
    "bss": 2952,
    "init_array": 0
   },
@@ -7872,8 +7878,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -7902,8 +7908,8 @@
    "external": []
   },
   "sections": {
-   "text": 143584,
-   "data": 8704,
+   "text": 148480,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -7932,8 +7938,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -7962,8 +7968,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -7992,8 +7998,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8022,8 +8028,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8052,8 +8058,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8082,8 +8088,8 @@
    "external": []
   },
   "sections": {
-   "text": 143592,
-   "data": 8704,
+   "text": 148480,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -8112,8 +8118,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -8142,8 +8148,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8172,8 +8178,8 @@
    "external": []
   },
   "sections": {
-   "text": 131696,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8202,8 +8208,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -8232,8 +8238,8 @@
    "external": []
   },
   "sections": {
-   "text": 143520,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -8262,8 +8268,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8292,8 +8298,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8322,8 +8328,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8352,8 +8358,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8382,8 +8388,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8412,8 +8418,8 @@
    "external": []
   },
   "sections": {
-   "text": 143528,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2904,
    "init_array": 0
   },
@@ -8442,8 +8448,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -8472,8 +8478,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8502,8 +8508,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -8532,8 +8538,8 @@
    "external": []
   },
   "sections": {
-   "text": 132032,
-   "data": 8272,
+   "text": 136400,
+   "data": 2928,
    "bss": 2936,
    "init_array": 0
   },
@@ -8562,8 +8568,8 @@
    "external": []
   },
   "sections": {
-   "text": 142520,
-   "data": 8468,
+   "text": 146968,
+   "data": 3040,
    "bss": 2952,
    "init_array": 0
   },
@@ -8606,17 +8612,19 @@
    "external": []
   },
   "sections": {
-   "text": 142880,
-   "data": 8720,
+   "text": 147340,
+   "data": 3280,
    "bss": 2984,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 712,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 712,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xa082f072::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xa082f072::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -8650,8 +8658,8 @@
    "external": []
   },
   "sections": {
-   "text": 132040,
-   "data": 8304,
+   "text": 136400,
+   "data": 2960,
    "bss": 2936,
    "init_array": 0
   },
@@ -8685,8 +8693,8 @@
    "external": []
   },
   "sections": {
-   "text": 132040,
-   "data": 8304,
+   "text": 136400,
+   "data": 2960,
    "bss": 2936,
    "init_array": 0
   },
@@ -8720,8 +8728,8 @@
    "external": []
   },
   "sections": {
-   "text": 131984,
-   "data": 8272,
+   "text": 136352,
+   "data": 2928,
    "bss": 2936,
    "init_array": 0
   },
@@ -8750,8 +8758,8 @@
    "external": []
   },
   "sections": {
-   "text": 142472,
-   "data": 8468,
+   "text": 146920,
+   "data": 3040,
    "bss": 2952,
    "init_array": 0
   },
@@ -8794,17 +8802,19 @@
    "external": []
   },
   "sections": {
-   "text": 142816,
-   "data": 8720,
+   "text": 147276,
+   "data": 3280,
    "bss": 2984,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 664,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 664,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xa082f072::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xa082f072::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -8838,8 +8848,8 @@
    "external": []
   },
   "sections": {
-   "text": 131992,
-   "data": 8304,
+   "text": 136352,
+   "data": 2960,
    "bss": 2936,
    "init_array": 0
   },
@@ -8873,8 +8883,8 @@
    "external": []
   },
   "sections": {
-   "text": 131992,
-   "data": 8304,
+   "text": 136352,
+   "data": 2960,
    "bss": 2936,
    "init_array": 0
   },
@@ -8908,8 +8918,8 @@
    "external": []
   },
   "sections": {
-   "text": 132448,
-   "data": 8296,
+   "text": 136840,
+   "data": 2928,
    "bss": 2952,
    "init_array": 0
   },
@@ -8941,8 +8951,8 @@
    ]
   },
   "sections": {
-   "text": 143016,
-   "data": 8492,
+   "text": 147480,
+   "data": 3040,
    "bss": 3000,
    "init_array": 0
   },
@@ -8988,17 +8998,19 @@
    ]
   },
   "sections": {
-   "text": 143312,
-   "data": 8744,
+   "text": 147788,
+   "data": 3280,
    "bss": 3016,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 712,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 712,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xb90ec9d6::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xb90ec9d6::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -9032,8 +9044,8 @@
    "external": []
   },
   "sections": {
-   "text": 132456,
-   "data": 8328,
+   "text": 136840,
+   "data": 2960,
    "bss": 2952,
    "init_array": 0
   },
@@ -9067,8 +9079,8 @@
    "external": []
   },
   "sections": {
-   "text": 132368,
-   "data": 8296,
+   "text": 136760,
+   "data": 2928,
    "bss": 2952,
    "init_array": 0
   },
@@ -9100,8 +9112,8 @@
    ]
   },
   "sections": {
-   "text": 142920,
-   "data": 8492,
+   "text": 147384,
+   "data": 3040,
    "bss": 3000,
    "init_array": 0
   },
@@ -9147,17 +9159,19 @@
    ]
   },
   "sections": {
-   "text": 143248,
-   "data": 8744,
+   "text": 147724,
+   "data": 3280,
    "bss": 3016,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 664,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 664,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xb90ec9d6::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0xb90ec9d6::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Base Class Descriptor at (0,-1,0,64)'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -9191,8 +9205,8 @@
    "external": []
   },
   "sections": {
-   "text": 132376,
-   "data": 8328,
+   "text": 136760,
+   "data": 2960,
    "bss": 2952,
    "init_array": 0
   },
@@ -9226,8 +9240,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -9256,8 +9270,8 @@
    "external": []
   },
   "sections": {
-   "text": 131696,
-   "data": 8176,
+   "text": 136048,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -9286,8 +9300,8 @@
    "external": []
   },
   "sections": {
-   "text": 131792,
-   "data": 8188,
+   "text": 136164,
+   "data": 2832,
    "bss": 2936,
    "init_array": 0
   },
@@ -9316,17 +9330,19 @@
    "external": []
   },
   "sections": {
-   "text": 142528,
-   "data": 8660,
+   "text": 146968,
+   "data": 3232,
    "bss": 2952,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 712,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 712,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0x86ed084e::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0x86ed084e::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Complete Object Locator'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -9360,8 +9376,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8176,
+   "text": 136048,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -9390,8 +9406,8 @@
    "external": []
   },
   "sections": {
-   "text": 131536,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -9420,8 +9436,8 @@
    "external": []
   },
   "sections": {
-   "text": 131664,
-   "data": 8176,
+   "text": 136016,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -9450,8 +9466,8 @@
    "external": []
   },
   "sections": {
-   "text": 131760,
-   "data": 8188,
+   "text": 136132,
+   "data": 2832,
    "bss": 2936,
    "init_array": 0
   },
@@ -9480,17 +9496,19 @@
    "external": []
   },
   "sections": {
-   "text": 142480,
-   "data": 8660,
+   "text": 146920,
+   "data": 3232,
    "bss": 2952,
    "init_array": 0
   },
-  "retained_sub0_bytes": 584,
+  "retained_sub0_bytes": 664,
   "retained_sub0_only_bytes": 0,
-  "retained_sub0x_bytes": 584,
+  "retained_sub0x_bytes": 664,
   "retained_sub0": [
    "public: virtual __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::~Subscribe<struct `anonymous namespace'::Sample>(void) __ptr64",
+   "public: virtual void * __ptr64 __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0x86ed084e::logger>,struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
    "public: virtual void * __ptr64 __cdecl sub0x::Subscribe<struct `anonymous namespace'::Sample>::`scalar deleting destructor'(unsigned int) __ptr64",
+   "public: virtual void __cdecl sub0x::StaticAdapter<struct sub0x::StaticWiring<&class collapse::Slot<struct `anonymous namespace'::Controller> `anonymous namespace'::controller,&class collapse::Slot<struct `anonymous namespace'::Logger> A0x86ed084e::logger>,struct `anonymous namespace'::Sample>::receive(struct `anonymous namespace'::Sample const & __ptr64) __ptr64",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`vftable'",
    "const sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Complete Object Locator'",
    "sub0x::Subscribe<struct `anonymous namespace'::Sample>::`RTTI Class Hierarchy Descriptor'",
@@ -9524,8 +9542,8 @@
    "external": []
   },
   "sections": {
-   "text": 131656,
-   "data": 8176,
+   "text": 136016,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -9554,8 +9572,8 @@
    "external": []
   },
   "sections": {
-   "text": 131576,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -9584,8 +9602,8 @@
    "external": []
   },
   "sections": {
-   "text": 143520,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -9614,8 +9632,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -9644,8 +9662,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -9674,8 +9692,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -9704,8 +9722,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -9734,8 +9752,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135940,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -9764,8 +9782,8 @@
    "external": []
   },
   "sections": {
-   "text": 143520,
-   "data": 8704,
+   "text": 148416,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -9797,8 +9815,8 @@
    ]
   },
   "sections": {
-   "text": 143592,
-   "data": 8596,
+   "text": 147952,
+   "data": 3144,
    "bss": 2984,
    "init_array": 0
   },
@@ -9854,8 +9872,8 @@
    "external": []
   },
   "sections": {
-   "text": 143232,
-   "data": 8584,
+   "text": 147716,
+   "data": 3120,
    "bss": 2984,
    "init_array": 0
   },
@@ -9908,8 +9926,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -9938,8 +9956,8 @@
    "external": []
   },
   "sections": {
-   "text": 143472,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -9968,8 +9986,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -9998,8 +10016,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -10028,8 +10046,8 @@
    "external": []
   },
   "sections": {
-   "text": 131584,
-   "data": 8164,
+   "text": 135924,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -10058,8 +10076,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -10088,8 +10106,8 @@
    "external": []
   },
   "sections": {
-   "text": 131568,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -10118,8 +10136,8 @@
    "external": []
   },
   "sections": {
-   "text": 143472,
-   "data": 8704,
+   "text": 148368,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10151,8 +10169,8 @@
    ]
   },
   "sections": {
-   "text": 143576,
-   "data": 8596,
+   "text": 147936,
+   "data": 3144,
    "bss": 2984,
    "init_array": 0
   },
@@ -10208,8 +10226,8 @@
    "external": []
   },
   "sections": {
-   "text": 143216,
-   "data": 8584,
+   "text": 147700,
+   "data": 3120,
    "bss": 2984,
    "init_array": 0
   },
@@ -10262,8 +10280,8 @@
    "external": []
   },
   "sections": {
-   "text": 131624,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10292,8 +10310,8 @@
    "external": []
   },
   "sections": {
-   "text": 131696,
-   "data": 8164,
+   "text": 136052,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10322,8 +10340,8 @@
    "external": []
   },
   "sections": {
-   "text": 131736,
-   "data": 8176,
+   "text": 136104,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10352,8 +10370,8 @@
    "external": []
   },
   "sections": {
-   "text": 131704,
-   "data": 8164,
+   "text": 136052,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10382,8 +10400,8 @@
    "external": []
   },
   "sections": {
-   "text": 131632,
-   "data": 8164,
+   "text": 135988,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10412,8 +10430,8 @@
    "external": []
   },
   "sections": {
-   "text": 131592,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10442,8 +10460,8 @@
    "external": []
   },
   "sections": {
-   "text": 131648,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10472,8 +10490,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10502,8 +10520,8 @@
    "external": []
   },
   "sections": {
-   "text": 131656,
-   "data": 8164,
+   "text": 136004,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10532,8 +10550,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135956,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10562,8 +10580,8 @@
    "external": []
   },
   "sections": {
-   "text": 131600,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10592,8 +10610,8 @@
    "external": []
   },
   "sections": {
-   "text": 143672,
-   "data": 8704,
+   "text": 148576,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -10622,8 +10640,8 @@
    "external": []
   },
   "sections": {
-   "text": 131672,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10652,8 +10670,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8164,
+   "text": 136052,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10682,8 +10700,8 @@
    "external": []
   },
   "sections": {
-   "text": 131680,
-   "data": 8164,
+   "text": 136036,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10712,8 +10730,8 @@
    "external": []
   },
   "sections": {
-   "text": 131688,
-   "data": 8164,
+   "text": 136052,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -10742,8 +10760,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10772,8 +10790,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10802,8 +10820,8 @@
    "external": []
   },
   "sections": {
-   "text": 143672,
-   "data": 8704,
+   "text": 148576,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -10835,8 +10853,8 @@
    ]
   },
   "sections": {
-   "text": 143968,
-   "data": 8624,
+   "text": 148396,
+   "data": 3112,
    "bss": 3112,
    "init_array": 0
   },
@@ -10884,8 +10902,8 @@
    "external": []
   },
   "sections": {
-   "text": 143152,
-   "data": 8528,
+   "text": 147612,
+   "data": 3088,
    "bss": 3112,
    "init_array": 0
   },
@@ -10928,8 +10946,8 @@
    "external": []
   },
   "sections": {
-   "text": 131536,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -10958,8 +10976,8 @@
    "external": []
   },
   "sections": {
-   "text": 143608,
-   "data": 8704,
+   "text": 148512,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -10988,8 +11006,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -11018,8 +11036,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -11048,8 +11066,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -11078,8 +11096,8 @@
    "external": []
   },
   "sections": {
-   "text": 131608,
-   "data": 8164,
+   "text": 135972,
+   "data": 2832,
    "bss": 2888,
    "init_array": 0
   },
@@ -11108,8 +11126,8 @@
    "external": []
   },
   "sections": {
-   "text": 131552,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -11138,8 +11156,8 @@
    "external": []
   },
   "sections": {
-   "text": 131544,
-   "data": 8164,
+   "text": 135908,
+   "data": 2832,
    "bss": 2856,
    "init_array": 0
   },
@@ -11168,8 +11186,8 @@
    "external": []
   },
   "sections": {
-   "text": 143608,
-   "data": 8704,
+   "text": 148512,
+   "data": 2832,
    "bss": 2920,
    "init_array": 0
   },
@@ -11201,8 +11219,8 @@
    ]
   },
   "sections": {
-   "text": 143936,
-   "data": 8624,
+   "text": 148364,
+   "data": 3112,
    "bss": 3112,
    "init_array": 0
   },
@@ -11250,8 +11268,8 @@
    "external": []
   },
   "sections": {
-   "text": 143120,
-   "data": 8528,
+   "text": 147580,
+   "data": 3088,
    "bss": 3112,
    "init_array": 0
   },
@@ -11294,8 +11312,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11324,8 +11342,8 @@
    "external": []
   },
   "sections": {
-   "text": 143440,
-   "data": 8704,
+   "text": 148336,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -11356,8 +11374,8 @@
    ]
   },
   "sections": {
-   "text": 132336,
-   "data": 8312,
+   "text": 136592,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11400,8 +11418,8 @@
    ]
   },
   "sections": {
-   "text": 132336,
-   "data": 8312,
+   "text": 136592,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11442,8 +11460,8 @@
    "external": []
   },
   "sections": {
-   "text": 132312,
-   "data": 8312,
+   "text": 136560,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11484,8 +11502,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11514,8 +11532,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11544,8 +11562,8 @@
    "external": []
   },
   "sections": {
-   "text": 143432,
-   "data": 8704,
+   "text": 148336,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -11576,8 +11594,8 @@
    ]
   },
   "sections": {
-   "text": 132000,
-   "data": 8176,
+   "text": 136240,
+   "data": 2856,
    "bss": 2936,
    "init_array": 0
   },
@@ -11610,8 +11628,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8176,
+   "text": 135984,
+   "data": 2832,
    "bss": 2936,
    "init_array": 0
   },
@@ -11642,8 +11660,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11672,8 +11690,8 @@
    "external": []
   },
   "sections": {
-   "text": 143440,
-   "data": 8704,
+   "text": 148336,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -11704,8 +11722,8 @@
    ]
   },
   "sections": {
-   "text": 132336,
-   "data": 8312,
+   "text": 136592,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11748,8 +11766,8 @@
    ]
   },
   "sections": {
-   "text": 132336,
-   "data": 8312,
+   "text": 136592,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11790,8 +11808,8 @@
    "external": []
   },
   "sections": {
-   "text": 132312,
-   "data": 8312,
+   "text": 136560,
+   "data": 2976,
    "bss": 2952,
    "init_array": 0
   },
@@ -11832,8 +11850,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11862,8 +11880,8 @@
    "external": []
   },
   "sections": {
-   "text": 131528,
-   "data": 8164,
+   "text": 135892,
+   "data": 2832,
    "bss": 2840,
    "init_array": 0
   },
@@ -11892,8 +11910,8 @@
    "external": []
   },
   "sections": {
-   "text": 143432,
-   "data": 8704,
+   "text": 148336,
+   "data": 2832,
    "bss": 2872,
    "init_array": 0
   },
@@ -11924,8 +11942,8 @@
    ]
   },
   "sections": {
-   "text": 132000,
-   "data": 8176,
+   "text": 136240,
+   "data": 2856,
    "bss": 2936,
    "init_array": 0
   },
@@ -11958,8 +11976,8 @@
    "external": []
   },
   "sections": {
-   "text": 131616,
-   "data": 8176,
+   "text": 135984,
+   "data": 2832,
    "bss": 2936,
    "init_array": 0
   },
