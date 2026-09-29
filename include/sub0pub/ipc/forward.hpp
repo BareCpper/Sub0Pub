@@ -34,8 +34,8 @@ namespace sub0
          */
         inline void receive( const Data& data ) noexcept override
         {
-            using ForwardReceiver_t = utility::detected_or_t<Target, forward_receiver_t, Target>;
-            static_cast<Target*>(this)->ForwardReceiver_t::receive(data);
+            // Qualified, so the call is not virtual: the class that forward_receiver_t names, else Target itself
+            static_cast<Target*>(this)->utility::detected_or_t<Target, forward_receiver_t, Target>::receive(data);
         }
     };
 

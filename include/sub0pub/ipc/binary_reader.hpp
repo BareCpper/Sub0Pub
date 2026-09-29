@@ -103,7 +103,7 @@ namespace sub0
             dataBufferRegistry_.set(dataBuffer, publisher);
         }
 
-        bool close( IStream& stream  )
+        bool close( IStream& /*stream*/ )
         {
             dataBufferRegistry_.close(); ///< @TODO This is here as a use-case contained stream state wihin the buffer map! Remove/deprecate this when/as possible
             return true;
