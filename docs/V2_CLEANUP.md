@@ -4,6 +4,19 @@ Goal: a focused v2 source tree containing the supported library, useful examples
 reproducible benchmarks and a concise migration guide. Preserve provenance in git; do not rewrite the shared
 `v2` branch or erase the `v1.0` baseline. A clean source tree does not require an orphan history.
 
+## Compatibility boundary
+
+Examples teach the current API without a versioned directory. The runtime broker (`Publish`, `Subscribe`,
+`SubscribeAll`) is a current dynamic path, not a v1 shim. There is no separate v1 API adapter today.
+If an old-contract adapter is introduced, keep its samples under `examples/compatibility/v1/` and record
+its replacement, consumers still requiring it and explicit removal criteria. That layer is removable
+migration debt; the supported core paths must not depend on it. The historical v1 benchmark remains
+comparison evidence rather than a compatibility API.
+
+The umbrella header remains a supported entry point. Its retained transitive standard-library includes
+are a distinct source-compatibility concession; audit and document consumer migration before removing
+those includes, rather than deleting or mislabelling the whole umbrella.
+
 ## Stage 1 — core coverage
 
 - [x] Add checked static, dynamic, mixed and transport examples using only the public API.
@@ -29,7 +42,7 @@ Retain `examples/cross_module/`: it represents an unresolved shared-library use 
 experiment. Its disabled build is a support gap to close; separate-translation-unit tests do not prove
 cross-DLL state sharing or safe module unloading. See its [status](../examples/cross_module/README.md).
 
-Do not remove the v1 comparison harness, compatibility umbrella header, known-limitations documentation,
+Do not remove the v1 comparison harness, current umbrella entry header, known-limitations documentation,
 hand-written benchmark references or negative lifetime tests as “legacy”. They prove behavior users rely on.
 Do not silently increase a budget to make cleanup pass.
 

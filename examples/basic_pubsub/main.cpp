@@ -6,7 +6,7 @@
  * 26 degrees, then leaves its scope; the next reading reaches only LCD and LOG. No publisher
  * stores a list of displays or calls them individually.
  * Keep in mind: this uses the default unlocked broker. Subscribers register during construction;
- * locked subscribers need the explicit lifecycle shown in v2/thread_safe_lifetime.cpp instead.
+ * locked subscribers need the explicit lifecycle shown in ../thread_safe_lifetime.cpp instead.
  * Run: Sub0Pub_BasicPubSub prints each delivery; TMP appears only for the 26-degree reading.
  */
 #include "sub0pub/sub0pub.hpp"

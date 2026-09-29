@@ -120,3 +120,10 @@ When adding or changing a sample, review the header against the actual code and 
 source-only first-time reader to explain its use case, participants, sequence and limitations; revise any
 ambiguity. Check all affected companion files too, and keep the example index accurate. Build/run enabled
 samples; distinguish those checks from any disabled or platform-specific cases that remain unvalidated.
+
+Organize examples by use case for the current API; do not create a `v2` tier beside supposedly legacy
+samples. Static wiring, runtime subscription, mixed paths and IPC are first-class current APIs. A familiar
+v1-era name is not by itself a compatibility adapter. Keep actual old-contract adapters separate under
+`examples/compatibility/<version>/`, with a header identifying the compatibility contract, its current
+replacement, limitations and removal criteria. Such adapters are explicitly tracked migration debt;
+normal examples must not depend on them. Retain historical benchmark fixtures separately as evidence.

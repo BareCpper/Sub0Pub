@@ -382,5 +382,5 @@ The policy macros (`SUB0PUB_MAX_SUBSCRIPTIONS`, `SUB0PUB_REENTRANT_SAFE`, `SUB0P
 
 [MIT License](LICENSE.md) -- Copyright (c) 2018 Craig Hutchinson
 
-Runnable [v2 examples](examples/README.md) cover static, dynamic, mixed and transport paths; see the
+Runnable [examples](examples/README.md) cover static, dynamic, mixed and transport paths; see the
 [optimization and migration coverage review](docs/V2_OPTIMIZATION_REVIEW.md) for measurement scope.

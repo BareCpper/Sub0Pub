@@ -43,6 +43,10 @@ Every C++ sample and companion file under `examples/` must follow the source-fir
 observable output, including existing and disabled examples. Use a source-only first-reader review for
 readability; explanatory sample comments are encouraged where they help a developer choose or adapt a pattern.
 
+Examples teach the current API without version-based tiers. Isolate actual backwards-compatibility
+adapters and their samples as removable migration debt; do not classify current runtime broker APIs as
+legacy merely because their names existed in v1. See `STYLE_GUIDE.md` for placement and removal criteria.
+
 ### Tests
 - All new features must have corresponding tests in `tests/`
 - Performance-sensitive changes should be validated with `Sub0Pub_Bench` / `run_baseline.py` against `docs/PERFORMANCE_BASELINE.md`
