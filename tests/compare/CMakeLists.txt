@@ -7,7 +7,7 @@ set(SUB0PUB_COMPARE_INCLUDES
     "${CMAKE_CURRENT_SOURCE_DIR}/../collapse"
     "${CMAKE_CURRENT_SOURCE_DIR}/../design/broker_config")
 
-foreach(name cmp_sub0pub cmp_config cmp_static)
+foreach(name cmp_sub0pub cmp_config cmp_static cmp_mixed)
     add_executable(Sub0Pub_Compare_${name} ${name}.cpp)
     target_link_libraries(Sub0Pub_Compare_${name} PRIVATE Sub0Pub::Sub0Pub)
     target_include_directories(Sub0Pub_Compare_${name} PRIVATE ${SUB0PUB_COMPARE_INCLUDES})

@@ -43,11 +43,7 @@ int main()
     std::printf("Publishing 24.1:\n");
     sensor.sample(24.1f);
 
-    // Destroy LCD — LOG still receives
-    {
-        std::printf("\nLCD destroyed, publishing 25.0:\n");
-    }
-    // lcd is still alive here (scope didn't end), let's demo with a block:
+    // Add a temporary subscriber; LCD and LOG stay alive throughout.
     {
         TemperatureDisplay temporary("TMP");
         std::printf("TMP added, publishing 26.0:\n");

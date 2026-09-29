@@ -80,10 +80,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install toolchains
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends valgrind clang gcc-arm-none-eabi libstdc++-arm-none-eabi-newlib
       - name: Collect evidence
         run: python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json --json collapse-evidence.json > collapse-evidence.md
+      - name: Migration comparison (including mixed paths)
+        run: python3 tests/compare/compare_versions.py > migration-comparison.md
       - name: Summary
         if: always()
         run: cat collapse-evidence.md >> "$GITHUB_STEP_SUMMARY"
@@ -91,5 +95,7 @@ jobs:
         if: always()
         with:
           name: collapse-evidence
-          path: collapse-evidence.*
+          path: |
+            collapse-evidence.*
+            migration-comparison.md
 
