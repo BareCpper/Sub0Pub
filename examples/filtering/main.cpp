@@ -1,9 +1,12 @@
-/** Sub0Pub Example: Message Filtering
+/** One log stream, different audiences — per-subscriber filtering
  *
- * Demonstrates:
- *   - Override filter() to selectively receive messages
- *   - Filter runs before receive() — rejected messages cost almost nothing
- *   - Multiple subscribers with different filters on the same type
+ * Use when: receivers of the same message type need different subsets of its values.
+ * Demonstrates: per-type sub0::Filter and filter() deciding whether receive() runs for that subscriber.
+ * Story: Logger publishes five entries. AlertDisplay receives warnings/errors; DebugConsole
+ * receives debug entries; FileLog prints every entry as a stand-in for a file sink.
+ * Keep in mind: rejecting a message skips this receiver only; it does not cancel delivery to
+ * other subscribers. Filtering is opt-in and still executes a predicate; no cost-free claim is made.
+ * Run: Sub0Pub_Filtering prints two ALERT, two DEBUG and five FILE lines.
  */
 #include "sub0pub/sub0pub.hpp"
 #include <cstdio>

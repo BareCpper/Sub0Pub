@@ -37,6 +37,12 @@ Follow `STYLE_GUIDE.md` for all C++ code. Key points:
 - `noexcept` on all publish/receive hot-path functions
 - `SUB0PUB_` prefix for all configuration macros
 
+### Examples
+Every C++ sample and companion file under `examples/` must follow the source-first header convention in
+`STYLE_GUIDE.md` (Use when, Demonstrates, Story, Keep in mind, Run). Review headers against the code and
+observable output, including existing and disabled examples. Use a source-only first-reader review for
+readability; explanatory sample comments are encouraged where they help a developer choose or adapt a pattern.
+
 ### Tests
 - All new features must have corresponding tests in `tests/`
 - Performance-sensitive changes should be validated with `Sub0Pub_Bench` / `run_baseline.py` against `docs/PERFORMANCE_BASELINE.md`

@@ -1,4 +1,15 @@
-/** A recording session has two subscriber slots. A one-shot recorder frees its slot for a waiting recorder. */
+/** A recording session hands a freed slot to a waiting recorder
+ *
+ * Use when: a bounded set of runtime receivers belongs to a session that can be closed explicitly.
+ * Demonstrates: Scoped Domain, Capacity<2>, Snapshot, trySubscribe(), disconnect() and close().
+ * Story: FirstReadingRecorder and a continuous recorder fill the two slots. The first reading
+ * makes the one-shot recorder disconnect itself; the waiting recorder can then claim that slot.
+ * Both remaining recorders receive the next temperature. Closing the session drops later readings
+ * and rejects new subscriptions, even while the recorder objects themselves remain alive.
+ * Keep in mind: Snapshot permits removal during a callback. The Domain must outlive its handles;
+ * this unlocked configuration is not for concurrent publishing/subscription changes.
+ * Run: Sub0Pub_Example_dynamic_lifetime returns zero when the delivery and lifetime checks pass.
+ */
 #include "sub0pub/broker.hpp"
 
 struct TemperatureReading

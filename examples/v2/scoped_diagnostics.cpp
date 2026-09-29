@@ -1,55 +1,16 @@
-/** A controller always receives readings. Optional diagnostic receivers can come and go beside it. */
+/** One-shot diagnostics leave a cooling controller running
+ *
+ * Use when: runtime observers behind fixed wiring need broker policy and session ownership.
+ * Demonstrates: BrokerPort, Scoped Domain, Snapshot and callback disconnect().
+ * Story: two one-shot probes disconnect after their first reading. The fixed cooling
+ * controller keeps receiving; closing the diagnostic session also leaves that fixed path intact.
+ * Keep in mind: Snapshot permits callback self-removal. The Domain must outlive its bound
+ * handles. This unlocked example is not safe for concurrent access; a plain DynamicPort
+ * does not provide these lifetime guarantees.
+ * Run: Sub0Pub_Example_scoped_diagnostics returns zero when the checks pass.
+ */
 #include "sub0pub/wiring.hpp"
 #include "sub0pub/wiring/broker_port.hpp"
-
-struct TemperatureReading { int celsius; };
-
-struct CoolingController
-{
-    unsigned readingsReceived = 0;
-    bool fanRunning = false;
-
-    void receive(const TemperatureReading& reading) noexcept
-    {
-        fanRunning = reading.celsius >= 21;
-        ++readingsReceived;
-    }
-};
-
-using DiagnosticPort = sub0::DynamicPort<TemperatureReading, 1>;
-
-struct DiagnosticProbe final : DiagnosticPort::Receiver
-{
-    unsigned readingsReceived = 0;
-    void receive(const TemperatureReading&) noexcept override { ++readingsReceived; }
-};
-
-bool attachAndRemoveAProbe()
-{
-    CoolingController controller;
-    DiagnosticPort diagnostics;
-    auto wiring = sub0::wire(controller, diagnostics);
-
-    wiring.publish(TemperatureReading{20}); // The controller works even with no diagnostic receiver.
-    if (controller.readingsReceived != 1)
-        return false;
-
-    DiagnosticProbe probe;
-    DiagnosticProbe waitingProbe;
-    if (!diagnostics.tryAdd(&probe) || diagnostics.tryAdd(&waitingProbe))
-        return false;
-
-    wiring.publish(TemperatureReading{21});
-    if (controller.readingsReceived != 2 || probe.readingsReceived != 1)
-        return false;
-
-    // DynamicPort borrows unique, non-null receivers. Remove before destruction, outside delivery.
-    // Adding, removing and publishing must not run concurrently.
-    diagnostics.remove(&probe);
-    wiring.publish(TemperatureReading{22});
-
-    return controller.readingsReceived == 3 && controller.fanRunning && probe.readingsReceived == 1;
-}
 
 struct SessionTemperatureReading
 {
@@ -106,7 +67,5 @@ bool letProbesDisconnectThemselves()
 
 int main()
 {
-    if (!attachAndRemoveAProbe()) return 1;
-    if (!letProbesDisconnectThemselves()) return 2;
-    return 0;
+    return letProbesDisconnectThemselves() ? 0 : 1;
 }

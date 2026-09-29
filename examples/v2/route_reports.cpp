@@ -1,5 +1,15 @@
-/** Deliver readings locally and to a link, without echoing incoming readings back to that link. */
-#include "sub0pub/wiring.hpp"
+/** Report a full telemetry link while preserving local delivery
+ *
+ * Use when: a runtime publisher needs transport acceptance/rejection feedback and an ingress path.
+ * Demonstrates: Scoped Domain, Route, PublishReport and inject(), with ThreadLocalContext.
+ * Story: a first reading is accepted by the link. The simulated queue then becomes full:
+ * the next send is reported rejected, but the local display still receives it. An injected
+ * incoming reading also reaches the display without being echoed out through that route.
+ * Keep in mind: a Route uses a subscriber slot; check registration. The Domain and transport
+ * must outlive their bound handles. Acceptance is not remote delivery; immediate echo
+ * suppression does not prevent arbitrary network cycles.
+ * Run: Sub0Pub_Example_route_reports returns zero when the checks pass.
+ */
 #include "sub0pub/broker.hpp"
 
 struct TemperatureReading
@@ -23,39 +33,6 @@ struct TelemetryLink
         return sub0::SendResult::Accepted;
     }
 };
-
-struct TemperatureDisplay
-{
-    unsigned readingsReceived = 0;
-    void receive(const TemperatureReading&) noexcept { ++readingsReceived; }
-};
-
-bool forwardWithoutEcho()
-{
-    TelemetryLink link;
-    TemperatureDisplay display;
-    sub0::Forward<TelemetryLink> forward(link);
-    auto wiring = sub0::wire(display, forward);
-
-    wiring.publish(TemperatureReading{20}); // Outgoing: display and link.
-    wiring.publishFrom(link, TemperatureReading{21}); // Incoming: display only.
-
-    // Forward ignores send results. Use a Route when the publisher needs a rejection report.
-    return display.readingsReceived == 2 && link.readingsAccepted == 1;
-}
-
-// The same forwarding pattern with receiver and transport addresses fixed in the wiring type.
-TelemetryLink fixedLink;
-TemperatureDisplay fixedDisplay;
-sub0::StaticForward<&fixedLink> fixedForward;
-using FixedWiring = sub0::StaticWiring<&fixedDisplay, &fixedForward>;
-
-bool forwardThroughFixedAddresses()
-{
-    FixedWiring::publish(TemperatureReading{20});
-    FixedWiring::publishFrom(fixedLink, TemperatureReading{21});
-    return fixedDisplay.readingsReceived == 2 && fixedLink.readingsAccepted == 1;
-}
 
 struct SubscribedTemperatureDisplay final : sub0::Subscribe<TemperatureReading>
 {
@@ -97,8 +74,5 @@ bool reportWhenTheLinkIsFull()
 
 int main()
 {
-    if (!forwardWithoutEcho()) return 1;
-    if (!forwardThroughFixedAddresses()) return 2;
-    if (!reportWhenTheLinkIsFull()) return 3;
-    return 0;
+    return reportWhenTheLinkIsFull() ? 0 : 1;
 }
