@@ -38,6 +38,17 @@
 #define SUB0PUB_MAX_SUBSCRIPTIONS 8 ///< Fixed subscription table size per Broker<T>. Override globally or per-TU.
 #endif
 
+/** Inlining for the static-wiring delivery chain (sub0pub/wiring): not a configuration option.
+ * MSVC's /O2 inliner stops at a delivery chain of many receivers and leaves StaticWiring::publish out of line
+ * (32 receivers: 169 publish-path instructions against 69 hand-written; docs/design/MSVC_VERIFICATION.md), so the
+ * wiring asks for inlining explicitly there. Every other compiler gets plain `inline`, so their code is unchanged.
+ */
+#if defined(_MSC_VER) && !defined(__clang__)
+#define SUB0PUB_FORCE_INLINE __forceinline
+#else
+#define SUB0PUB_FORCE_INLINE inline
+#endif
+
 /* Default configuration: the cheapest correct dispatch. Every feature that costs something is opt-in, and
  * using one without opting in is detected: at compile time where possible, otherwise by a debug-build check.
  *   SUB0PUB_REENTRANT_SAFE  snapshot dispatch   detected by SUB0PUB_REENTRANT_CHECK (debug)

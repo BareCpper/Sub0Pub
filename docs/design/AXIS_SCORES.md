@@ -187,5 +187,5 @@ ThreadLocal combination is correct. The price (a Lock needs TLS) is known issue 
   ISR harness and no queue axis (planned axis, section 4).
 - Contention and lock cost on the target (Zephyr `k_spinlock`, nRF54): host numbers only.
 - Priority inversion and bounded wait under an RTOS scheduler (K4).
-- MSVC evidence (COLLAPSE_EVIDENCE.md plan).
+- MSVC evidence covers the collapse cases ([MSVC_VERIFICATION.md](MSVC_VERIFICATION.md)); the policy-axis prototype (`test_axes`) has no MSVC codegen evidence.
 - The static-subscriber axis (pattern B, #9) selected per `Data` type through this configuration: Phase 2 of #9.

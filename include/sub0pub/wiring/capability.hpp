@@ -47,7 +47,7 @@ namespace sub0
 
         /// Deliver to one receiver: nothing at all if it does not handle T; its filter only if it declares one
         template<class R, class T>
-        inline void deliver(R& r, const T& msg) noexcept
+        SUB0PUB_FORCE_INLINE void deliver(R& r, const T& msg) noexcept
         {
             if constexpr (accepts<R, T>::value)
             {
