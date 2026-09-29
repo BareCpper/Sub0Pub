@@ -1,5 +1,7 @@
 # #8 policy axes: score matrix and coverage
 
+> Since Phase 2, the per-type configuration (`sub0pub/config.hpp`, namespace `sub0`) is public API. These scores were measured on the `sub0x` prototypes, which carry the same code.
+
 Every configurable axis of the per-`Data` broker configuration ([BROKER_CUSTOMISATION.md](BROKER_CUSTOMISATION.md)
 section 4, prototype `tests/design/broker_config/`) scored option by option, on measured cost and on the guarantees
 each option gives. The second half asks whether the use cases behind those scores are exhaustive enough to show each
@@ -174,8 +176,10 @@ ThreadLocal combination is correct. The price (a Lock needs TLS) is known issue 
 - **Delivery after a disconnect inside `filter()`.** Delivery called `filter()` then `receive()` without looking
   again, so a `filter()` that disconnected its subscriber and returned true still got `receive()`, and one that destroyed
   it made a call on a freed object. **Fixed:** `kit::deliverAt` re-reads the dispatch-owned slot (never the subscriber)
-  after `filter()`; Direct dispatch skips the null check its live entries never need. Measured cost: none (Lean 9/33/96
-  and Direct 61/166 unchanged; Snapshot 73/220 from 74/228). `test_axes` covers disconnect, self-destruction and domain
+  after `filter()`; Direct dispatch skips the null check its live entries never need. Measured cost: none where `filter()`
+  is disabled or devirtualised (Lean 9/33/96 and Direct 61/166 unchanged; Snapshot 73/220 from 74/228). With a real
+  `filter()` override, which this benchmark lacks, it is 2 instructions per delivered subscriber on gcc and clang
+  (v1/v2 comparison, [../perf/compare-v1-v2-2026-09.md](../perf/compare-v1-v2-2026-09.md)). `test_axes` covers disconnect, self-destruction and domain
   close from `filter()`, and ASan catches the self-destruction case when the re-check is removed.
 
 **Still not covered (open):**

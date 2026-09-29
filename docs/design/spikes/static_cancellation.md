@@ -1,5 +1,7 @@
 # Spike: static-path cancellation (issue #9 open item)
 
+> **Header split (2026-09):** `sub0pub.hpp:N` line references in this record point into the single-file header of the time. The library is now split into focused headers under `include/sub0pub/` (umbrella `sub0pub.hpp`; MIGRATION.md, "The library is split into focused headers").
+
 > **Fairness review (2026-09): see the "Fairness review" section at the end for Alt 3 and Alt 4 in their best forms.**
 
 **Question.** Pattern B (`tests/collapse/sandbox/sub0x_static.hpp`) has no way for a receiver to stop the

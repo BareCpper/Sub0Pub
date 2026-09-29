@@ -1,5 +1,7 @@
 # #10 collapse axes: score matrix and coverage
 
+> Since Phase 2, the decided static wiring forms (`sub0pub/wiring/`, namespace `sub0`) is public API. These scores were measured on the `sub0x` prototypes, which carry the same code.
+
 Every design axis that PR #10 (issue #9, "collapse gate") compares, scored option by option on measured cost and on
 the guarantees each option gives, in the structure of the #8 policy-axes matrix ([AXIS_SCORES.md](AXIS_SCORES.md)).
 The second half asks whether the collapse cases are exhaustive enough to show each option's merits and limitations,

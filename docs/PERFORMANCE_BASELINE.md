@@ -8,6 +8,37 @@ Full reports:
 - [perf/baseline-2026-09-linux-gcc13-bench.md](perf/baseline-2026-09-linux-gcc13-bench.md): every scenario, instr/op and ns/op
 - [perf/baseline-2026-09-footprint.md](perf/baseline-2026-09-footprint.md): code size, RAM, sizeof, link dependencies
 
+## Phase 2: the current bar
+
+Phase 2 replaced the broker in `sub0pub.hpp` (since split into focused headers under `include/sub0pub/`) with the per-type broker from the design study, made the default the
+cheapest dispatch, and made every costly feature opt-in (MIGRATION.md, "The default is the cheapest dispatch"). The
+tables further down are the header **before** Phase 2 (`9e04143`). These are the numbers new changes are measured
+against (`tests/bench/run_baseline.py --no-timing`, GCC 13, `-O2`):
+
+| Scenario | Direct (default) | Direct + check | Full (snapshot, cancel, filter) | ThreadSafe (+ filter) |
+|---|---:|---:|---:|---:|
+| publish, 0 subscribers | 24 | 37 | 28 | 232 |
+| publish, 1 subscriber | 38 | 48 | 77 | 273 |
+| publish, 8 subscribers | 101 | 125 | 287 | 553 |
+| 8 subscribers, first cancels | n/a | n/a | 99 | 314 |
+| re-entrant publish, depth 1 | 74 | 100 | 158 | 546 |
+| create + destroy subscriber | 46 | 62 | 57 | 297 |
+| unsubscribe first of 8 + resubscribe | 85 | 101 | 96 | 324 |
+| `trySubscribe()`, table full | 14 | 17 | 14 | 98 |
+
+Before Phase 2, the default (Snapshot, with cancel and filter always present) measured 72 and 247 for 1 and 8
+subscribers, and 61 for create + destroy. The default is now well below that. The zero-cost rule below holds for it:
+- **Direct + check** is what a debug build runs by default, to detect table changes during dispatch.
+- **Full** is the earlier default's feature set, opted into explicitly. It costs more than before for the lifetime
+  fixes: subscribers disconnected or destroyed during a dispatch, or inside `filter()`, are not called afterwards,
+  and `cancel()` applies only to its own table (known issues K1 and K2).
+- **ThreadSafe** pays for teardown that is safe during concurrent delivery (K3).
+
+Each is a known issue with a route back to zero cost in
+[BROKER_CUSTOMISATION.md section 8](design/BROKER_CUSTOMISATION.md). On Cortex-M33 the default one-type image is
+228 bytes of text (566 before Phase 2), with no thread-local storage and no `operator delete`
+([perf/compare-v1-v2-2026-09.md](perf/compare-v1-v2-2026-09.md)).
+
 ## How it is measured
 
 | Metric | Tool | Use |
@@ -123,7 +154,7 @@ is required**), `operator delete` (from virtual destructors), `__cxa_pure_virtua
 
 ### Embedded findings
 1. **`SUB0PUB_THREAD_SAFE` does not compile on arm-none-eabi.** There is no `std::mutex`
-   (`sub0pub.hpp:620`), so bare-metal and RTOS targets have no supported locking option today.
+   (`sub0pub.hpp:620` in the v1 single-file header), so bare-metal and RTOS targets have no supported locking option today.
 2. **TLS is mandatory.** Every build needs thread-local storage (Zephyr: `CONFIG_THREAD_LOCAL_STORAGE`),
    even single-threaded ones, because of the cancel and nested-publish context.
 3. **`Publish<T>` has a virtual destructor whose body does nothing**, since publisher unsubscribe is a

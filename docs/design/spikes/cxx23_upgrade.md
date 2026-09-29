@@ -1,5 +1,7 @@
 # Spike: does C++20/23 materially improve the v2 design (issue #9)?
 
+> **Header split (2026-09):** `sub0pub.hpp:N` line references in this record point into the single-file header of the time. The library is now split into focused headers under `include/sub0pub/` (umbrella `sub0pub.hpp`; MIGRATION.md, "The library is split into focused headers").
+
 The maintainer asked whether Sub0Pub should move off C++17 "if there are auto semantics that may assist"
 correctness-without-cost. This spike faces off C++20/23 language features against the C++17 baseline
 (`tests/collapse/sandbox/sub0x_static.hpp`, `docs/design/spikes/publisher_ergonomics.md`) using the same

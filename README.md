@@ -6,7 +6,7 @@
 
 A header-only messaging library that uses C++ template specialization to route signals at compile time. No `connect()` calls, no signal objects, no MOC toolchain, no allocations. Just inherit, publish, and receive.
 
-Built for **embedded systems**, **game loops**, **desktop applications**, and **distributed IPC**.
+Built for **embedded systems**, **game loops**, **desktop applications**, and **messaging across process boundaries** (with an application-supplied transport).
 
 ```cpp
 #include "sub0pub/sub0pub.hpp"
@@ -19,7 +19,7 @@ public:
 
 // Subscribe: inherit and implement receive()
 class Display : public sub0::Subscribe<float> {
-    void receive(const float& value) override {
+    void receive(const float& value) noexcept override {
         // Automatically called when any Publish<float> fires
     }
 };
@@ -40,21 +40,28 @@ int main() {
 - **Zero-friction wiring** -- Publishers and subscribers connect automatically on construction via the MonoState Broker pattern. No registry, no `connect()`, no boilerplate.
 - **Compile-time type routing** -- Message dispatch is resolved entirely through template specialization. No `std::any`, no `void*`, no `dynamic_cast`, no runtime type lookups.
 - **Zero allocation** -- No `shared_ptr`, no heap allocation in the hot path. Fixed-size subscription tables live in static storage.
-- **Header-only** -- Single file (`include/sub0pub/sub0pub.hpp`), drop into any project, link with `Sub0Pub::Sub0Pub` via CMake.
+- **Header-only** -- `#include <sub0pub/sub0pub.hpp>` for everything, or only the part you use (`sub0pub/broker.hpp`, `sub0pub/wiring.hpp`, `sub0pub/ipc.hpp`); link with `Sub0Pub::Sub0Pub` via CMake.
 - **Multi-type subscription** -- `SubscribeAll<A, B, C>` or `SubscribeAll<std::tuple<A, B>>` to subscribe to many types in one class.
-- **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) for inter-process and network messaging out of the box.
-- **Publish cancellation** -- Subscribers can call `cancel()` from within `receive()` to halt further delivery on the current publish cycle.
-- **Message filtering** -- Optional `filter(const Data&)` override for per-subscriber message selection at zero cost when unused.
+- **Built-in IPC serialization** -- `StreamSerializer` / `StreamDeserializer` with a composable binary protocol (`BinaryWriter<Prefix, Header, Postfix>`) that frames messages onto a stream you supply; the transport, byte order and delivery guarantees are the application's.
+- **Pay only for what you use** -- The default is the cheapest dispatch: a loop of virtual calls. Snapshot dispatch, `cancel()`, `filter()` and locking are opt-in, and using one without opting in is caught: at compile time, or by a debug-build check.
+- **Publish cancellation** -- Opt-in: subscribers call `cancel()` from within `receive()` to halt further delivery on the current publish cycle.
+- **Message filtering** -- Opt-in: a `filter(const Data&)` override for per-subscriber message selection.
 
 ### How It Compares
 
-| Feature | Sub0Pub | Boost.Signals2 | Qt Signals | entt |
-|---------|---------|----------------|------------|------|
-| Header-only | Yes | Yes | No (MOC) | Yes |
-| Zero allocation | Yes | No | No | Partial |
-| Compile-time routing | Yes | No | No | No |
-| Auto-wiring | Yes | No | No | No |
-| Built-in IPC | Yes | No | No | No |
+**Sub0Pub is built for typed messaging with predictable storage and a small integration footprint.**
+Its C++17, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
+to direct calls. Filtering, cancellation, snapshots and locking are opt-in per message type.
+
+| Compared with | Why choose Sub0Pub? | Trade-off |
+|---|---|---|
+| ETL messaging | Route plain C++ payloads locally without message base classes or numeric IDs; bind plain receivers with static wiring. | ETL provides a broader embedded toolkit and addressed message routing. |
+| EnTT / eventpp | Combine bounded subscription storage and explicit static fan-out in a focused messaging library. | Queues and deferred processing need application support. |
+| Boost.Signals2 / Qt | Fixed-capacity broker storage and direct-call static wiring, with no Qt runtime or MOC requirement. | Connection lifetime and event-loop facilities differ; adapters must preserve them explicitly. |
+| Zephyr zbus | Use the same typed messaging core on bare metal, an RTOS or desktop. | No built-in shared-channel state or RTOS observer queues. |
+
+These are design trade-offs, not cross-library speed rankings. See [comparisons and proposed bridges](docs/COMPARISONS.md)
+for sources, lifetime details and integration options.
 
 ### Current Status
 
@@ -74,22 +81,25 @@ int main() {
 | Broker hidden from public API | Done -- moved to `sub0::detail` |
 | Optional thread safety | Done -- `SUB0PUB_THREAD_SAFE` mutex guard |
 | Struct-layout fingerprinting | Done -- `makeLayout<T>()` automatic via structured bindings |
+| Per-type configuration | Done -- capacity, dispatch, context, lock, filter and storage chosen per `Data` type; scoped `Domain` sessions; transport `Route`s |
+| Static wiring | Done -- `wire()` / `StaticWiring`: direct calls, measured equal to hand-written code |
 
-### Measured v2 design prototypes
+### Measured design
 
-The next broker design is experimental in `tests/design/broker_config/` and `tests/collapse/sandbox/`;
-these prototypes do not replace the public header yet. They cover per-message policy, scoped domains,
-transport routes, lifetime-safe concurrent teardown, typed static wiring and explicit dynamic bridges.
-
-Start with the [consolidated review](docs/design/REVIEW_RESPONSE_2026-09.md),
-[broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md)
-and [design decisions](docs/design/spikes/README.md). Measurements compare each option with hand-written
-code doing the same work; compiler-specific costs and untested targets remain explicit. Static wiring
-adds no synchronization: concurrent callers must keep bindings stable and use thread-safe receivers.
+Every option of the per-type configuration and the static wiring is measured against hand-written code doing the
+same work: [broker policy scores](docs/design/AXIS_SCORES.md), [static wiring scores](docs/design/COLLAPSE_SCORES.md),
+[design decisions](docs/design/spikes/README.md) and the [v1.0 comparison](MIGRATION.md#performance-v10-compared-with-v2).
+Remaining compromises are listed with their measured cost in
+[BROKER_CUSTOMISATION.md section 8](docs/design/BROKER_CUSTOMISATION.md).
 
 ### Design Decisions
 
-**Endianness: conformance, not conversion.** Sub0Pub does not perform per-message byte-swapping. All peers on a given IPC channel are expected to share the same byte order. This is a deliberate zero-overhead choice -- runtime endianness conversion on every message would violate the library's core principle.
+**Endianness: out of scope, by design.** Sub0Pub IPC does not convert byte order, and doing so is not a planned
+feature. Messages cross the channel as their in-memory representation, so every peer on a channel must share the
+same byte order and layout. Checking that the build and platforms in use are compatible is the application's
+responsibility, as is any conversion a mixed-endian deployment needs (for example in a transport adapter). This keeps
+the IPC path at little or no cost: conversion on every message would violate the library's core principle. A basic
+byte-swizzle example may be added later (lowest priority).
 
 **Automatic layout verification.** `makeLayout<T>()` produces a `TypeLayout` containing sizeof, alignof, arity, array extent info, and a per-member layout hash -- all automatically via C++17 structured bindings (Boost.PFR-style). No macros, no member lists. On MSVC, per-member decomposition is deferred to C++26 reflection; the fingerprint (sizeof+alignof+arity) still catches most layout mismatches. Full type-member introspection is planned via [Sub0Reflect](https://github.com/CraigHutchinson/Sub0Reflect).
 
@@ -101,6 +111,7 @@ adds no synchronization: concurrent callers must keep bindings stable and use th
 | **No CRC/checksum** -- only magic prefix + postfix for framing | Low | Add optional integrity check to protocol |
 | **Type hash not stable across compilers** -- `typeHash<T>()` uses `__PRETTY_FUNCTION__`/`__FUNCSIG__` | Medium | Use `SUB0PUB_TYPEIDNAME` for cross-compiler IPC |
 | **MSVC layout hash limited** -- structured binding bug prevents per-member decomposition | Low | Awaiting C++26 `std::meta::reflect` |
+| **No byte-order conversion** -- peers must share byte order and layout (see Design Decisions) | By design | Application responsibility; a basic byte-swizzle example is possible future work (lowest priority) |
 
 ### Roadmap
 
@@ -179,6 +190,22 @@ add_subdirectory(Sub0Pub)
 target_link_libraries(MyApp PRIVATE Sub0Pub::Sub0Pub)
 ```
 
+### Headers
+
+`#include <sub0pub/sub0pub.hpp>` includes the whole library. A translation unit that uses one part can include only
+that part; each area directory holds one header per responsibility:
+
+| Include | Provides | Needs |
+|---|---|---|
+| `sub0pub/broker.hpp` | the runtime broker: `Subscribe`, `Publish`, `SubscribeAll`, `Domain`, `Route`, `publish()`, `cancel()`, per-type configuration | configuration |
+| `sub0pub/wiring.hpp` | static wiring: `wire()`, `StaticWiring`, `Sink`, `Publisher`, `Forward`, `DynamicPort` | nothing else from Sub0Pub |
+| `sub0pub/ipc.hpp` | IPC serialisation: `StreamSerializer`, `StreamDeserializer`, `DefaultSerialisation` | streams and type identity only |
+| `sub0pub/config.hpp` | per-type configuration and its resolution (`config_t<T>`) | the configuration macros |
+| `sub0pub/wiring/broker_port.hpp`, `sub0pub/ipc/forward.hpp` | the bridges: `BrokerPort`; `ForwardSubscribe`, `ForwardPublish` | both parts they connect |
+
+`SUB0PUB_*` macros are read when `sub0pub/config_macros.hpp` is first included, whichever Sub0Pub header includes it:
+define them on the compiler command line or before the first Sub0Pub include.
+
 ---
 
 ## Examples
@@ -206,12 +233,21 @@ class Listener : public sub0::SubscribeAll<float, int, std::string> {
 };
 ```
 
-### Message Filtering
+### Message Filtering and Cancellation
+
+Both are opt-in, per type or for every type (`SUB0PUB_FILTER`, `SUB0PUB_CANCEL`). Without the opt-in, a subscriber that
+declares `filter()` or calls `cancel()` does not compile, so neither is silently ignored.
 
 ```cpp
-class EvenOnly : public sub0::Subscribe<int> {
-    void receive(const int& value) noexcept override { /* handle even values */ }
-    bool filter(const int& value) noexcept override { return (value % 2) == 0; }
+struct Reading { int value; using sub0_config = sub0::config<sub0::Filter>; };
+class EvenOnly : public sub0::Subscribe<Reading> {
+    void receive(const Reading& r) noexcept override { /* handle even values */ }
+    bool filter(const Reading& r) noexcept override { return (r.value % 2) == 0; }
+};
+
+struct Command { int id; using sub0_config = sub0::config<sub0::ThreadLocalContext>; };
+class Claim : public sub0::Subscribe<Command> {
+    void receive(const Command&) noexcept override { cancel(); } // later subscribers are skipped
 };
 ```
 
@@ -233,15 +269,67 @@ Destroying a subscriber frees its slot. Destroying one that was never registered
 
 ### Re-entrancy Policy
 
-Choose one of three levels per build:
+A nested publish of the same type from `receive()` is always supported. Subscribing or unsubscribing that type from its own `receive()` (including destroying the subscriber) needs snapshot dispatch:
 
-| Configuration | Cost | Same-type publish/subscribe/unsubscribe from `receive()` |
+| Configuration | Cost | Same-type subscribe/unsubscribe from `receive()` |
 |---|---|---|
-| `SUB0PUB_REENTRANT_SAFE true` (default) | ~1.5ns per publish (snapshot) | Supported |
-| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK true` | one `thread_local` load per call | Detected: `SUB0PUB_REENTRANT_VIOLATION` |
-| `SUB0PUB_REENTRANT_SAFE false` + `SUB0PUB_REENTRANT_CHECK false` | none | Undefined (the caller guarantees it never happens) |
+| default (`SUB0PUB_REENTRANT_SAFE false`), release | none | Not supported |
+| default, debug build (`SUB0PUB_REENTRANT_CHECK`) | a `thread_local` frame per publish | Detected: `SUB0PUB_REENTRANT_VIOLATION` |
+| `SUB0PUB_REENTRANT_SAFE true`, or `sub0::Snapshot` per type | a table copy and a frame per publish | Supported |
 
-`SUB0PUB_REENTRANT_CHECK` defaults to on in debug builds, so a `SUB0PUB_REENTRANT_SAFE false` release build is still checked during development. `SUB0PUB_THREAD_SAFE` always uses the snapshot.
+`SUB0PUB_THREAD_SAFE` always uses the snapshot. Without a lock, a debug build also reports a `Data` type used from two threads at once (`SUB0PUB_THREAD_CHECK`).
+
+### Per-Type Configuration
+
+Each `Data` type can choose its own policy; types that don't use the `SUB0PUB_*` macros below.
+
+```cpp
+// A message whose subscribers come and go from inside receive(): snapshot dispatch, and cancel()
+struct Imu {
+    float accel[3];
+    using sub0_config = sub0::config<sub0::Snapshot, sub0::ThreadLocalContext, sub0::Capacity<2>>;
+};
+
+// A type you cannot modify: configure it next to its declaration
+SUB0PUB_CONFIGURE(int, sub0::Capacity<16>);
+
+// Independent sessions of the same type
+struct Command { int id; using sub0_config = sub0::config<sub0::Scoped>; };
+sub0::Domain<Command> sessionA, sessionB;
+struct Handler : sub0::Subscribe<Command> {
+    using Subscribe::Subscribe;                 // Handler h(sessionA);
+    void receive(const Command&) noexcept override {}
+};
+```
+
+Options: `Capacity<N>`; `Snapshot` (selects `ThreadLocalContext` unless a context is chosen), `Direct` or `DirectChecked`; `ThreadLocalContext`, `StaticContext` (no TLS) or
+`NoContext`; `LockWith<L>` (concurrent publishers; implies `Snapshot` and `ThreadLocalContext`); `Filter` or `NoFilter`;
+`Scoped`; `Implementation<Broker>`. Invalid
+combinations do not compile. A project-wide default can be set with `SUB0PUB_CONFIG_HEADER`. With a lock, call
+`trySubscribe()` at the end of the most-derived constructor and `disconnect()` at the start of its destructor.
+
+### Static Wiring
+
+Where the receivers are known when the application is composed, bind them directly. Receivers are plain classes with
+a non-virtual `receive()`; each delivery is a direct call, as fast as writing the calls by hand.
+
+```cpp
+struct Controller { void receive(const Sample& s) noexcept; };
+struct Logger     { void receive(const Sample& s) noexcept; bool receive(const Fault& f) noexcept; };
+
+Controller controller;
+Logger logger;
+
+using Bus = sub0::StaticWiring<&controller, &logger>;  // static storage: no RAM
+Bus::publish(Sample{1});                                // controller.receive(), then logger.receive()
+Bus::publishCancelable(Fault{});                        // a bool receive() returning false stops delivery
+
+auto bus = sub0::wire(controller, logger);              // runtime addresses, same direct calls
+sub0::Sink<Sample> port(bus);                           // type-erased port for a non-template publisher
+```
+
+`DynamicPort<T, N>` and `BrokerPort<T>` bind runtime subscribers into a static wiring; `Forward<Transport>` binds a
+transport, and `publishFrom(transport, msg)` keeps ingress from echoing back out.
 
 ### Cross-Module / IPC Serialization
 
@@ -275,11 +363,18 @@ Compile-time feature flags (define before including the header):
 | `SUB0PUB_ASSERT` | `true` | Enable assertion checks |
 | `SUB0PUB_STD` | `false` | Use `std::ostream`/`std::istream` instead of lightweight internal stream types |
 | `SUB0PUB_TYPEIDNAME` | `false` | Enable user-defined type IDs and names for IPC |
-| `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub |
-| `SUB0PUB_REENTRANT_SAFE` | `true` | Snapshot subscribers before dispatch for re-entrant safety. Adds ~1.5ns overhead per publish. Set `false` if you guarantee no subscriber will publish the same type from within `receive()` |
-| `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | With `SUB0PUB_REENTRANT_SAFE false`, detect a `receive()` that publishes, subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)`. Set `true` to keep the check in release builds (one `thread_local` load per call) |
+| `SUB0PUB_THREAD_SAFE` | `false` | Mutex guard for multi-threaded pub/sub (snapshot dispatch; subscribers call `trySubscribe()` after construction) |
+| `SUB0PUB_REENTRANT_SAFE` | `false` | Snapshot dispatch: subscribe or unsubscribe a type from inside its own `receive()`. Costs a table copy and a frame per publish |
+| `SUB0PUB_CANCEL` | `false` | Publish context: `cancel()`, `Route` and publish reports. Costs a `thread_local` frame per publish |
+| `SUB0PUB_FILTER` | `false` | `filter()`: a virtual call per subscriber per publish |
+| `SUB0PUB_REENTRANT_CHECK` | debug: `true`, `NDEBUG`: `false` | Without snapshot dispatch, detect a `receive()` that subscribes or unsubscribes its own `Data` type, and call `SUB0PUB_REENTRANT_VIOLATION(what)` |
+| `SUB0PUB_THREAD_CHECK` | debug: `true`, `NDEBUG`: `false` | Without a lock, detect a `Data` type used from two threads at once, and call `SUB0PUB_THREAD_VIOLATION(what)` |
 | `SUB0PUB_REENTRANT_VIOLATION(what)` | `assert` then `std::abort()` | Handler for a detected re-entrancy violation. Override to log or count; if it returns, the call continues unguarded |
 | `SUB0PUB_MAX_SUBSCRIPTIONS` | `8` | Fixed subscription table size per `Broker<T>`. Subscribers beyond this are rejected (see [Subscriber Capacity](#subscriber-capacity)) |
+| `SUB0PUB_CONFIG_HEADER` | unset | Header (set by the build system) that may define the project default configuration as `SUB0PUB_DEFAULT_CONFIG` |
+| `SUB0PUB_CHECK_CONFIG` | debug: `true`, `NDEBUG`: `false` | Report a `Data` type configured differently in two translation units through `SUB0PUB_CONFIG_MISMATCH(what)` |
+
+The policy macros (`SUB0PUB_MAX_SUBSCRIPTIONS`, `SUB0PUB_REENTRANT_SAFE`, `SUB0PUB_CANCEL`, `SUB0PUB_FILTER`, `SUB0PUB_THREAD_SAFE`) are the default configuration of every `Data` type that does not choose its own ([Per-Type Configuration](#per-type-configuration)). They must agree in every translation unit that uses a type.
 
 ---
 
