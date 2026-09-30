@@ -51,6 +51,31 @@ and overlapping ranges in every profile. Its mixed results do not establish a ge
 or regression. Review further CI captures or repeat on a quiet fixed host before making that claim. Keep the
 groundwork PR under review with this cost visible; the runtime performance gates do not cover compilation cost.
 
+## Optimization follow-up
+
+The follow-up compares the C++23 groundwork (`cf0fd36561589ccf19d7f90b2d16a55d44901146`) with the
+optimization commit (`17047154ae9e2cdd8233b3378ea0c883b3d0cd56`), both in C++23 on the same host.
+[Recorded report](perf/compile-time/optimization.md) / [raw samples](perf/compile-time/optimization.json).
+
+| Profile | Median change | Interpretation |
+|---|---:|---|
+| wiring | -13.48% | Overlapping ranges; unchanged header/workload path, so no source speedup claim |
+| broker | -23.72% | Consistent with reduced include surface, but ranges overlap and A is noisy |
+| umbrella | -0.14% | Essentially unchanged |
+| layout | -45.92% | Non-overlapping ranges for the aggregate-instantiation workload |
+
+These results do not cancel the historical C++23 migration warning or predict an application's whole-build
+speedup. The new layout profile was not present in the earlier captures. See the
+[optimization review](OPTIMIZATION.md) for changes, trade-offs, validation and retained limitations.
+
+```sh
+python3 tests/compile_time/compare.py \
+  --baseline cf0fd36561589ccf19d7f90b2d16a55d44901146 \
+  --candidate 17047154ae9e2cdd8233b3378ea0c883b3d0cd56 \
+  --baseline-standard c++23 --translation-units 8 \
+  --json optimization.json --markdown optimization.md
+```
+
 ## Workloads
 
 | Profile | Includes | Instantiated work |

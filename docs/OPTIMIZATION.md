@@ -51,3 +51,33 @@ This is a structural observation, not a timing benchmark: the narrow broker's pr
 observations identify candidates; repeated consumer A/B measurements are needed for performance claims.
 
 See [COMPILE_TIME.md](COMPILE_TIME.md) for the measurement method, historical C++23 migration warning and captures.
+
+## Repeated measurements and validation
+
+The [same-mode A/B capture](perf/compile-time/optimization.md) compares `cf0fd365` with `17047154`,
+eight translation units and five paired samples per profile. Layout compilation fell 45.92%, with
+non-overlapping ranges. The broker median fell 23.72%, but overlapping ranges and baseline variability
+limit confidence in the precise magnitude. Umbrella compilation was unchanged (-0.14%). Wiring's -13.48%
+has overlapping ranges and no changed include/workload path; it is not attributed to these changes.
+Raw samples, compiler/host details and fixture/harness hashes are retained beside the report.
+
+Validation of optimization commit `17047154ae9e2cdd8233b3378ea0c883b3d0cd56`:
+
+- GCC 13.3 Release: all 253 CTest entries passed, including header isolation, installed consumers, configuration,
+  concurrency, collapse behavior and benchmark harness contracts.
+- Targeted capacity tests passed ASan/UBSan in debug (61 assertions) and release (63 assertions). Local leak
+  detection was disabled because the sandbox blocked LeakSanitizer's `/proc` access.
+- All six runtime benchmark executables completed locally. Their wall-clock output is a smoke check, not a
+  before/after speedup claim; local Callgrind was unavailable.
+- The local final-image run produced 252 matching behavior records. The budget command failed because
+  instruction counts were unavailable and some image-size deltas exceeded recorded budgets. All 18 filtering
+  records were identical to the parent on this host (checksums, sections, paths and dependencies), establishing
+  that the observed filtering overruns predated this pass. No budget was widened.
+- [CI run 36731229402](https://github.com/CraigHutchinson/Sub0Pub/actions/runs/36731229402) passed GCC, Clang,
+  AppleClang, MSVC, debug/release ASan/UBSan, TSan and the full collapse-evidence job with its configured toolchains.
+  This supplies the complete gate that the local profiler environment could not provide.
+- [Compile A/B CI run 36731229252](https://github.com/CraigHutchinson/Sub0Pub/actions/runs/36731229252) passed.
+
+No runtime latency reduction is claimed. The demonstrated improvement is compilation work, removal of repeated
+test-runner compilation, and bounded IPC registration. Contended runtime profiling and embedded stack measurement
+remain separate work, as recorded in the design limitations.
