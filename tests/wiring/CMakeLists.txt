@@ -12,7 +12,8 @@ function(sub0pub_wiring_compile_fail name regex)
     target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
     add_test(NAME Sub0Pub_Wiring_${name}
              COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
-    set_tests_properties(Sub0Pub_Wiring_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+    set_tests_properties(Sub0Pub_Wiring_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}"
+                         RESOURCE_LOCK cmake_build)
 endfunction()
 
 sub0pub_wiring_compile_fail(cf_wiring_static_wiring_local    "static storage duration|not a constant expression|not a valid template argument")

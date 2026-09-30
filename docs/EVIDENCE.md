@@ -37,8 +37,11 @@ Each variant defines `collapse_setup()`, `collapse_publish(v)` and `collapse_tea
 equal the reference's) and *removable work* (receivers do no observable work, so ideal code removes the machinery
 around them). Argument side effects are observable in both forms.
 
-**Behaviour (ctest, every CI compiler).** `tests/collapse/CMakeLists.txt` builds every variant in both forms and
-fails if its output differs from its reference.
+**Behaviour (ctest, every CI compiler).** `tests/collapse/CMakeLists.txt` builds the selected cases in both forms
+and fails if a variant's output differs from its reference. Pull requests use the representative cases in
+`tests/collapse/smoke_cases.txt`; pushes after merging to `develop`, `v2`, or `main` and manually dispatched CI
+runs use every case. Set `-DSUB0PUB_COLLAPSE_PROFILE=smoke` locally for the same short selection; the default is
+`full`.
 
 **Evidence (`tests/collapse/collapse_evidence.py`).** For every case, variant, form and build, it links a real
 executable and judges it against its reference of the same build and form:
@@ -66,6 +69,12 @@ budget or a missing measurement fails the run, as do behaviour mismatches, build
 references. Budgets are the measured deltas, never tighter than the criteria's tolerances; a deliberate change
 re-records them with `--write-budgets` in the same commit. The cost criteria against hand-written code are reported,
 not enforced: the runtime broker is expected to fail them, which is the price of runtime subscription.
+
+CI measures GCC, Clang and Cortex-M33 in separate jobs. Each job checks both ordinary and LTO builds with the same
+budget file; migration comparison, footprint and benchmark reports run concurrently in another job. Build and test
+jobs use two-way parallelism. PRs measure the representative case set (`--profile smoke`); merge pushes and manually
+dispatched runs measure every case (`--profile full`). Every selected case retains all its variants, both forms,
+behaviour checks, and recorded budget gates.
 
 ## Cases
 
@@ -135,7 +144,7 @@ which brings the path to 71 (+2); other compilers get plain `inline`, so their c
 ## Reproduce
 
 ```bash
-python3 tests/collapse/collapse_evidence.py [--case one_receiver] [--build gcc-O2] [--json out.json] > report.md
+python3 tests/collapse/collapse_evidence.py [--case one_receiver] [--build gcc-O2] [--build gcc-O2-lto] [--json out.json] > report.md
 python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json    # the CI regression gate
 python tests/collapse/collapse_evidence.py --build msvc-O2                           # Windows, any prompt
 ```

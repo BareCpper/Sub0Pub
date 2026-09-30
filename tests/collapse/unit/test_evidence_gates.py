@@ -17,6 +17,13 @@ spec.loader.exec_module(evidence)
 
 
 class EvidenceGates(unittest.TestCase):
+    def test_smoke_profile_is_a_real_subset_with_cross_file_lto(self):
+        all_cases = evidence.select_cases("full")
+        smoke_cases = evidence.select_cases("smoke")
+        self.assertGreater(len(all_cases), len(smoke_cases))
+        self.assertIn("cross_file", smoke_cases)
+        self.assertTrue(all("handwritten" in variants for variants in smoke_cases.values()))
+
     def test_msvc_environment_accepts_mixed_case_path(self):
         responses = [
             subprocess.CompletedProcess([], 0, "C:/Visual Studio\n", ""),
@@ -111,6 +118,17 @@ class EvidenceGates(unittest.TestCase):
              patch.object(evidence, "available_builds", return_value={}), \
              contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(evidence.main(), 2)
+
+    def test_repeated_build_selection_measures_both_builds(self):
+        builds = {name: evidence.BUILDS[name] for name in ("gcc-O2", "gcc-O2-lto")}
+        with patch.object(sys, "argv", ["evidence", "--build", "gcc-O2", "--build", "gcc-O2-lto"]), \
+             patch.object(evidence, "available_builds", return_value=builds), \
+             patch.object(evidence, "discover_cases", return_value={"cross_file": ["handwritten"]}), \
+             patch.object(evidence, "measure", return_value={"error": "injected compile error"}) as measure, \
+             patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 0, "test compiler\n", "")), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(evidence.main(), 1)
+        self.assertEqual({call.args[0] for call in measure.call_args_list}, set(builds))
 
     def test_crash_after_checksum_is_not_success(self):
         with patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 1, "checksum 42\n", "failed")):

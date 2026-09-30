@@ -24,7 +24,7 @@ like PLT stubs. Windows has no callgrind, so instruction counts (`instr`) are no
 publish path and the checksum are.
 
 Usage:
-  python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME] [--json OUT.json] > report.md
+  python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME ...] [--json OUT.json] > report.md
   python3 tests/collapse/collapse_evidence.py --self-test     # check the publish-path parser
   python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json        # regression gate (CI)
   python3 tests/collapse/collapse_evidence.py --write-budgets tests/collapse/budgets.json  # record new budgets
@@ -49,6 +49,7 @@ import subprocess
 import sys
 import tempfile
 from collections import OrderedDict
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -180,6 +181,23 @@ def discover_cases(only=None):
         refs = [REFERENCE] + [v for v in variants if v.startswith(REFERENCE + "_")]
         cases[name] = refs + [v for v in variants if v not in refs]
     return cases
+
+
+def select_cases(profile, only=None):
+    cases = discover_cases(only)
+    if profile == "full":
+        return cases
+    smoke_file = Path(__file__).with_name("smoke_cases.txt")
+    # One case name per line; blank lines and # comments are skipped, anything else is an error (as in CMake)
+    smoke_names = [line.strip() for line in smoke_file.read_text().splitlines()
+                   if line.strip() and not line.strip().startswith("#")]
+    malformed = [name for name in smoke_names if not re.fullmatch(r"[a-z_]+", name)]
+    if malformed:
+        raise ValueError(f"malformed smoke case lines: {', '.join(malformed)}")
+    missing_cases = sorted(set(smoke_names) - set(discover_cases()))
+    if missing_cases:
+        raise ValueError(f"smoke cases missing: {', '.join(missing_cases)}")
+    return OrderedDict((name, variants) for name, variants in cases.items() if name in smoke_names)
 
 
 def variant_sources(case, variant):
@@ -833,7 +851,9 @@ def fmt_delta(value, ref, digits=0):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--case")
-    ap.add_argument("--build")
+    ap.add_argument("--profile", choices=("full", "smoke"), default="full",
+                    help="case set to measure; smoke names come from smoke_cases.txt")
+    ap.add_argument("--build", action="append", help="named build to measure (repeat to select several)")
     ap.add_argument("--json")
     ap.add_argument("--budgets", help="fail if a public-API variant exceeds its recorded budget (regression gate)")
     ap.add_argument("--write-budgets", help="record the measured deltas of the public-API variants as budgets")
@@ -844,11 +864,19 @@ def main():
 
     builds = available_builds()
     if args.build:
-        builds = OrderedDict((n, b) for n, b in builds.items() if n == args.build)
+        missing = sorted(set(args.build) - builds.keys())
+        if missing:
+            print(f"**Build unavailable:** {', '.join(missing)}", file=sys.stderr)
+            return 2
+        builds = OrderedDict((n, b) for n, b in builds.items() if n in args.build)
     if not builds:
-        print(f"**No build selected:** {args.build or 'no toolchain available'}", file=sys.stderr)
+        print("**No build selected:** no toolchain available", file=sys.stderr)
         return 2
-    cases = discover_cases(args.case)
+    try:
+        cases = select_cases(args.profile, args.case)
+    except ValueError as error:
+        print(f"**Invalid case profile:** {error}", file=sys.stderr)
+        return 2
     if not cases:
         print(f"**No case selected:** {args.case}", file=sys.stderr)
         return 2
