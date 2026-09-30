@@ -52,6 +52,11 @@ public:
     bool isEof() override { return remaining == 0; }
 };
 
+struct CountingPublisher : sub0::IPublish {
+    int calls = 0;
+    void publish() override { ++calls; }
+};
+
 // Serializer: subscribes to int and float, writes to stream
 class TestSerializer : public sub0::StreamSerializer<>
                      , public sub0::ForwardSubscribe<int, TestSerializer>
@@ -208,6 +213,71 @@ TEST_CASE("DefaultSerialisation protocol structure") {
     // Check postfix delimiter
     CHECK(outStream.data.back() == '\n');
 }
+
+TEST_CASE("Default serializer update has no pending work") {
+    MemoryOStream outStream;
+    sub0::StreamSerializer<> serializer(outStream);
+    CHECK(serializer.open());
+    CHECK(serializer.update());
+    CHECK(outStream.data.empty());
+    serializer.receive(42);
+    CHECK(serializer.update());
+    CHECK(outStream.data.size() == sizeof(sub0::DefaultSerialisation::Prefix)
+                                + sizeof(sub0::DefaultSerialisation::Header)
+                                + sizeof(int)
+                                + sizeof(sub0::DefaultSerialisation::Postfix));
+}
+
+TEST_CASE("BinaryReader publishes frames without a postfix") {
+    using Protocol = sub0::DefaultSerialisation;
+    MemoryOStream outStream;
+    sub0::BinaryWriter<Protocol::Prefix, Protocol::Header, void> writer;
+    REQUIRE(writer.write(outStream, 42));
+
+    CountingPublisher publisher;
+    int data = 0;
+    MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+    sub0::BinaryReader<Protocol::Prefix, Protocol::Header, void> reader;
+    reader.setDataPublisher(data, publisher);
+    REQUIRE(reader.open(inStream));
+    while (reader.update(inStream)) {}
+    CHECK(data == 42);
+    CHECK(publisher.calls == 1);
+}
+
+#if __cpp_exceptions
+TEST_CASE("BinaryReader recovers after a corrupt prefix or postfix") {
+    using Protocol = sub0::DefaultSerialisation;
+    const size_t frameSize = sizeof(Protocol::Prefix) + sizeof(Protocol::Header)
+                           + sizeof(int) + sizeof(Protocol::Postfix);
+
+    for (const size_t corruptOffset : {size_t(0), frameSize - 1}) {
+        MemoryOStream outStream;
+        Protocol::Writer writer;
+        REQUIRE(writer.write(outStream, 42));
+        REQUIRE(writer.write(outStream, 99));
+        outStream.data[corruptOffset] = '!';
+
+        CountingPublisher publisher;
+        int data = 0;
+        MemoryIStream inStream(outStream.data.data(), outStream.data.size());
+        Protocol::Reader reader;
+        reader.setDataPublisher(data, publisher);
+        REQUIRE(reader.open(inStream));
+
+        bool threw = false;
+        try {
+            while (reader.update(inStream)) {}
+        } catch (const std::runtime_error&) {
+            threw = true;
+        }
+        REQUIRE(threw);
+        while (reader.update(inStream)) {}
+        CHECK(publisher.calls == 1);
+        CHECK(data == 99);
+    }
+}
+#endif
 
 // --- IPC error path tests ---
 

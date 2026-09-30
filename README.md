@@ -196,7 +196,7 @@ public:
 };
 
 class SubInt : public sub0::Subscribe<uint32_t> {
-    void receive(const uint32_t& value) override { total += value; }
+    void receive(const uint32_t& value) noexcept override { total += value; }
 };
 ```
 
@@ -204,9 +204,9 @@ class SubInt : public sub0::Subscribe<uint32_t> {
 
 ```cpp
 class Listener : public sub0::SubscribeAll<float, int, std::string> {
-    void receive(const float& f) override { /* ... */ }
-    void receive(const int& i) override { /* ... */ }
-    void receive(const std::string& s) override { /* ... */ }
+    void receive(const float& f) noexcept override { /* ... */ }
+    void receive(const int& i) noexcept override { /* ... */ }
+    void receive(const std::string& s) noexcept override { /* ... */ }
 };
 ```
 

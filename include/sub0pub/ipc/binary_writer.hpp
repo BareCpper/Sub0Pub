@@ -51,6 +51,9 @@ namespace sub0
             return true;
         }
 
+        /// The default writer emits complete frames synchronously; there is no pending work to poll.
+        bool update(OStream& /*stream*/) const noexcept { return true; }
+
         void close( OStream& /*stream*/ )
         {
             /* Do nothing */

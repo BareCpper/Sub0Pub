@@ -186,7 +186,11 @@ namespace sub0
                     return true;
             case State::Header:  return dataBufferRegistry_.validate(header_);
             case State::Data:    return true;
-            case State::Postfix: return postfix_ == Postfix_t();
+            case State::Postfix:
+                if constexpr (std::is_void_v<Postfix_t>)
+                    return true;
+                else
+                    return postfix_ == Postfix_t();
             }
         }
 
@@ -208,7 +212,7 @@ namespace sub0
             }
         }
 
-        bool checkStatusOfState(const State currentState) const
+        bool checkStatusOfState(const State currentState)
         {
             const bool stateStatus = getStateStatus(currentState);
             if(stateStatus)
@@ -221,6 +225,9 @@ namespace sub0
                 case State::Postfix: failureMessage = "Binary-Postfix mismatch - stream corruption or incompatible data-stream"; break;
                 default: failureMessage = "Sync-Lost - TODO Details"; break;
             }
+
+            // A caller may catch the error and call update() again to resume at the next frame.
+            state_ = State::SyncLost;
 
             if(failureMessage != nullptr)
             {
@@ -238,8 +245,6 @@ namespace sub0
         {
             if( !checkStatusOfState(state_) )
             {
-                // Prefix or postfix mismatch — enter SyncLost to scan for next valid frame
-                state_ = State::SyncLost;
                 return false;
             }
 
@@ -283,31 +288,33 @@ namespace sub0
             else
             {
                 // Scan one byte at a time looking for the prefix magic
-                char byte;
                 auto* prefixBytes = reinterpret_cast<char*>(&prefix_);
                 const auto prefixSize = sizeof(Prefix_t);
                 const Prefix_t expected{};
 
-#if SUB0PUB_STD
-                const auto readCount = static_cast<uint_fast16_t>(stream.read(&byte, 1).gcount());
-#else
-                const auto readCount = stream.read(&byte, 1);
-#endif
-                if (readCount == 0)
-                    return false;
-
-                // Shift prefix buffer left and append new byte
-                std::memmove(prefixBytes, prefixBytes + 1, prefixSize - 1);
-                prefixBytes[prefixSize - 1] = byte;
-
-                // Check if we've found the magic
-                if (std::memcmp(&prefix_, &expected, prefixSize) == 0)
+                for (;;)
                 {
-                    state_ = State::Header;
-                    currentBuffer_ = findStateBuffer(state_);
-                    return true;
+                    char byte;
+#if SUB0PUB_STD
+                    const auto readCount = static_cast<uint_fast16_t>(stream.read(&byte, 1).gcount());
+#else
+                    const auto readCount = stream.read(&byte, 1);
+#endif
+                    if (readCount == 0)
+                        return false;
+
+                    // Shift prefix buffer left and append new byte
+                    std::memmove(prefixBytes, prefixBytes + 1, prefixSize - 1);
+                    prefixBytes[prefixSize - 1] = byte;
+
+                    // Check if we've found the magic
+                    if (std::memcmp(&prefix_, &expected, prefixSize) == 0)
+                    {
+                        state_ = State::Header;
+                        currentBuffer_ = findStateBuffer(state_);
+                        return true;
+                    }
                 }
-                return false;
             }
         }
 
