@@ -35,7 +35,7 @@ namespace sub0
      */
     template<class R, class T>
     constexpr bool handles_v =
-        detail::wiring::accepts<std::remove_reference_t<decltype(detail::wiring::receiver(std::declval<R&>()))>, T>::value;
+        detail::wiring::Accepts<std::remove_reference_t<decltype(detail::wiring::receiver(std::declval<R&>()))>, T>;
 
     /** Receivers bound by reference at the composition point (runtime addresses, static types)
      * @see wire()

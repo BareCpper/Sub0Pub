@@ -11,12 +11,19 @@ For runnable static, dynamic and mixed-path migration recipes, see [examples](ex
 
 | | v1 | v2 |
 |---|---|---|
-| C++ Standard | Claims C++11, actually needs C++17 | C++17 (declared correctly) |
+| C++ Standard | Claims C++11, actually needs C++17 | C++23 (transitive CMake requirement) |
 | CMake Minimum | 3.7.1 | 3.21 |
 | Build | `./configure && cmake --build ./build` | `cmake --preset default && cmake --build --preset default` |
 | Test | N/A (no tests) | `ctest --preset default` |
 
-**Action:** Update your `target_compile_features` to `cxx_std_17` if linking against Sub0Pub. CMakePresets are now the recommended way to configure/build/test.
+**Action:** Link `Sub0Pub::Sub0Pub` to inherit `cxx_std_23`. For direct header use, enable C++23 mode
+(`-std=c++23`, or the C++23/latest mode supported by your MSVC toolchain). C++17/C++20 builds are no longer
+supported and receive a header diagnostic. CMakePresets remain the recommended configure/build/test entry point.
+
+The language mode changes nothing you call: delivery, filtering, cancellation and `Sink` copying behave as before.
+`StaticWiring` may now bind array elements (`StaticWiring<&receivers[0], &receivers[1]>`) on compilers that accept
+subobject addresses as template arguments; for code that must build on every supported compiler, bind named objects
+or use `wire(receivers[0], receivers[1])`. Binding a whole array still binds nothing.
 
 ---
 
@@ -154,6 +161,14 @@ Every translation unit must resolve the same configuration for a type: resolving
 
 **Action:** None. Measured forms: [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
+### `BufferRegister::trySet()` reports a full IPC registry (new)
+
+`trySet(header, buffer)` returns `false` for a new entry when the registry is full, leaving the registry and the
+buffer's padding bytes untouched; replacing an existing entry still succeeds when full. `set()` keeps its signature:
+it asserts on overflow when assertions are enabled, and otherwise drops the new entry (v1 wrote past the array).
+
+**Action:** None. Call `trySet()` where a full registry must be handled.
+
 ### The library is split into focused headers
 
 `include/sub0pub/sub0pub.hpp` was a single 3,200-line file. It is now an umbrella header over one header per
@@ -165,7 +180,8 @@ code is identical (collapse evidence, `tests/collapse/budgets.json`).
 
 **Action:** None. `#include <sub0pub/sub0pub.hpp>` works as before, including the standard headers it provided. To
 compile less, include only the part you use (README, "Headers"). Headers under the area directories other than
-the entry headers are implementation structure and may move.
+the entry headers are implementation structure and may move. The narrow broker headers do not include
+`<algorithm>`: a translation unit that uses standard algorithms includes it itself (the umbrella still does).
 
 ---
 

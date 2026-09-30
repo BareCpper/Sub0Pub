@@ -9,7 +9,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <utility>
 #include <vector>
+
+// A C++23 library operation also proves the exported requirement reaches the consumer translation unit.
+enum class ConsumerMode { Ready = 23 };
+static_assert(std::to_underlying(ConsumerMode::Ready) == 23);
 
 namespace {
 

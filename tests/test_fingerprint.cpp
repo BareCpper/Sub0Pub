@@ -59,6 +59,49 @@ TEST_CASE("Arity detection: primitive types") {
     CHECK(sub0::utility::memberCount<double> == 1);
 }
 
+// Exercise both sides of the search midpoint and its maximum supported arity.
+namespace {
+struct Fields15
+{
+    int f0, f1, f2, f3, f4, f5, f6, f7;
+    int f8, f9, f10, f11, f12, f13, f14;
+};
+struct Fields16
+{
+    int f0, f1, f2, f3, f4, f5, f6, f7;
+    int f8, f9, f10, f11, f12, f13, f14, f15;
+};
+struct Fields17
+{
+    int f0, f1, f2, f3, f4, f5, f6, f7;
+    int f8, f9, f10, f11, f12, f13, f14, f15;
+    int f16;
+};
+struct Fields31
+{
+    int f0, f1, f2, f3, f4, f5, f6, f7;
+    int f8, f9, f10, f11, f12, f13, f14, f15;
+    int f16, f17, f18, f19, f20, f21, f22, f23;
+    int f24, f25, f26, f27, f28, f29, f30;
+};
+struct Fields32
+{
+    int f0, f1, f2, f3, f4, f5, f6, f7;
+    int f8, f9, f10, f11, f12, f13, f14, f15;
+    int f16, f17, f18, f19, f20, f21, f22, f23;
+    int f24, f25, f26, f27, f28, f29, f30, f31;
+};
+}
+
+TEST_CASE("Arity detection: search boundaries") {
+    static_assert(sub0::utility::memberCount<Fields15> == 15);
+    static_assert(sub0::utility::memberCount<Fields16> == 16);
+    static_assert(sub0::utility::memberCount<Fields17> == 17);
+    static_assert(sub0::utility::memberCount<Fields31> == 31);
+    static_assert(sub0::utility::memberCount<Fields32> == 32);
+    static_assert(sub0::utility::makeFingerprint<Fields32[2]>().arity == 32);
+}
+
 TEST_CASE("TypeFingerprint: basic properties") {
     constexpr auto fp = sub0::utility::makeFingerprint<TwoFields>();
     CHECK(fp.size == sizeof(TwoFields));

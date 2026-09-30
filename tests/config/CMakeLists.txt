@@ -9,7 +9,6 @@ endfunction()
 
 find_package(Threads REQUIRED)
 add_executable(Sub0Pub_ConfigTests
-    ../test_main.cpp
     test_binding.cpp
     test_multi_tu_a.cpp
     test_multi_tu_b.cpp
@@ -17,7 +16,7 @@ add_executable(Sub0Pub_ConfigTests
     test_axes.cpp
 )
 sub0pub_config_target(Sub0Pub_ConfigTests SUB0PUB_TEST_COUNT_MISMATCHES SUB0PUB_CHECK_CONFIG=true)
-target_link_libraries(Sub0Pub_ConfigTests PRIVATE Threads::Threads)
+target_link_libraries(Sub0Pub_ConfigTests PRIVATE Sub0Pub_TestMain Threads::Threads)
 add_test(NAME Sub0Pub_ConfigTests COMMAND Sub0Pub_ConfigTests)
 
 # Deliberate cross-TU configuration mismatch: passes only if the debug registry detects it

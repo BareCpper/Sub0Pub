@@ -160,3 +160,34 @@ TEST_CASE("Destroying a never-subscribed (capacity-exceeded) subscriber is a saf
     CapSubscriber stillOverflow;
     CHECK_FALSE(stillOverflow.isSubscribed());
 }
+
+TEST_CASE("IPC buffer registry: bounded insertion and replacement at capacity") {
+    sub0::BufferRegister<unsigned, 2> registry;
+    char first[] = {'a', 'b'};
+    char second[] = {'c', 'd'};
+    char rejected[] = {'e', 'f'};
+    CHECK(registry.trySet(20, {nullptr, first, 2, 0}));
+    CHECK(registry.trySet(10, {nullptr, second, 2, 0})); // insertion before the existing entry
+    for (unsigned key : {5U, 15U, 30U}) {
+        CHECK_FALSE(registry.trySet(key, {nullptr, rejected, 2, -1}));
+        CHECK(registry.find(key).buffer == nullptr);
+        CHECK(rejected[1] == 'f'); // rejected registration has no padding side effect
+    }
+    CHECK(registry.find(10).buffer == second);
+    CHECK(registry.find(20).buffer == first);
+    registry.set(20, {nullptr, rejected, 2, -1}); // compatibility API: replacement must also work in debug
+    CHECK(registry.find(20).buffer == rejected);
+    CHECK(rejected[0] == 'e');
+    CHECK(rejected[1] == '\0');
+#if !SUB0PUB_ASSERT || defined(NDEBUG)
+    registry.set(30, {nullptr, first, 2, 0}); // release set() safely rejects overflow
+    CHECK(registry.find(30).buffer == nullptr);
+    CHECK(registry.find(10).buffer == second);
+#endif
+}
+
+TEST_CASE("IPC buffer registry: zero capacity rejects insertion") {
+    sub0::BufferRegister<unsigned, 0> registry;
+    CHECK_FALSE(registry.trySet(1, {nullptr, nullptr, 0, 0}));
+    CHECK(registry.find(1).buffer == nullptr);
+}

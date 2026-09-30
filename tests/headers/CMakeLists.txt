@@ -18,3 +18,14 @@ target_link_libraries(Sub0Pub_HeadersSelfContained PRIVATE Sub0Pub::Sub0Pub)
 add_executable(Sub0Pub_HeaderIsolation main.cpp wiring_only.cpp ipc_only.cpp broker_only.cpp config_only.cpp)
 target_link_libraries(Sub0Pub_HeaderIsolation PRIVATE Sub0Pub::Sub0Pub)
 add_test(NAME Sub0Pub_HeaderIsolation COMMAND Sub0Pub_HeaderIsolation)
+
+# Direct header consumers cannot bypass the baseline by omitting the exported CMake target.
+foreach(standard 17 20)
+    set(target Sub0Pub_RejectCxx${standard})
+    add_library(${target} OBJECT EXCLUDE_FROM_ALL config_only.cpp)
+    target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    set_target_properties(${target} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+    add_test(NAME ${target}
+             COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${target} --config $<CONFIG>)
+    set_tests_properties(${target} PROPERTIES PASS_REGULAR_EXPRESSION "Sub0Pub v2 requires C\\+\\+23")
+endforeach()

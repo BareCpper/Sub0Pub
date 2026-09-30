@@ -41,6 +41,13 @@ public:
 };
 ```
 
+## Language baseline
+
+- C++23 is required. Prefer standard facilities and requires-expressions over new detection/SFINAE boilerplate.
+- Adopt features for a concrete simplification, with compiler coverage and unchanged documented semantics.
+- Keep runtime costs opt-in. A language upgrade must not introduce allocation, scheduling or locking by default.
+- Preserve dated evidence as historical measurements; rerun the relevant gates when changing generated code.
+
 ## Templates
 
 - Use angle brackets with space inside for readability: `template< typename Data >`

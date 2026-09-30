@@ -1,5 +1,10 @@
+# The doctest runner contains no Sub0Pub headers or per-suite configuration.
+# Compile it once; keep all test translation units independent for header/ODR coverage.
+add_library(Sub0Pub_TestMain OBJECT test_main.cpp)
+target_compile_features(Sub0Pub_TestMain PRIVATE cxx_std_23)
+target_include_directories(Sub0Pub_TestMain PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+
 add_executable(Sub0Pub_Tests
-    test_main.cpp
     test_pubsub.cpp
     test_cancel.cpp
     test_subscribe_all.cpp
@@ -14,7 +19,7 @@ add_executable(Sub0Pub_Tests
 )
 
 find_package(Threads REQUIRED)
-target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub::Sub0Pub Threads::Threads)
+target_link_libraries(Sub0Pub_Tests PRIVATE Sub0Pub_TestMain Sub0Pub::Sub0Pub Threads::Threads)
 
 target_include_directories(Sub0Pub_Tests PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor"
@@ -53,3 +58,6 @@ add_subdirectory(collapse)
 
 # v1 vs v2 comparison (MIGRATION.md)
 add_subdirectory(compare)
+
+# Build-time measurement is separate from runtime benchmarks and does not run by default.
+add_subdirectory(compile_time)

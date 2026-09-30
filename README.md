@@ -50,7 +50,7 @@ int main() {
 ### How It Compares
 
 **Sub0Pub is built for typed messaging with predictable storage and a small integration footprint.**
-Its C++17, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
+Its C++23, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
 to direct calls. Filtering, cancellation, snapshots and locking are opt-in per message type.
 
 | Compared with | Why choose Sub0Pub? | Trade-off |
@@ -121,7 +121,11 @@ scenarios with the debug-build check, with snapshot dispatch, `cancel()` and `fi
 `Sub0Pub_Bench_Axes` changes one configuration option at a time, and `Sub0Pub_Bench_Ipc` measures serialize and
 deserialize end to end. `python3 tests/bench/run_baseline.py` runs them all and adds deterministic instruction
 counts (valgrind); `python3 tests/footprint/measure_footprint.py` reports code size and RAM for the host and
-Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
+Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md). Build time is measured
+separately, by clean multi-translation-unit consumer compiles: [docs/COMPILE_TIME.md](docs/COMPILE_TIME.md).
+
+Sub0Pub and [Sub0Pipeline](https://github.com/CraigHutchinson/Sub0Pipeline) share the C++23 baseline; the
+integration boundary and where an adapter should live are in [docs/INTEGRATION.md](docs/INTEGRATION.md).
 
 ---
 
@@ -129,7 +133,10 @@ Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BAS
 
 ### Requirements
 
-- C++17 compiler (GCC 7+, Clang 5+, MSVC 2017+)
+- A compiler and standard library supporting the C++23 features used by Sub0Pub. CMake propagates
+  `cxx_std_23` through `Sub0Pub::Sub0Pub`; direct header users must select C++23 mode themselves.
+  Current CI exercises GCC, Clang, AppleClang and MSVC; this is not a claim of complete C++23 feature support.
+  MSVC toolchains may select `/std:c++latest` for C++23 through CMake.
 - CMake 3.21+
 
 ### Build & Test

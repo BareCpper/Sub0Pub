@@ -31,7 +31,7 @@ endif()
 
 # Sub0Pub as header only target
 add_library(Sub0Pub INTERFACE)
-target_compile_features(Sub0Pub INTERFACE cxx_std_17)
+target_compile_features(Sub0Pub INTERFACE cxx_std_23)
 add_library(Sub0Pub::Sub0Pub ALIAS Sub0Pub)
 
 target_include_directories(Sub0Pub

@@ -127,8 +127,8 @@ TEST_CASE("limitation K14/K20: binding an array of receivers binds nothing (no l
     CHECK(sArray[0].got == 0);
     CHECK(sArray[1].got == 0);
     static_assert(!sub0::handles_v<NonConstReceive[2], Sample>, "the guard catches it");
-    // A StaticWiring cannot bind the elements either (C++17: a subobject is not a valid template argument, see
-    // cf_static_wiring_element); a runtime wiring can, one binding per element
+    // A runtime wiring supports one binding per element portably. C++23 array-element NTTP support varies
+    // by compiler, so it is no longer a portable compile-fail expectation.
     const auto bus = sub0::wire(sArray[0], sArray[1]);
     bus.publish(Sample{1});
     CHECK(sArray[0].got == 1);
@@ -183,6 +183,47 @@ TEST_CASE("cancellation combined with a filter: a filtered-out receiver cannot s
     bus.publishCancelable(Sample{3}); // passes the filter, returns false: stops
     CHECK(g.calls == 1);
     CHECK(gTrace == std::vector<int>{6002});
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// C++23 constraint migration: preserve explicit-bool filters, exact-bool cancellation and Sink copying
+// ---------------------------------------------------------------------------------------------------------
+struct ExplicitDecision
+{
+    bool value;
+    explicit operator bool() const noexcept { return value; }
+};
+struct ProxyReceiver
+{
+    int calls = 0;
+    ExplicitDecision filter(const Sample& sample) const noexcept { return {sample.value != 0}; }
+    ExplicitDecision receive(const Sample&) noexcept { ++calls; return {false}; }
+};
+
+TEST_CASE("capabilities preserve explicit-bool filters without treating proxy results as cancellation")
+{
+    ProxyReceiver receiver;
+    Controller tail{9};
+    auto bus = sub0::wire(receiver, tail);
+    static_assert(sub0::handles_v<ProxyReceiver, Sample>);
+    static_assert(!sub0::handles_v<ProxyReceiver, Other>);
+    gTrace.clear();
+    bus.publishCancelable(Sample{0});
+    bus.publishCancelable(Sample{1});
+    CHECK(receiver.calls == 1);
+    CHECK(gTrace == std::vector<int>{9000, 9001});
+}
+
+TEST_CASE("copying a Sink keeps the wiring binding after the original Sink is destroyed")
+{
+    NonConstReceive receiver;
+    auto bus = sub0::wire(receiver);
+    auto copied = [&bus] {
+        const sub0::Sink<Sample> original(bus);
+        return sub0::Sink<Sample>(original);
+    }();
+    copied.publish(Sample{7});
+    CHECK(receiver.got == 1);
 }
 
 // ---------------------------------------------------------------------------------------------------------
