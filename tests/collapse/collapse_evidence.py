@@ -24,7 +24,7 @@ like PLT stubs. Windows has no callgrind, so instruction counts (`instr`) are no
 publish path and the checksum are.
 
 Usage:
-  python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME] [--json OUT.json] > report.md
+  python3 tests/collapse/collapse_evidence.py [--case NAME] [--build NAME ...] [--json OUT.json] > report.md
   python3 tests/collapse/collapse_evidence.py --self-test     # check the publish-path parser
   python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json        # regression gate (CI)
   python3 tests/collapse/collapse_evidence.py --write-budgets tests/collapse/budgets.json  # record new budgets
@@ -833,7 +833,7 @@ def fmt_delta(value, ref, digits=0):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--case")
-    ap.add_argument("--build")
+    ap.add_argument("--build", action="append", help="named build to measure (repeat to select several)")
     ap.add_argument("--json")
     ap.add_argument("--budgets", help="fail if a public-API variant exceeds its recorded budget (regression gate)")
     ap.add_argument("--write-budgets", help="record the measured deltas of the public-API variants as budgets")
@@ -844,9 +844,13 @@ def main():
 
     builds = available_builds()
     if args.build:
-        builds = OrderedDict((n, b) for n, b in builds.items() if n == args.build)
+        missing = sorted(set(args.build) - builds.keys())
+        if missing:
+            print(f"**Build unavailable:** {', '.join(missing)}", file=sys.stderr)
+            return 2
+        builds = OrderedDict((n, b) for n, b in builds.items() if n in args.build)
     if not builds:
-        print(f"**No build selected:** {args.build or 'no toolchain available'}", file=sys.stderr)
+        print("**No build selected:** no toolchain available", file=sys.stderr)
         return 2
     cases = discover_cases(args.case)
     if not cases:

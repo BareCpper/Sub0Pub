@@ -112,6 +112,17 @@ class EvidenceGates(unittest.TestCase):
              contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(evidence.main(), 2)
 
+    def test_repeated_build_selection_measures_both_builds(self):
+        builds = {name: evidence.BUILDS[name] for name in ("gcc-O2", "gcc-O2-lto")}
+        with patch.object(sys, "argv", ["evidence", "--build", "gcc-O2", "--build", "gcc-O2-lto"]), \
+             patch.object(evidence, "available_builds", return_value=builds), \
+             patch.object(evidence, "discover_cases", return_value={"cross_file": ["handwritten"]}), \
+             patch.object(evidence, "measure", return_value={"error": "injected compile error"}) as measure, \
+             patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 0, "test compiler\n", "")), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(evidence.main(), 1)
+        self.assertEqual({call.args[0] for call in measure.call_args_list}, set(builds))
+
     def test_crash_after_checksum_is_not_success(self):
         with patch.object(evidence, "run", return_value=subprocess.CompletedProcess([], 1, "checksum 42\n", "failed")):
             checksum, error = evidence.checksum("unused")

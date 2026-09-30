@@ -67,6 +67,10 @@ references. Budgets are the measured deltas, never tighter than the criteria's t
 re-records them with `--write-budgets` in the same commit. The cost criteria against hand-written code are reported,
 not enforced: the runtime broker is expected to fail them, which is the price of runtime subscription.
 
+CI measures GCC, Clang and Cortex-M33 in separate jobs. Each job checks both ordinary and LTO builds with the same
+budget file; migration comparison, footprint and benchmark reports run concurrently in another job. Build and test
+jobs use two-way parallelism. This changes scheduling only: the measured variants and pass/fail criteria are the same.
+
 ## Cases
 
 | Case | What it covers |
@@ -135,7 +139,7 @@ which brings the path to 71 (+2); other compilers get plain `inline`, so their c
 ## Reproduce
 
 ```bash
-python3 tests/collapse/collapse_evidence.py [--case one_receiver] [--build gcc-O2] [--json out.json] > report.md
+python3 tests/collapse/collapse_evidence.py [--case one_receiver] [--build gcc-O2] [--build gcc-O2-lto] [--json out.json] > report.md
 python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.json    # the CI regression gate
 python tests/collapse/collapse_evidence.py --build msvc-O2                           # Windows, any prompt
 ```
