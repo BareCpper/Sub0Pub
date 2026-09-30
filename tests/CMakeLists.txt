@@ -53,3 +53,6 @@ add_subdirectory(collapse)
 
 # v1 vs v2 comparison (MIGRATION.md)
 add_subdirectory(compare)
+
+# Build-time measurement is separate from runtime benchmarks and does not run by default.
+add_subdirectory(compile_time)

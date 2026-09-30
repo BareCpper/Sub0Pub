@@ -332,6 +332,9 @@ See [the groundwork review](docs/CXX23_GROUNDWORK.md) for the C++23 migration, m
 Sub0Pipeline adapter ownership options, including a potential umbrella project. Integration remains design-only;
 the core acquires no scheduler dependency. Existing consumers should read [MIGRATION.md](MIGRATION.md).
 
+[Compile-time A/B benchmarks](docs/COMPILE_TIME.md) track clean multi-TU consumer compilation separately from
+runtime and footprint costs, including the C++23 migration and a same-language comparison.
+
 ## Configuration
 
 Compile-time feature flags (define before including the header):

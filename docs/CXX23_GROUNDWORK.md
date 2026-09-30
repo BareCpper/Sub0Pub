@@ -86,6 +86,10 @@ as heap-free or ISR-safe execution: those guarantees need separate scheduler/pla
 
 ## Groundwork validation (30 September 2026)
 
+Compile-time A/B evidence is captured separately in [COMPILE_TIME.md](COMPILE_TIME.md): full C++17-to-C++23
+migration and same-language source comparison, with repeated multi-TU wiring, broker and umbrella workloads.
+The initial groundwork CI passed GCC, Clang, AppleClang, MSVC, sanitizers and the full collapse-evidence job.
+
 Local GCC 13.3.0 Release validation: all 252 CTest entries passed, including enabled examples, header isolation,
 compile-fail contracts, rejection of C++17/C++20, and the installed consumer. The evidence parser/gate unit suite
 passed all 11 tests.

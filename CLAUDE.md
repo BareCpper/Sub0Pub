@@ -19,6 +19,14 @@ python3 tests/collapse/collapse_evidence.py --budgets tests/collapse/budgets.jso
 ```
 Compare against `docs/PERFORMANCE_BASELINE.md`: instr/op is the regression bar; ns/op is noisy.
 
+Compile time is also a performance metric for header-only consumers. Changes to public headers, constraints,
+configuration machinery or language baseline that may materially affect build cost should capture A/B evidence
+with `tests/compile_time/compare.py` (see `docs/COMPILE_TIME.md`). Compare identical consumer workloads/compiler,
+resolve exact revisions, retain raw repeated samples, and distinguish language migration from same-mode source
+changes. Timing is advisory on shared hosts; investigate meaningful regressions rather than widening runtime
+budgets or imposing an arbitrary noisy wall-time gate. Do not claim parallel/incremental build results from
+serial clean-object measurements.
+
 ## Commit Rules
 
 ### Migration Document
