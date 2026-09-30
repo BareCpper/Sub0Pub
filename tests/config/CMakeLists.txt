@@ -30,7 +30,8 @@ function(sub0pub_config_compile_fail name regex)
     sub0pub_config_target(${name})
     add_test(NAME Sub0Pub_Config_${name}
              COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
-    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}"
+                         RESOURCE_LOCK cmake_build)
 endfunction()
 
 sub0pub_config_compile_fail(cf_config_two_places          "configured in exactly one place")
@@ -50,7 +51,8 @@ function(sub0pub_default_compile_fail name regex)
     target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
     add_test(NAME Sub0Pub_Config_${name}
              COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${name} --config $<CONFIG>)
-    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}")
+    set_tests_properties(Sub0Pub_Config_${name} PROPERTIES PASS_REGULAR_EXPRESSION "${regex}"
+                         RESOURCE_LOCK cmake_build)
 endfunction()
 
 sub0pub_default_compile_fail(cf_config_filter_not_enabled   "conflicting return type|different return type|overrides a 'final'|return type differs|C2555")

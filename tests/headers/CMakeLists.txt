@@ -27,5 +27,6 @@ foreach(standard 17 20)
     set_target_properties(${target} PROPERTIES CXX_STANDARD ${standard} CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
     add_test(NAME ${target}
              COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target ${target} --config $<CONFIG>)
-    set_tests_properties(${target} PROPERTIES PASS_REGULAR_EXPRESSION "Sub0Pub v2 requires C\\+\\+23")
+    set_tests_properties(${target} PROPERTIES PASS_REGULAR_EXPRESSION "Sub0Pub v2 requires C\\+\\+23"
+                         RESOURCE_LOCK cmake_build)
 endforeach()

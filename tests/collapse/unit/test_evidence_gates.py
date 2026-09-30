@@ -17,6 +17,13 @@ spec.loader.exec_module(evidence)
 
 
 class EvidenceGates(unittest.TestCase):
+    def test_smoke_profile_is_a_real_subset_with_cross_file_lto(self):
+        all_cases = evidence.select_cases("full")
+        smoke_cases = evidence.select_cases("smoke")
+        self.assertGreater(len(all_cases), len(smoke_cases))
+        self.assertIn("cross_file", smoke_cases)
+        self.assertTrue(all("handwritten" in variants for variants in smoke_cases.values()))
+
     def test_msvc_environment_accepts_mixed_case_path(self):
         responses = [
             subprocess.CompletedProcess([], 0, "C:/Visual Studio\n", ""),

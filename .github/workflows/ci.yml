@@ -5,6 +5,10 @@ on:
     branches: [develop, v2, main]
   pull_request:
     branches: [develop, v2, main, 'claude/**'] # claude/**: PRs stacked on another PR's branch
+  workflow_dispatch:
+
+env:
+  COLLAPSE_PROFILE: ${{ github.event_name == 'pull_request' && 'smoke' || 'full' }}
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -26,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake --preset ci-unix
+        run: cmake --preset ci-unix -DSUB0PUB_COLLAPSE_PROFILE=${{ env.COLLAPSE_PROFILE }}
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
@@ -40,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake --preset ci-msvc
+        run: cmake --preset ci-msvc -DSUB0PUB_COLLAPSE_PROFILE=${{ env.COLLAPSE_PROFILE }}
       - name: Build
         run: cmake --build --preset ci-msvc --parallel 2
       - name: Test
@@ -62,7 +66,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake --preset ci-unix
+        run: cmake --preset ci-unix -DSUB0PUB_COLLAPSE_PROFILE=${{ env.COLLAPSE_PROFILE }}
       - name: Build
         run: cmake --build --preset ci-unix --parallel 2
       - name: Test
@@ -79,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure (ASan + UBSan)
-        run: cmake --preset ${{ matrix.preset }}
+        run: cmake --preset ${{ matrix.preset }} -DSUB0PUB_COLLAPSE_PROFILE=${{ env.COLLAPSE_PROFILE }}
         env:
           CC: gcc
           CXX: g++
@@ -115,6 +119,7 @@ jobs:
       - name: Collect evidence
         run: |
           python3 tests/collapse/collapse_evidence.py \
+            --profile ${{ env.COLLAPSE_PROFILE }} \
             --build ${{ matrix.standard }} --build ${{ matrix.lto }} \
             --budgets tests/collapse/budgets.json \
             --json collapse-evidence-${{ matrix.group }}.json > collapse-evidence-${{ matrix.group }}.md
