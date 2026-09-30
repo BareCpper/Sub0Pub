@@ -88,7 +88,7 @@ opt-in for each v1 behaviour.
 | D6 | Publisher spelling | the `StaticWiring` alias, the CRTP `Publisher` mixin, or `Sink<T>` | a CTAD factory (Clang +4 instructions, +24 B); C++23 deducing this (GCC 13 rejects it, and it costs the same as the mixin) |
 | D7 | Lifetime | `Subscribe<T>` and `Publish<T>` have protected, non-virtual destructors; locked types register with `trySubscribe()` after construction; disconnect during a dispatch is safe under Snapshot; `Domain::close()` detaches, rejects and quiesces | a virtual destructor (a vptr per object and an `operator delete` link dependency on small targets); registration in the base constructor for concurrent types (another thread could dispatch into a half-built object) |
 | D8 | Teardown under concurrency | a sequentially consistent handshake: `disconnect()` waits only for a callback running on another thread | hazard pointers and epochs: cheaper only because they drop self-disconnect, nested-publish and thread-count safety, and they drop publications past their bounds in release builds |
-| D9 | Language standard | C++23 is the contract; use concepts/requires where they simplify constraints | retaining C++17 compatibility scaffolding; adopting poorly supported features without toolchain and equal-work evidence (see [groundwork](CXX23_GROUNDWORK.md)) |
+| D9 | Language standard | C++23 is the contract; use concepts/requires where they simplify constraints | retaining C++17 compatibility scaffolding; adopting poorly supported features without toolchain and equal-work evidence (see "Language baseline" below) |
 
 ## Contracts
 
@@ -138,19 +138,33 @@ Not yet measured: throughput under lock contention and teardown latency, embedde
 table to the stack, so size `Capacity` to the real bound), and cross-module (DLL / shared library) use, which is not
 supported yet ([examples/cross_module](../examples/cross_module/README.md)).
 
+## Language baseline
+
+`Sub0Pub::Sub0Pub` exports `cxx_std_23`, and the configuration header rejects C++17 and C++20 builds that include the
+headers directly. A C++23 mode does not guarantee every C++23 feature (K13), so a feature is adopted only for a concrete
+simplification, with compiler coverage and unchanged semantics:
+
+| Area | Decision | Reason |
+|---|---|---|
+| Static-wiring capability detection | requires-expressions | states each capability directly; explicit-`bool` filters, exact-`bool` cancellation and skipped non-matching receivers are unchanged and tested |
+| `Sink` copy exclusion | a requires-clause on the binding constructor | copying a `Sink` copies it and never wraps it |
+| Broker configuration detection | kept as is | carries MSVC ADL workarounds; replacing it needs cross-compiler evidence |
+| Publisher CRTP mixin | kept | explicit object parameters need toolchain coverage and equal-work evidence first (D6) |
+| Result enums, `const T&` payloads | kept | `std::expected` suits a future admission boundary, not synchronous publication; queue ownership belongs in an adapter ([INTEGRATION.md](INTEGRATION.md)) |
+| Synchronisation and storage | unchanged | their lifetime and cost contracts do not depend on the language mode |
+
 ## Compilation cost
 
-Aggregate arity detection selects a recursive type before requesting its value, so only one binary-search
-branch is instantiated at each step (the supported maximum remains 32). Broker snapshots use standard
-`memcpy` on non-overlapping, trivially-copyable pointer arrays to avoid an otherwise unnecessary algorithm
-header. Domain close records detached pointers during the existing clearing pass, and only for the
-non-concurrent path that consumes them; locking and callback lifetime rules are unchanged.
+The library is header-only, so parsing and instantiation repeat in every consumer translation unit. Build time is
+measured separately from runtime cost ([COMPILE_TIME.md](COMPILE_TIME.md)):
 
-The three doctest executables share a compiled runner object that includes no Sub0Pub configuration.
-Test translation units remain separate, including header-isolation and cross-TU configuration tests.
-See [compile-time measurement](COMPILE_TIME.md) for consumer A/B workloads and limitations.
+- Aggregate arity detection selects the recursive type before requesting its value, so only one branch of its binary
+  search is instantiated at each step (32 members at most, unchanged).
+- The narrow broker headers do not include `<algorithm>`: snapshots copy pointer arrays with `memcpy`, and
+  `Domain::close()` records the detached subscribers in its clearing pass, only where the single-threaded path uses them.
+- `<thread>` stays in the broker headers: any message type may opt in to a lock, whatever the global defaults say.
+- No precompiled headers, modules, unity builds or a type-erased broker core: each trades portability, integration or
+  runtime cost, and needs its own equal-work evidence.
 
-IPC buffer registration remains a fixed-capacity sorted array with binary lookup; no allocation or hash table
-is introduced. `trySet(header, buffer)` reports exhaustion before moving entries or touching padding bytes,
-and replacement is allowed even when full. `set()` retains its void signature and debug assertion on new-entry
-overflow; release builds safely reject it. This is registration-path work, not per-message lookup overhead.
+The IPC buffer registry stays a fixed-capacity sorted array with binary lookup. `trySet()` reports a full registry
+before moving entries or touching padding, and replacement succeeds when full; this is registration-path work only.

@@ -20,36 +20,12 @@ For runnable static, dynamic and mixed-path migration recipes, see [examples](ex
 (`-std=c++23`, or the C++23/latest mode supported by your MSVC toolchain). C++17/C++20 builds are no longer
 supported and receive a header diagnostic. CMakePresets remain the recommended configure/build/test entry point.
 
-### C++23 groundwork on the v2 branch
-
-The previous v2 baseline also used C++17: this requirement change affects existing v2 consumers, not only v1.
-Static wiring now uses requires-expressions internally and Sink's self-copy exclusion uses a requires-clause;
-public delivery, filtering, cancellation and Sink copy behavior remain unchanged. Filters still accept explicit
-boolean conversion; only an exact bool receive result stops cancelable publication. No scheduler, allocation,
-threading or Sub0Pipeline dependency is introduced.
-
-C++23 permits more non-type template arguments than the old baseline. The former array-element compile-fail
-check is removed: GCC 13 accepts that binding in C++23 mode. For portable wiring across the supported compiler
-matrix, use named static objects or `wire(array[0], array[1])`; binding the whole array still does not add fan-out.
-See [C++23 and integration groundwork](docs/CXX23_GROUNDWORK.md) for the reviewed scope and follow-up decisions.
+The language mode changes nothing you call: delivery, filtering, cancellation and `Sink` copying behave as before.
+`StaticWiring` may now bind array elements (`StaticWiring<&receivers[0], &receivers[1]>`) on compilers that accept
+subobject addresses as template arguments; for code that must build on every supported compiler, bind named objects
+or use `wire(receivers[0], receivers[1])`. Binding a whole array still binds nothing.
 
 ---
-
-### IPC registry capacity handling
-
-`BufferRegister::trySet(const Header_t&, const Buffer&)` now returns false for a new entry at capacity,
-without altering the registry or padding bytes. Existing entries can still be replaced at capacity.
-The existing `set()` signatures remain: overflow asserts when assertions are enabled and safely drops the
-new entry otherwise, replacing the former release-mode out-of-bounds write. Use `trySet()` where exhaustion
-must be reported. Callers still own buffer lifetimes, valid padding bounds and synchronization.
-
-### Optimization follow-up
-
-Aggregate arity detection now instantiates only the selected binary-search branch. Broker snapshot pointer
-copies use `std::memcpy`, and domain close combines detachment bookkeeping into its existing pass.
-Public signatures, fingerprint values, dispatch order and synchronization requirements are unchanged.
-Narrow broker headers no longer intentionally include `<algorithm>`; consumers using standard algorithms
-must include that header themselves. The umbrella retains its compatibility includes.
 
 ## API Changes
 
@@ -185,6 +161,14 @@ Every translation unit must resolve the same configuration for a type: resolving
 
 **Action:** None. Measured forms: [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
+### `BufferRegister::trySet()` reports a full IPC registry (new)
+
+`trySet(header, buffer)` returns `false` for a new entry when the registry is full, leaving the registry and the
+buffer's padding bytes untouched; replacing an existing entry still succeeds when full. `set()` keeps its signature:
+it asserts on overflow when assertions are enabled, and otherwise drops the new entry (v1 wrote past the array).
+
+**Action:** None. Call `trySet()` where a full registry must be handled.
+
 ### The library is split into focused headers
 
 `include/sub0pub/sub0pub.hpp` was a single 3,200-line file. It is now an umbrella header over one header per
@@ -196,7 +180,8 @@ code is identical (collapse evidence, `tests/collapse/budgets.json`).
 
 **Action:** None. `#include <sub0pub/sub0pub.hpp>` works as before, including the standard headers it provided. To
 compile less, include only the part you use (README, "Headers"). Headers under the area directories other than
-the entry headers are implementation structure and may move.
+the entry headers are implementation structure and may move. The narrow broker headers do not include
+`<algorithm>`: a translation unit that uses standard algorithms includes it itself (the umbrella still does).
 
 ---
 

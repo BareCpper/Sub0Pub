@@ -121,7 +121,11 @@ scenarios with the debug-build check, with snapshot dispatch, `cancel()` and `fi
 `Sub0Pub_Bench_Axes` changes one configuration option at a time, and `Sub0Pub_Bench_Ipc` measures serialize and
 deserialize end to end. `python3 tests/bench/run_baseline.py` runs them all and adds deterministic instruction
 counts (valgrind); `python3 tests/footprint/measure_footprint.py` reports code size and RAM for the host and
-Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md).
+Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BASELINE.md). Build time is measured
+separately, by clean multi-translation-unit consumer compiles: [docs/COMPILE_TIME.md](docs/COMPILE_TIME.md).
+
+Sub0Pub and [Sub0Pipeline](https://github.com/CraigHutchinson/Sub0Pipeline) share the C++23 baseline; the
+integration boundary and where an adapter should live are in [docs/INTEGRATION.md](docs/INTEGRATION.md).
 
 ---
 
@@ -325,15 +329,6 @@ public:
 ```
 
 ---
-
-## C++23 groundwork and companion integration
-
-See [the groundwork review](docs/CXX23_GROUNDWORK.md) for the C++23 migration, modernization choices and
-Sub0Pipeline adapter ownership options, including a potential umbrella project. Integration remains design-only;
-the core acquires no scheduler dependency. Existing consumers should read [MIGRATION.md](MIGRATION.md).
-
-[Compile-time A/B benchmarks](docs/COMPILE_TIME.md) track clean multi-TU consumer compilation separately from
-runtime and footprint costs, including the C++23 migration and a same-language comparison.
 
 ## Configuration
 

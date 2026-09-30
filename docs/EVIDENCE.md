@@ -145,4 +145,5 @@ finds the newest Visual Studio itself. CI runs the full gate on Linux and a smok
 and publishes the reports as artifacts. Stored reports (September 2026): GCC, Clang and Cortex-M33
 [perf/collapse/public-api-2026-09.md](perf/collapse/public-api-2026-09.md); MSVC
 [perf/collapse/msvc-2026-09.md](perf/collapse/msvc-2026-09.md) and
-[perf/collapse/msvc-lto-2026-09.md](perf/collapse/msvc-lto-2026-09.md); JSON beside each.
+[perf/collapse/msvc-lto-2026-09.md](perf/collapse/msvc-lto-2026-09.md); JSON beside each. They were measured in C++17
+mode, before the C++23 baseline; CI re-measures in C++23 against the same budgets.

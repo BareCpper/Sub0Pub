@@ -165,7 +165,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", required=True, help="immutable snapshot resolved from this git ref")
     parser.add_argument("--candidate", default="HEAD", help="git ref; working-tree edits are never measured")
-    parser.add_argument("--baseline-standard", choices=["c++17", "c++20", "c++23"], default="c++17")
+    parser.add_argument("--baseline-standard", choices=["c++17", "c++20", "c++23"], default="c++23")
     parser.add_argument("--candidate-standard", choices=["c++17", "c++20", "c++23"], default="c++23")
     parser.add_argument("--compiler", default="g++", help="direct GCC/Clang executable (no shell flags)")
     parser.add_argument("--profiles", nargs="+", choices=list(PROFILES), default=list(PROFILES))

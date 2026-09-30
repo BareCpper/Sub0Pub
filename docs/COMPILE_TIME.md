@@ -5,76 +5,19 @@ include parsing and template instantiation repeat across consumer translation un
 constraints, configuration machinery or the language baseline should include compile-time A/B evidence when they
 can materially affect those costs.
 
-## Reproduce the C++23 groundwork comparison
+## Run a comparison
 
-Run from a checkout with both commits available, using Python 3 and a direct GCC/Clang compiler executable:
-
-```sh
-# A: prior v2/C++17. B: C++23 groundwork. This measures the complete migration effect.
-python3 tests/compile_time/compare.py \
-  --baseline ab3622277018b7d18cc507afad64af1d1bfbe6a6 \
-  --candidate 1e8f1dcef8ed29fa534769625bec6965c9bb42fb \
-  --translation-units 8 \
-  --json migration.json --markdown migration.md
-
-# Hold language mode constant to separate the source changes from the language-mode change.
-python3 tests/compile_time/compare.py \
-  --baseline ab3622277018b7d18cc507afad64af1d1bfbe6a6 \
-  --candidate 1e8f1dcef8ed29fa534769625bec6965c9bb42fb \
-  --baseline-standard c++23 --translation-units 8 \
-  --json source.json --markdown source.md
-```
-
-For later C++23 changes, use `--baseline <base-ref> --candidate <head-ref> --baseline-standard c++23`.
-Refs are resolved to full commit IDs before measurement. Only archived headers from those commits are used;
-uncommitted library edits are **not** measured. The harness and fixture come from the invoking checkout and their
-SHA-256 hashes are recorded. Both lanes always use the exact same fixture and compiler.
-
-Recorded groundwork results: [migration](perf/compile-time/cxx23-migration.md) / [raw samples](perf/compile-time/cxx23-migration.json),
-and [same-language source comparison](perf/compile-time/cxx23-source.md) / [raw samples](perf/compile-time/cxx23-source.json).
-
-### Observed results for this changeset
-
-| Workload | Migration: C++17 baseline → C++23 candidate | Source comparison: both C++23 |
-|---|---:|---:|
-| wiring | +58.68% | -14.64% |
-| broker | +61.83% | +0.93% |
-| umbrella | +82.76% | +16.00% |
-
-Positive means slower. The migration capture used an AMD EPYC host; the later same-language capture used an
-Intel Xeon host after the execution environment changed. Each individual A/B comparison uses one host/compiler,
-but **do not subtract these columns or compare their absolute seconds** to assign a precise language-only cost.
-
-The migration's observed ranges do not overlap: it is a meaningful compile-cost warning for this workload,
-not a claim that every application will build 59–83% slower. The same-language capture has substantial noise
-and overlapping ranges in every profile. Its mixed results do not establish a general source-level improvement
-or regression. Review further CI captures or repeat on a quiet fixed host before making that claim. Keep the
-groundwork PR under review with this cost visible; the runtime performance gates do not cover compilation cost.
-
-## Optimization follow-up
-
-The follow-up compares the C++23 groundwork (`cf0fd36561589ccf19d7f90b2d16a55d44901146`) with the
-optimization commit (`17047154ae9e2cdd8233b3378ea0c883b3d0cd56`), both in C++23 on the same host.
-[Recorded report](perf/compile-time/optimization.md) / [raw samples](perf/compile-time/optimization.json).
-
-| Profile | Median change | Interpretation |
-|---|---:|---|
-| wiring | -13.48% | Overlapping ranges; unchanged header/workload path, so no source speedup claim |
-| broker | -23.72% | Consistent with reduced include surface, but ranges overlap and A is noisy |
-| umbrella | -0.14% | Essentially unchanged |
-| layout | -45.92% | Non-overlapping ranges for the aggregate-instantiation workload |
-
-These results do not cancel the historical C++23 migration warning or predict an application's whole-build
-speedup. The new layout profile was not present in the earlier captures. See the
-[optimization review](OPTIMIZATION.md) for changes, trade-offs, validation and retained limitations.
+From a checkout that has both commits, with Python 3 and a direct GCC or Clang executable:
 
 ```sh
-python3 tests/compile_time/compare.py \
-  --baseline cf0fd36561589ccf19d7f90b2d16a55d44901146 \
-  --candidate 17047154ae9e2cdd8233b3378ea0c883b3d0cd56 \
-  --baseline-standard c++23 --translation-units 8 \
-  --json optimization.json --markdown optimization.md
+python3 tests/compile_time/compare.py --baseline <base-ref> --candidate <head-ref> \
+  --translation-units 8 --json ab.json --markdown ab.md
 ```
+
+Refs are resolved to full commit IDs, and only the headers archived at those commits are measured: uncommitted
+library edits are **not**. The harness and fixture come from the invoking checkout, and their SHA-256 hashes are
+recorded; both lanes use the same fixture and compiler. `--baseline-standard` and `--candidate-standard` (default
+`c++23`) select each lane's language mode, for example `c++17` to reproduce the migration capture below.
 
 ## Workloads
 
@@ -129,3 +72,19 @@ be investigated and justified alongside the existing runtime/footprint gates.
 
 These results do not measure MSVC, parallel build latency, incremental/no-op rebuilds, linker cost, peak compiler
 memory or application-specific include graphs. Those are distinct studies if a consumer's build profile warrants them.
+
+## Recorded results (September 2026)
+
+**Moving from C++17 to C++23 costs compile time.** Clean serial compilation of eight consumer translation units, the
+v2 headers in C++17 against the same headers moved to C++23 in C++23 mode
+([report](perf/compile-time/cxx23-migration.md), [raw samples](perf/compile-time/cxx23-migration.json)):
+wiring +58.7%, broker +61.8%, umbrella +82.8%. The ranges do not overlap, so this is a real cost for these workloads,
+not a prediction for every application. Holding both lanes in C++23 separates the source changes from the mode
+([report](perf/compile-time/cxx23-source.md), [raw samples](perf/compile-time/cxx23-source.json)): wiring -14.6%,
+broker +0.9%, umbrella +16.0%, with overlapping ranges in every profile, so no source-level effect is established.
+The two captures ran on different hosts: do not subtract them or compare their absolute seconds.
+
+**The compile-cost reductions** (arity detection, the broker include surface; both lanes C++23, same host;
+[report](perf/compile-time/optimization.md), [raw samples](perf/compile-time/optimization.json)): layout -45.9% with
+non-overlapping ranges; broker -23.7%, whose ranges overlap; umbrella -0.1%; wiring -13.5%, whose headers and workload
+did not change, so it is noise. They reduce, and do not cancel, the migration cost.
