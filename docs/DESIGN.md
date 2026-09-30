@@ -137,3 +137,20 @@ refer to them.
 Not yet measured: throughput under lock contention and teardown latency, embedded stack use (Snapshot copies the
 table to the stack, so size `Capacity` to the real bound), and cross-module (DLL / shared library) use, which is not
 supported yet ([examples/cross_module](../examples/cross_module/README.md)).
+
+## Compilation cost
+
+Aggregate arity detection selects a recursive type before requesting its value, so only one binary-search
+branch is instantiated at each step (the supported maximum remains 32). Broker snapshots use standard
+`memcpy` on non-overlapping, trivially-copyable pointer arrays to avoid an otherwise unnecessary algorithm
+header. Domain close records detached pointers during the existing clearing pass, and only for the
+non-concurrent path that consumes them; locking and callback lifetime rules are unchanged.
+
+The three doctest executables share a compiled runner object that includes no Sub0Pub configuration.
+Test translation units remain separate, including header-isolation and cross-TU configuration tests.
+See [compile-time measurement](COMPILE_TIME.md) for consumer A/B workloads and limitations.
+
+IPC buffer registration remains a fixed-capacity sorted array with binary lookup; no allocation or hash table
+is introduced. `trySet(header, buffer)` reports exhaustion before moving entries or touching padding bytes,
+and replacement is allowed even when full. `set()` retains its void signature and debug assertion on new-entry
+overflow; release builds safely reject it. This is registration-path work, not per-message lookup overhead.

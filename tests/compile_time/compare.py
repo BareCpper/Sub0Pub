@@ -23,7 +23,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).with_name("consumer.cpp")
-PROFILES = {"wiring": 0, "broker": 1, "umbrella": 2}
+PROFILES = {"wiring": 0, "broker": 1, "umbrella": 2, "layout": 3}
 
 
 def command(args, **kwargs):

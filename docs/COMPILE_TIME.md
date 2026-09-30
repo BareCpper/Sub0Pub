@@ -58,10 +58,12 @@ groundwork PR under review with this cost visible; the runtime performance gates
 | wiring | `sub0pub/wiring.hpp` | Multiple message types and receivers, fan-out, Sink construction/copy/publication |
 | broker | `sub0pub/broker.hpp` | Per-message subscriptions, virtual receive, publisher and registration/teardown |
 | umbrella | `sub0pub/sub0pub.hpp` | Exactly the wiring work, through the full include surface |
+| layout | `sub0pub/utility/layout.hpp` | Distinct 32-member aggregates and recursive array fingerprints |
 
 The umbrella/wiring pair helps expose the cost of the full include surface, but the principal comparison is
 **A versus B within each profile**. Broker and wiring do different work and their absolute timings are not a
 dispatch-performance ranking. Each TU uses distinct message types, representing independent consumer components.
+The layout profile varies with `--types`; `--receivers` does not affect it.
 This is a synthetic consumer compile workload; it does not time this repository's test suite.
 
 The default is 16 translation units per batch, eight message types per TU, four receivers, five recorded paired

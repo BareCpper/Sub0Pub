@@ -35,6 +35,22 @@ See [C++23 and integration groundwork](docs/CXX23_GROUNDWORK.md) for the reviewe
 
 ---
 
+### IPC registry capacity handling
+
+`BufferRegister::trySet(const Header_t&, const Buffer&)` now returns false for a new entry at capacity,
+without altering the registry or padding bytes. Existing entries can still be replaced at capacity.
+The existing `set()` signatures remain: overflow asserts when assertions are enabled and safely drops the
+new entry otherwise, replacing the former release-mode out-of-bounds write. Use `trySet()` where exhaustion
+must be reported. Callers still own buffer lifetimes, valid padding bounds and synchronization.
+
+### Optimization follow-up
+
+Aggregate arity detection now instantiates only the selected binary-search branch. Broker snapshot pointer
+copies use `std::memcpy`, and domain close combines detachment bookkeeping into its existing pass.
+Public signatures, fingerprint values, dispatch order and synchronization requirements are unchanged.
+Narrow broker headers no longer intentionally include `<algorithm>`; consumers using standard algorithms
+must include that header themselves. The umbrella retains its compatibility includes.
+
 ## API Changes
 
 ### `Broker` moved to `sub0::detail`

@@ -47,9 +47,9 @@ namespace sub0
                 : std::true_type {};
 
             template<typename T, std::size_t N>
-            constexpr bool can_construct = std::is_class_v<T>
-                ? is_aggregate_constructible_braced<T, std::make_index_sequence<N>>::value
-                : is_aggregate_constructible<T, std::make_index_sequence<N>>::value;
+            constexpr bool can_construct = std::conditional_t<std::is_class_v<T>,
+                is_aggregate_constructible_braced<T, std::make_index_sequence<N>>,
+                is_aggregate_constructible<T, std::make_index_sequence<N>>>::value;
 
             // Binary search for the maximum N where T{ubiq, ubiq, ..., ubiq} compiles
             template<typename T, std::size_t Lo, std::size_t Hi, typename = void>
@@ -60,10 +60,10 @@ namespace sub0
             template<typename T, std::size_t Lo, std::size_t Hi>
             struct detect_impl<T, Lo, Hi, std::enable_if_t<(Lo < Hi)>> {
                 static constexpr std::size_t Mid = Lo + (Hi - Lo + 1) / 2;
-                static constexpr std::size_t value =
-                    can_construct<T, Mid>
-                        ? detect_impl<T, Mid, Hi>::value
-                        : detect_impl<T, Lo, Mid - 1>::value;
+                // Select the type before requesting its value: a conditional expression would
+                // instantiate both subtrees and turn this binary search into a full traversal.
+                static constexpr std::size_t value = std::conditional_t<can_construct<T, Mid>,
+                    detect_impl<T, Mid, Hi>, detect_impl<T, Lo, Mid - 1>>::value;
             };
 
             /// Upper bound capped at 32 to prevent MSVC template depth/heap exhaustion

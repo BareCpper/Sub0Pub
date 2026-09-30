@@ -8,7 +8,6 @@
 #include "sub0pub/broker/domain.hpp"
 #include "sub0pub/utility/type_info.hpp"
 #include "sub0pub/utility/streams.hpp"
-#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <type_traits>
@@ -179,9 +178,10 @@ namespace sub0
             checkNotDispatching(t); // closing detaches every subscriber: a table change, like unsubscribing
             t.closed = true;
             n = t.count;
-            std::copy_n(t.entries, n, detached);
             for (uint32_t i = 0; i < n; ++i)
             {
+                if constexpr (!cConcurrent<Config>)
+                    detached[i] = t.entries[i];
                 t.entries[i]->subscribed_.store(false);
                 t.entries[i] = nullptr; // a Direct dispatch in progress re-reads its slot after filter(): not called
             }

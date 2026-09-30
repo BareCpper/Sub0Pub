@@ -7,7 +7,7 @@
 
 #include "sub0pub/broker/kit.hpp"
 #include "sub0pub/broker/config_check.hpp"
-#include <algorithm>
+#include <cstring>
 #include <atomic>
 #include <cstdint>
 #include <thread>
@@ -169,7 +169,8 @@ namespace sub0
                         if (t.closed)
                             return;
                     const uint32_t count = t.count;
-                    std::copy_n(t.entries, count, snapshot);
+                    // Pointer arrays are trivially copyable and do not overlap.
+                    std::memcpy(snapshot, t.entries, count * sizeof(snapshot[0]));
                     kit::DispatchScope<Data> scope(&t, origin, report, snapshot, count);
                     for (uint32_t i = 0; !scope.canceled() && i < count; ++i)
                         kit::deliverAt<Data>(snapshot[i], data);

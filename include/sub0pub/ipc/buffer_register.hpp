@@ -62,17 +62,25 @@ namespace sub0
 
         void set(const Header_t& header, const Buffer& buffer)
         {
-            /// @todo make this a linked list to remove capacity limitations?
+            const bool stored = trySet(header, buffer);
 #if SUB0PUB_ASSERT
-            assert(registryEnd_ < std::end(registry_)); //< Capacity reached
+            assert(stored); // Capacity reached: use trySet() to handle exhaustion.
 #endif
+            (void)stored;
+        }
 
+        /// Insert or replace a buffer. A new entry at capacity returns false without changing the registry.
+        /// Replacement remains valid at capacity. As with set(), callers serialize access.
+        bool trySet(const Header_t& header, const Buffer& buffer)
+        {
             typename HeaderToBufferLookup::iterator iInsert = std::lower_bound(std::begin(registry_), registryEnd_, header,
                 [](const HeaderToBuffer& lhs, const Header_t& rhs) { return lhs.first < rhs; });
 
             const bool exists = (iInsert != registryEnd_) && (iInsert->first == header);
             if (!exists) //< Insert new entry at location
             {
+                if (registryEnd_ == registry_.end())
+                    return false;
                 std::move_backward(iInsert, registryEnd_, registryEnd_ + 1U);
                 ++registryEnd_;
                 iInsert->first = header;
@@ -85,6 +93,7 @@ namespace sub0
                 char* bufferEnd = buffer.buffer + buffer.bufferSize;
                 std::fill(bufferEnd + buffer.paddingSize, bufferEnd, '\0'); //< Clear content that will not be written
             }
+            return true;
         }
 
         Buffer find(const Header_t header)

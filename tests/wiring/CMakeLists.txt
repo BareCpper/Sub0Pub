@@ -1,8 +1,8 @@
 # Static wiring (sub0pub/wiring/): guarantees, limits and concurrent use
 
 find_package(Threads REQUIRED)
-add_executable(Sub0Pub_WiringTests ../test_main.cpp test_wiring.cpp test_concurrent_wiring.cpp)
-target_link_libraries(Sub0Pub_WiringTests PRIVATE Sub0Pub::Sub0Pub Threads::Threads)
+add_executable(Sub0Pub_WiringTests test_wiring.cpp test_concurrent_wiring.cpp)
+target_link_libraries(Sub0Pub_WiringTests PRIVATE Sub0Pub_TestMain Sub0Pub::Sub0Pub Threads::Threads)
 target_include_directories(Sub0Pub_WiringTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../vendor")
 add_test(NAME Sub0Pub_WiringTests COMMAND Sub0Pub_WiringTests)
 
