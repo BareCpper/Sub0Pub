@@ -2,7 +2,13 @@
 cmake_minimum_required(VERSION 3.21)
 project(Sub0PubConsumer LANGUAGES CXX)
 
+# Deliberately older consumer default: the imported target must raise this to C++23.
+set(CMAKE_CXX_STANDARD 17)
 find_package(Sub0Pub 2 REQUIRED)
+get_target_property(features Sub0Pub::Sub0Pub INTERFACE_COMPILE_FEATURES)
+if(NOT "cxx_std_23" IN_LIST features)
+    message(FATAL_ERROR "Sub0Pub must export its C++23 requirement")
+endif()
 
 # Warning levels and preprocessor modes are the consumer's choice: the package must not impose any
 get_target_property(options Sub0Pub::Sub0Pub INTERFACE_COMPILE_OPTIONS)

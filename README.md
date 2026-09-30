@@ -50,7 +50,7 @@ int main() {
 ### How It Compares
 
 **Sub0Pub is built for typed messaging with predictable storage and a small integration footprint.**
-Its C++17, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
+Its C++23, header-only core combines fixed-capacity subscriptions with static wiring that can reduce delivery
 to direct calls. Filtering, cancellation, snapshots and locking are opt-in per message type.
 
 | Compared with | Why choose Sub0Pub? | Trade-off |
@@ -129,7 +129,10 @@ Cortex-M33. Current results: [docs/PERFORMANCE_BASELINE.md](docs/PERFORMANCE_BAS
 
 ### Requirements
 
-- C++17 compiler (GCC 7+, Clang 5+, MSVC 2017+)
+- A compiler and standard library supporting the C++23 features used by Sub0Pub. CMake propagates
+  `cxx_std_23` through `Sub0Pub::Sub0Pub`; direct header users must select C++23 mode themselves.
+  Current CI exercises GCC, Clang, AppleClang and MSVC; this is not a claim of complete C++23 feature support.
+  MSVC toolchains may select `/std:c++latest` for C++23 through CMake.
 - CMake 3.21+
 
 ### Build & Test
@@ -322,6 +325,12 @@ public:
 ```
 
 ---
+
+## C++23 groundwork and companion integration
+
+See [the groundwork review](docs/CXX23_GROUNDWORK.md) for the C++23 migration, modernization choices and
+Sub0Pipeline adapter ownership options, including a potential umbrella project. Integration remains design-only;
+the core acquires no scheduler dependency. Existing consumers should read [MIGRATION.md](MIGRATION.md).
 
 ## Configuration
 

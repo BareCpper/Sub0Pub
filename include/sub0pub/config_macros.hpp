@@ -5,6 +5,15 @@
 #ifndef CROG_SUB0PUB_CONFIG_MACROS_HPP
 #define CROG_SUB0PUB_CONFIG_MACROS_HPP
 
+// Some C++23-mode compilers report a draft date. MSVC reports its selected mode via _MSVC_LANG.
+#if defined(_MSVC_LANG)
+#  if _MSVC_LANG <= 202002L
+#    error "Sub0Pub v2 requires C++23; link Sub0Pub::Sub0Pub or enable C++23 mode"
+#  endif
+#elif __cplusplus <= 202002L
+#  error "Sub0Pub v2 requires C++23; link Sub0Pub::Sub0Pub or enable C++23 mode"
+#endif
+
 #include <cassert>
 #include <cstdlib>
 

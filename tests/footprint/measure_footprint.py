@@ -61,7 +61,7 @@ AXIS_SCENARIOS = OrderedDict([
     ("fp_axis_2types_lean", "Lean, 2 Data types (marginal cost of a type)"),
 ])
 
-COMMON = ["-std=c++17", "-Os", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections", "-I" + INCLUDE]
+COMMON = ["-std=c++23", "-Os", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections", "-I" + INCLUDE]
 
 TARGETS = OrderedDict()
 if shutil.which("g++"):

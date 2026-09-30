@@ -56,9 +56,9 @@ HEADER_VARIANTS = [
     ("v2 ThreadSafe (mutex + snapshot, filter)", "v2", ["-DSUB0PUB_THREAD_SAFE=true", "-DSUB0PUB_FILTER=true"]),
 ]
 HOST_COMPILERS = OrderedDict([("gcc", "g++"), ("clang", "clang++")])
-HOST_FLAGS = ["-std=c++17", "-O2", "-DNDEBUG", "-pthread"]
+HOST_FLAGS = ["-std=c++23", "-O2", "-DNDEBUG", "-pthread"]
 
-FP_COMMON = ["-std=c++17", "-Os", "-DNDEBUG", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections"]
+FP_COMMON = ["-std=c++23", "-Os", "-DNDEBUG", "-fno-exceptions", "-fno-rtti", "-ffunction-sections", "-fdata-sections"]
 FP_TARGETS = OrderedDict([
     ("cm33", {"cxx": "arm-none-eabi-g++", "size": "arm-none-eabi-size", "nm": "arm-none-eabi-nm",
               "flags": ["-mcpu=cortex-m33", "-mthumb", "-mfloat-abi=hard", "-mfpu=fpv5-sp-d16"]}),

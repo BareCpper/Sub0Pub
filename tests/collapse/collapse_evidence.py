@@ -57,7 +57,7 @@ CASES_DIR = os.path.join(HERE, "cases")
 PUBLISHES = 1000  # driver.cpp kPublishes
 REFERENCE = "handwritten"
 
-COMMON = ["-std=c++17", "-DNDEBUG", "-ffunction-sections", "-fdata-sections", "-I" + HERE, "-I" + INCLUDE]
+COMMON = ["-std=c++23", "-DNDEBUG", "-ffunction-sections", "-fdata-sections", "-I" + HERE, "-I" + INCLUDE]
 
 # Named builds. host builds run (checksum + callgrind); cross builds are analysed from the final ELF only.
 BUILDS = OrderedDict([
@@ -86,7 +86,7 @@ for _name in list(BUILDS):
 # MSVC named builds are added when a Windows host has (or can locate) the toolchain. /GS- leaves out the stack
 # cookie (the ELF builds use no stack protector); /Gy /Gw are the equivalents of -ffunction-sections
 # -fdata-sections; /OPT:NOICF keeps identical functions apart, as gc-sections does.
-MSVC_COMMON = ["/nologo", "/W3", "/std:c++17", "/DNDEBUG", "/Gy", "/Gw", "/GS-", "/EHsc", "/Zc:preprocessor", "/Zi"]
+MSVC_COMMON = ["/nologo", "/W3", "/std:c++latest", "/DNDEBUG", "/Gy", "/Gw", "/GS-", "/EHsc", "/Zc:preprocessor", "/Zi"]
 BUILDS["msvc-O2"] = {"kind": "msvc", "cxx": "cl", "flags": ["/O2"],
                      "ldflags": ["/INCREMENTAL:NO", "/OPT:REF", "/OPT:NOICF", "/DEBUG"],
                      "objdump": "dumpbin", "run": True, "arch": "x86"}

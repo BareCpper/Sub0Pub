@@ -16,6 +16,5 @@ function(sub0pub_wiring_compile_fail name regex)
 endfunction()
 
 sub0pub_wiring_compile_fail(cf_wiring_static_wiring_local    "static storage duration|not a constant expression|not a valid template argument")
-sub0pub_wiring_compile_fail(cf_wiring_static_wiring_element  "not a variable or function|subobject|not a valid template argument|invalid template argument")
 sub0pub_wiring_compile_fail(cf_wiring_publish_from_ambiguous "Origin must be bound exactly once")
 sub0pub_wiring_compile_fail(cf_wiring_handles_mismatch       "Logger must receive Sample")

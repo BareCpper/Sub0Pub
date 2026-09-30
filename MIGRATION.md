@@ -11,12 +11,27 @@ For runnable static, dynamic and mixed-path migration recipes, see [examples](ex
 
 | | v1 | v2 |
 |---|---|---|
-| C++ Standard | Claims C++11, actually needs C++17 | C++17 (declared correctly) |
+| C++ Standard | Claims C++11, actually needs C++17 | C++23 (transitive CMake requirement) |
 | CMake Minimum | 3.7.1 | 3.21 |
 | Build | `./configure && cmake --build ./build` | `cmake --preset default && cmake --build --preset default` |
 | Test | N/A (no tests) | `ctest --preset default` |
 
-**Action:** Update your `target_compile_features` to `cxx_std_17` if linking against Sub0Pub. CMakePresets are now the recommended way to configure/build/test.
+**Action:** Link `Sub0Pub::Sub0Pub` to inherit `cxx_std_23`. For direct header use, enable C++23 mode
+(`-std=c++23`, or the C++23/latest mode supported by your MSVC toolchain). C++17/C++20 builds are no longer
+supported and receive a header diagnostic. CMakePresets remain the recommended configure/build/test entry point.
+
+### C++23 groundwork on the v2 branch
+
+The previous v2 baseline also used C++17: this requirement change affects existing v2 consumers, not only v1.
+Static wiring now uses requires-expressions internally and Sink's self-copy exclusion uses a requires-clause;
+public delivery, filtering, cancellation and Sink copy behavior remain unchanged. Filters still accept explicit
+boolean conversion; only an exact bool receive result stops cancelable publication. No scheduler, allocation,
+threading or Sub0Pipeline dependency is introduced.
+
+C++23 permits more non-type template arguments than the old baseline. The former array-element compile-fail
+check is removed: GCC 13 accepts that binding in C++23 mode. For portable wiring across the supported compiler
+matrix, use named static objects or `wire(array[0], array[1])`; binding the whole array still does not add fan-out.
+See [C++23 and integration groundwork](docs/CXX23_GROUNDWORK.md) for the reviewed scope and follow-up decisions.
 
 ---
 

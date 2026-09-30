@@ -88,7 +88,7 @@ opt-in for each v1 behaviour.
 | D6 | Publisher spelling | the `StaticWiring` alias, the CRTP `Publisher` mixin, or `Sink<T>` | a CTAD factory (Clang +4 instructions, +24 B); C++23 deducing this (GCC 13 rejects it, and it costs the same as the mixin) |
 | D7 | Lifetime | `Subscribe<T>` and `Publish<T>` have protected, non-virtual destructors; locked types register with `trySubscribe()` after construction; disconnect during a dispatch is safe under Snapshot; `Domain::close()` detaches, rejects and quiesces | a virtual destructor (a vptr per object and an `operator delete` link dependency on small targets); registration in the base constructor for concurrent types (another thread could dispatch into a half-built object) |
 | D8 | Teardown under concurrency | a sequentially consistent handshake: `disconnect()` waits only for a callback running on another thread | hazard pointers and epochs: cheaper only because they drop self-disconnect, nested-publish and thread-count safety, and they drop publications past their bounds in release builds |
-| D9 | Language standard | C++17 is the contract; C++20 concepts are an optional diagnostic aid | raising the baseline before embedded toolchains ship GCC 14 (C++23 deducing this is unavailable in GCC 13 and `arm-none-eabi-g++` 13) |
+| D9 | Language standard | C++23 is the contract; use concepts/requires where they simplify constraints | retaining C++17 compatibility scaffolding; adopting poorly supported features without toolchain and equal-work evidence (see [groundwork](CXX23_GROUNDWORK.md)) |
 
 ## Contracts
 
@@ -119,14 +119,14 @@ refer to them.
 | K8 | `Implementation<>` brokers support global storage only | `Domain` needs the library broker | make the table type part of the broker concept |
 | K9 | `cancel()`, re-entrancy checks and teardown walk this thread's dispatch frames | O(nesting depth), usually 1 | per-table frame chains if deep nesting appears |
 | K10 | The cross-thread teardown test is probabilistic | a removed wait is caught in about 4 of 5 runs | a deterministic interleaving harness |
-| K13 | C++20/23 spellings are optional extras | poorer diagnostics under C++17 | raise the baseline when embedded toolchains ship GCC 14 |
+| K13 | C++23 feature coverage varies across host and embedded compilers | selecting C++23 mode does not provide every language/library feature | validate each newly used feature in the supported matrix; keep CRTP until explicit-object-parameter support and cost are established |
 | K14 | Capability routing is silent on a signature mismatch: a receiver whose `receive` does not accept the message is skipped without a diagnostic | a missed delivery, found only by tests | state it where it is bound: `static_assert(sub0::handles_v<R, T>)` |
 | K15 | Split horizon is decided at compile time when the origin's type is bound once; the origin must then be that endpoint | a debug assertion | `publishFrom<Endpoint>(msg)` identifies the origin by type |
 | K16 | A lock requires `ThreadLocalContext`, so concurrent configurations need TLS | `__aeabi_read_tp` on Cortex-M | a context keyed by the RTOS thread |
 | K17 | Nothing is shared between message types: each instantiates its own table and dispatch loop | Cortex-M33, per further type: +220 B text and +49 B RAM (default), +386 B and +53 B (Snapshot, context, filter) | a type-erased dispatch core shared by types with the same configuration |
 | K18 | `wire(...)`: split horizon between two endpoints of the same transport type is an address compare | publish +8 (GCC) / +10 (Clang) | give each link its own adapter type and use `publishFrom<Link>(msg)` |
 | K19 | `false` from a receiver stops only `publishCancelable`; plain `publish()` ignores it, and `Sink<T>` has no cancelable publish | a missed stop | a diagnostic when `publish()` reaches a bool-returning receiver |
-| K20 | `StaticWiring` binds complete objects with static storage only: no locals, no array elements; a bound array binds nothing, and fan-out is unrolled | 32 receivers: +668 B Cortex-M33 text against a hand-written loop | `wire(...)` for dynamic lifetimes; an array binding that delivers by loop |
+| K20 | `StaticWiring` needs static storage: no locals; array-element NTTP support varies by compiler; a bound array binds nothing, and fan-out is unrolled | 32 receivers: +668 B Cortex-M33 text against a hand-written loop | `wire(...)` for dynamic lifetimes; an array binding that delivers by loop |
 | K21 | `DynamicPort` has no snapshot: a receiver removed during delivery makes the next one miss that publication; `add()` at capacity drops silently (`tryAdd()` reports) | x86 image +30 to +68 B | `BrokerPort` with Snapshot where removal during delivery is needed |
 | K22 | A nested publication on the same static wiring compiles as recursion through the fold | GCC x86 +536 B text; Clang +4 instructions; Cortex-M33 none | publish nested messages through a separate wiring |
 | K23 | Clang does not propagate `Wiring` bindings held inside an aggregate as it does a struct of pointers | publish +3 to +5, RAM +24 B (Clang only) | open |

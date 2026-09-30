@@ -6,6 +6,7 @@
 #define CROG_SUB0PUB_WIRING_PUBLISHER_HPP
 
 #include "sub0pub/wiring/capability.hpp"
+#include <concepts>
 #include <type_traits>
 
 namespace sub0
@@ -18,7 +19,8 @@ namespace sub0
     {
     public:
         /// Wrap a wiring, which must outlive the Sink (constrained: copying a Sink copies it, never wraps it)
-        template<class W, std::enable_if_t<!std::is_same_v<std::remove_cv_t<W>, Sink>, int> = 0>
+        template<class W>
+            requires (!std::same_as<std::remove_cv_t<W>, Sink>)
         explicit Sink(W& wiring) noexcept
             : target_(&wiring)
             , call_([](const void* w, const T& msg) noexcept { static_cast<const W*>(w)->publish(msg); })

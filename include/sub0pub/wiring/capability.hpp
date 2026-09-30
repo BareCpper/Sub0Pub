@@ -7,6 +7,7 @@
 
 #include "sub0pub/config_macros.hpp"
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <type_traits>
 #include <utility>
@@ -17,41 +18,39 @@ namespace sub0
     {
     namespace wiring
     {
-        template<class R, class T, class = void> struct accepts : std::false_type {};
         template<class R, class T>
-        struct accepts<R, T, std::void_t<decltype(std::declval<R&>().receive(std::declval<const T&>()))>> : std::true_type {};
+        concept Accepts = requires(R& receiver, const T& message) { receiver.receive(message); };
 
-        template<class R, class T, class = void> struct has_filter : std::false_type {};
+        // Preserve explicit boolean conversion (not just implicit convertibility) for filter results.
         template<class R, class T>
-        struct has_filter<R, T, std::void_t<decltype(bool(std::declval<R&>().filter(std::declval<const T&>())))>> : std::true_type {};
+        concept HasFilter = requires(R& receiver, const T& message) { bool(receiver.filter(message)); };
 
         /// Bound objects may be the receiver itself or a holder exposing it via get() (e.g. application storage slots)
-        template<class X, class = void> struct has_get : std::false_type {};
-        template<class X> struct has_get<X, std::void_t<decltype(std::declval<X&>().get())>> : std::true_type {};
+        template<class X>
+        concept HasGet = requires(X& value) { value.get(); };
 
         template<class X>
         constexpr decltype(auto) receiver(X& x) noexcept
         {
-            if constexpr (has_get<X>::value)
+            if constexpr (HasGet<X>)
                 return x.get();
             else
                 return (x);
         }
 
         template<class R, class T>
-        using receive_result_t = decltype(std::declval<R&>().receive(std::declval<const T&>()));
-
-        template<class R, class T, class = void> struct receive_returns_bool : std::false_type {};
-        template<class R, class T>
-        struct receive_returns_bool<R, T, std::enable_if_t<std::is_same_v<receive_result_t<R, T>, bool>>> : std::true_type {};
+        concept ReturnsBool = requires(R& receiver, const T& message)
+        {
+            { receiver.receive(message) } -> std::same_as<bool>;
+        };
 
         /// Deliver to one receiver: nothing at all if it does not handle T; its filter only if it declares one
         template<class R, class T>
         SUB0PUB_FORCE_INLINE void deliver(R& r, const T& msg) noexcept
         {
-            if constexpr (accepts<R, T>::value)
+            if constexpr (Accepts<R, T>)
             {
-                if constexpr (has_filter<R, T>::value)
+                if constexpr (HasFilter<R, T>)
                     if (!r.filter(msg))
                         return;
                 r.receive(msg);
@@ -63,12 +62,12 @@ namespace sub0
         template<class R, class T>
         inline bool deliverContinue(R& r, const T& msg) noexcept
         {
-            if constexpr (accepts<R, T>::value)
+            if constexpr (Accepts<R, T>)
             {
-                if constexpr (has_filter<R, T>::value)
+                if constexpr (HasFilter<R, T>)
                     if (!r.filter(msg))
                         return true;
-                if constexpr (receive_returns_bool<R, T>::value)
+                if constexpr (ReturnsBool<R, T>)
                     return r.receive(msg);
                 else
                 {
