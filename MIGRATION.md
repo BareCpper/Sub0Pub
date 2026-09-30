@@ -350,6 +350,13 @@ In v1, an unrecognized typeId in the stream caused a throw/assert with no recove
 ### SyncLost has a recovery path
 
 In v1, `SyncLost` was a permanent dead end. In v2, the reader byte-scans forward for the next valid prefix magic and re-enters normal reading.
+When exceptions are enabled, a corrupt prefix or postfix throws after entering `SyncLost`; catch the error and call
+`update()` again to scan for the next valid frame.
+
+### Optional postfix and writer polling
+
+`BinaryReader<Prefix, Header, void>` now compiles when `update()` is used. The default `StreamSerializer` also accepts
+`update()`: its synchronous binary writer has no pending work, so the call returns `true`.
 
 ### `paddingSize` type widened
 
