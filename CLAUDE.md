@@ -8,8 +8,9 @@ cmake --build --preset default  # Build
 ctest --preset default          # Run tests
 ```
 
-Benchmarks are built alongside tests but not run by ctest:
+Benchmarks are built on demand and are not run by ctest:
 ```bash
+cmake --build --preset default --target Sub0Pub_Bench Sub0Pub_Bench_Checked Sub0Pub_Bench_Full Sub0Pub_Bench_ThreadSafe Sub0Pub_Bench_Ipc Sub0Pub_Bench_Axes
 ./build/tests/Release/Sub0Pub_Bench   # Windows
 ./build/tests/Sub0Pub_Bench           # Linux/macOS
 python3 tests/bench/run_baseline.py   # all policies + IPC, with callgrind instr/op (Linux)
@@ -69,6 +70,7 @@ legacy merely because their names existed in v1. See `STYLE_GUIDE.md` for placem
   work lives on its own branch; the release tree carries only the public API, its tests, evidence and documentation.
 
 ## Branch Strategy
-- `develop` — stable v1 baseline
-- `v2` — active v2 development branch
+- `main` — current v2 release
+- `develop` — ongoing v2 integration
+- `v2` — v2 release-staging history
 - `v1.0` tag — final v1 state
