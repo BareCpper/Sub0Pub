@@ -27,6 +27,8 @@ class BaselineGateTests(unittest.TestCase):
                                           max_instr_per_op=38.0)]}
         self.assertIn("39.0 > 38.0", baseline.check_budgets({key: 39.0}, budgets)[0])
         self.assertIn("missing measurement", baseline.check_budgets({}, budgets)[0])
+        self.assertEqual(baseline.check_budgets({key: 38.0001}, budgets), [])
+        self.assertIn("38.1 > 38.0", baseline.check_budgets({key: 38.051}, budgets)[0])
 
     def test_duplicate_and_empty_budgets_fail(self):
         key = ("Core publish/subscribe by policy", "Publish", "1 subscriber", "Direct (default)")

@@ -150,7 +150,9 @@ def check_budgets(measured, budgets):
         limit = row["max_instr_per_op"]
         if actual is None:
             errors.append(f"missing measurement: {' / '.join(key)}")
-        elif actual > limit + 1e-6:
+        # Budgets are recorded from the report's one-decimal values. Callgrind totals divided by 10,000
+        # iterations can carry a smaller fractional remainder even for the unchanged binary.
+        elif round(actual, 1) > limit + 1e-6:
             errors.append(f"{' / '.join(key)}: {actual:.1f} > {limit:.1f} instr/op")
     if not seen:
         errors.append("no benchmark budgets selected")
