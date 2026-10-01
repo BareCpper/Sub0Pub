@@ -27,10 +27,10 @@ target_include_directories(Sub0Pub_Tests PRIVATE
 
 add_test(NAME Sub0Pub_Tests COMMAND Sub0Pub_Tests)
 
-# Performance benchmarks (not run by ctest; see tests/bench/run_baseline.py)
+# Performance benchmarks are built explicitly by the measurement job, not by routine builds or ctest.
 # The core benchmark is built once per macro policy so policies are compared on identical scenarios.
 function(sub0pub_add_bench name source)
-    add_executable(${name} ${source})
+    add_executable(${name} EXCLUDE_FROM_ALL ${source})
     target_link_libraries(${name} PRIVATE Sub0Pub::Sub0Pub)
     target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
     target_compile_definitions(${name} PRIVATE ${ARGN})
