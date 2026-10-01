@@ -14,7 +14,8 @@ against [`tests/bench/budgets.json`](../tests/bench/budgets.json). Broader measu
 | text/data/bss, symbol sizes, link dependencies | `size`, `nm -S` on `-Os -fno-exceptions -fno-rtti` objects (`tests/footprint/`) | Embedded cost per usage pattern and per configuration option |
 
 ```bash
-cmake --preset default && cmake --build --preset default
+cmake --preset default
+cmake --build --preset default --target Sub0Pub_Bench Sub0Pub_Bench_Checked Sub0Pub_Bench_Full Sub0Pub_Bench_ThreadSafe Sub0Pub_Bench_Ipc Sub0Pub_Bench_Axes
 python3 tests/bench/run_baseline.py build/tests      # instr/op + ns/op: each policy, each configuration option, IPC
 python3 tests/bench/run_baseline.py build/tests --no-timing --budgets tests/bench/budgets.json  # release gate
 python3 tests/footprint/measure_footprint.py         # host + Cortex-M33 (arm-none-eabi-g++ if installed)
