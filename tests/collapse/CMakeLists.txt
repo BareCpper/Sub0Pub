@@ -1,8 +1,7 @@
-# Collapse evidence cases (docs/EVIDENCE.md). ctest checks that every variant behaves exactly like its hand-written
-# reference, on every CI compiler. Measurement (instructions, final-link image evidence, Cortex-M33, MSVC) is done by
-# collapse_evidence.py.
+# Collapse evidence cases (docs/EVIDENCE.md). Routine builds use representative public-API cases; the full
+# comparison matrix is available with SUB0PUB_COLLAPSE_PROFILE=full. Final-link budgets are checked separately.
 
-set(SUB0PUB_COLLAPSE_PROFILE "full" CACHE STRING "Collapse cases to build: smoke or full")
+set(SUB0PUB_COLLAPSE_PROFILE "smoke" CACHE STRING "Collapse cases to build: smoke or full")
 set_property(CACHE SUB0PUB_COLLAPSE_PROFILE PROPERTY STRINGS smoke full)
 if(NOT SUB0PUB_COLLAPSE_PROFILE STREQUAL "smoke" AND NOT SUB0PUB_COLLAPSE_PROFILE STREQUAL "full")
     message(FATAL_ERROR "SUB0PUB_COLLAPSE_PROFILE must be smoke or full")

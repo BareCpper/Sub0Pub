@@ -8,12 +8,15 @@ For each benchmark executable this collects:
 
 Usage:
   cmake --preset default && cmake --build --preset default
-  python3 tests/bench/run_baseline.py [build/tests] > report.md
+  python3 tests/bench/run_baseline.py [build/tests] [--budgets tests/bench/budgets.json] > report.md
 Options:
   --no-callgrind   skip instruction counting (valgrind not installed / Windows)
   --no-timing      skip wall-clock timing
+  --budgets FILE   fail if selected instruction counts exceed recorded limits
 """
+import argparse
 import glob
+import json
 import os
 import re
 import shutil
@@ -110,6 +113,7 @@ def report(title, variants, build_dir, timing, callgrind):
                 keys.append(k)
 
     print(f"## {title}\n")
+    instruction_counts = {}
     labels = list(columns.keys())
     metrics = ([("instr/op", 1)] if callgrind else []) + ([("ns/op", 2)] if timing else [])
     for metric, digits in metrics:
@@ -125,15 +129,46 @@ def report(title, variants, build_dir, timing, callgrind):
             for label in labels:
                 t, c = columns[label]
                 cells.append(fmt((c if metric == "instr/op" else t).get(key), digits))
+                if metric == "instr/op" and key in c:
+                    instruction_counts[(title, key[0], key[1], label)] = c[key]
             print(f"| {key[1]} | " + " | ".join(cells) + " |")
         print()
+    return instruction_counts
+
+
+def check_budgets(measured, budgets):
+    """Selected, stable Callgrind instruction counts are release gates; omitted rows remain report-only."""
+    errors = []
+    seen = set()
+    for row in budgets["measurements"]:
+        key = (row["suite"], row["section"], row["scenario"], row["variant"])
+        if key in seen:
+            errors.append(f"duplicate budget: {' / '.join(key)}")
+            continue
+        seen.add(key)
+        actual = measured.get(key)
+        limit = row["max_instr_per_op"]
+        if actual is None:
+            errors.append(f"missing measurement: {' / '.join(key)}")
+        elif actual > limit + 1e-6:
+            errors.append(f"{' / '.join(key)}: {actual:.1f} > {limit:.1f} instr/op")
+    if not seen:
+        errors.append("no benchmark budgets selected")
+    return errors
 
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    build_dir = args[0] if args else os.path.join("build", "tests")
-    timing = "--no-timing" not in sys.argv
-    callgrind = "--no-callgrind" not in sys.argv and shutil.which("valgrind") is not None
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("build_dir", nargs="?", default=os.path.join("build", "tests"))
+    ap.add_argument("--no-callgrind", action="store_true")
+    ap.add_argument("--no-timing", action="store_true")
+    ap.add_argument("--budgets")
+    args = ap.parse_args()
+    build_dir = args.build_dir
+    timing = not args.no_timing
+    callgrind = not args.no_callgrind and shutil.which("valgrind") is not None
+    if args.budgets and not callgrind:
+        ap.error("--budgets requires Valgrind/Callgrind")
 
     info = subprocess.run([find_exe(build_dir, "Sub0Pub_Bench")], capture_output=True, text=True).stdout
     print("# Sub0Pub benchmark report\n")
@@ -146,11 +181,23 @@ def main():
     if callgrind:
         print(f"instr/op: callgrind instruction count / {INSTR_ITERATIONS} iterations "
               "(includes ~3 instructions of loop overhead).\n")
-    report("Core publish/subscribe by policy", CORE_VARIANTS, build_dir, timing, callgrind)
-    report("IPC end-to-end", IPC_VARIANTS, build_dir, timing, callgrind)
-    report("Runtime broker configuration, one option at a time (docs/DESIGN.md)", AXES_VARIANTS, build_dir,
-           timing, callgrind)
+    measured = {}
+    measured.update(report("Core publish/subscribe by policy", CORE_VARIANTS, build_dir, timing, callgrind))
+    measured.update(report("IPC end-to-end", IPC_VARIANTS, build_dir, timing, callgrind))
+    measured.update(report("Runtime broker configuration, one option at a time (docs/DESIGN.md)", AXES_VARIANTS,
+                           build_dir, timing, callgrind))
+    if args.budgets:
+        with open(args.budgets) as file:
+            budgets = json.load(file)
+        errors = check_budgets(measured, budgets)
+        print(f"**Regression gate:** {len(budgets['measurements'])} instruction-count limits; "
+              + (f"{len(errors)} failure(s)." if errors else "all within budget."))
+        for error in errors:
+            print(f"- {error}")
+        if errors:
+            return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
